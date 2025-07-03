@@ -1,0 +1,30 @@
+# Node modules
+node_modules/
+reportpro-backend/node_modules/
+reportpro-frontend/node_modules/
+
+# Build output
+dist/
+reportpro-frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Archive (if not needed)
+archive/ 
