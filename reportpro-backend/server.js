@@ -50,6 +50,7 @@ const studentSchema = new mongoose.Schema(
     {
         rollNo: { type: String, required: true },
         name: { type: String, required: true, default: "Unknown" },
+        class: { type: String, enum: ["9th", "10th"], required: true },
         subject: { type: String, required: true },
         theory: { type: Number, required: true, min: 0, max: 75 },
         practical: { type: Number, required: true, min: 0, max: 25 },
@@ -151,9 +152,22 @@ function requireAuth(req, res, next) {
 // Add or update student marks for a subject
 app.post("/api/students", requireAuth, async (req, res) => {
     try {
-        let { rollNo, name, subject, theory, practical, session } = req.body;
+        let {
+            rollNo,
+            name,
+            class: studentClass,
+            subject,
+            theory,
+            practical,
+            session,
+        } = req.body;
         if (!name || typeof name !== "string" || !name.trim()) {
             name = "Unknown";
+        }
+        if (!studentClass || !["9th", "10th"].includes(studentClass)) {
+            return res
+                .status(400)
+                .json({ error: "Class must be '9th' or '10th'." });
         }
         const theoryNum = Number(theory);
         const practicalNum = Number(practical);
@@ -205,6 +219,7 @@ app.post("/api/students", requireAuth, async (req, res) => {
         const update = {
             rollNo,
             name,
+            class: studentClass,
             subject,
             session,
             theory: theoryNum,
@@ -270,7 +285,11 @@ app.get("/api/students/:rollNo", requireAuth, async (req, res) => {
 // Get school statistics
 app.get("/api/statistics", requireAuth, async (req, res) => {
     try {
-        const students = await Student.find({ user: req.userId });
+        const filter = { user: req.userId };
+        if (req.query.class) {
+            filter.class = req.query.class;
+        }
+        const students = await Student.find(filter);
 
         if (!students.length) {
             return res.json({
@@ -281,20 +300,32 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
             });
         }
 
+        // Group by rollNo
+        const studentsByRollNo = {};
+        students.forEach((s) => {
+            if (!studentsByRollNo[s.rollNo]) studentsByRollNo[s.rollNo] = [];
+            studentsByRollNo[s.rollNo].push(s);
+        });
+
+        let pass = 0,
+            fail = 0;
+        Object.values(studentsByRollNo).forEach((subjects) => {
+            // If any subject is E1 or E2, student fails
+            const hasFail = subjects.some(
+                (s) => s.grade === "E1" || s.grade === "E2"
+            );
+            if (hasFail) fail++;
+            else pass++;
+        });
+
         let topScorer = students[0];
         let totalMarks = 0;
         let gradeDist = {};
-        let pass = 0,
-            fail = 0;
-
         students.forEach((s) => {
             totalMarks += s.total;
             gradeDist[s.grade] = (gradeDist[s.grade] || 0) + 1;
-            if (s.grade !== "E2" && s.grade !== "E1") pass++;
-            else fail++;
             if (s.total > topScorer.total) topScorer = s;
         });
-
         const classAverage = totalMarks / students.length;
 
         res.json({

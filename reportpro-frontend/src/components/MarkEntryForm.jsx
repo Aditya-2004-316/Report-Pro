@@ -19,6 +19,7 @@ function MarkEntryForm({
     const [validationError, setValidationError] = useState("");
     const [confirmModal, setConfirmModal] = useState(false);
     const [pendingData, setPendingData] = useState(null);
+    const [studentClass, setStudentClass] = useState("9th");
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -39,6 +40,7 @@ function MarkEntryForm({
         if (
             !rollNo ||
             !name ||
+            !studentClass ||
             !subject ||
             !session ||
             theory === "" ||
@@ -79,6 +81,7 @@ function MarkEntryForm({
         const data = {
             rollNo: rollNo.trim(),
             name: name.trim(),
+            class: studentClass,
             subject: subject.trim(),
             session: session.trim(),
             theory: Number(theory),
@@ -94,6 +97,7 @@ function MarkEntryForm({
             onSubmit(data);
             setRollNo("");
             setName("");
+            setStudentClass("9th");
             setTheory("");
             setPractical("");
             // session and subject remain sticky
@@ -105,6 +109,7 @@ function MarkEntryForm({
             onSubmit(pendingData);
             setRollNo("");
             setName("");
+            setStudentClass("9th");
             setTheory("");
             setPractical("");
         }
@@ -336,6 +341,21 @@ function MarkEntryForm({
                                 {sess}
                             </option>
                         ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="markentry-label" style={labelStyle}>
+                        Class
+                    </label>
+                    <select
+                        value={studentClass}
+                        onChange={(e) => setStudentClass(e.target.value)}
+                        className="markentry-input"
+                        style={selectStyle}
+                        required
+                    >
+                        <option value="9th">9th</option>
+                        <option value="10th">10th</option>
                     </select>
                 </div>
                 <div>

@@ -22,6 +22,7 @@ function StudentList({
         session: null,
     });
     const [subject, setSubject] = useState("Science");
+    const [selectedClass, setSelectedClass] = useState("9th");
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -34,16 +35,19 @@ function StudentList({
         if (!session) setSession(sessionOptions[0]);
     }, []);
     useEffect(() => {
-        if (!session || !token) return;
-        fetch(`${API_BASE}/api/students?session=${session}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+        if (!session || !token || !selectedClass) return;
+        fetch(
+            `${API_BASE}/api/students?session=${session}&class=${selectedClass}`,
+            {
+                headers: { Authorization: `Bearer ${token}` },
+            }
+        )
             .then((res) => res.json())
             .then((data) => {
                 setStudents(data);
                 setLastUpdated(new Date());
             });
-    }, [session, token]);
+    }, [session, token, selectedClass]);
 
     const filtered = students.filter(
         (s) =>
@@ -453,6 +457,35 @@ function StudentList({
         });
     }
 
+    async function handleDeleteEntireStudent(rollNo) {
+        if (
+            !window.confirm(
+                "Are you sure you want to delete all marks for this student?"
+            )
+        )
+            return;
+        try {
+            const res = await fetch(`${API_BASE}/api/students/all`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ rollNo, session }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                alert(data.error || "Failed to delete student.");
+                return;
+            }
+            setStudents((prev) =>
+                prev.filter((s) => s.rollNo !== rollNo || s.session !== session)
+            );
+        } catch (err) {
+            alert("Failed to delete student.");
+        }
+    }
+
     return (
         <div className="results-container" style={containerStyle}>
             {responsiveStyleTag}
@@ -505,6 +538,38 @@ function StudentList({
                                 {sess}
                             </option>
                         ))}
+                    </select>
+                </div>
+                <div style={{ maxWidth: 180, flex: 1 }}>
+                    <label
+                        style={{
+                            fontWeight: 700,
+                            color: accentDark,
+                            marginBottom: 4,
+                            fontSize: 16,
+                        }}
+                    >
+                        Class
+                    </label>
+                    <select
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "10px 8px",
+                            borderRadius: 6,
+                            border: `1.5px solid ${accent}`,
+                            fontSize: 16,
+                            fontWeight: 600,
+                            color: accentDark,
+                            background: theme.inputBg,
+                            marginTop: 4,
+                            marginBottom: 0,
+                        }}
+                        required
+                    >
+                        <option value="9th">9th</option>
+                        <option value="10th">10th</option>
                     </select>
                 </div>
                 <div className="results-header-right" style={rightSectionStyle}>
@@ -565,7 +630,16 @@ function StudentList({
                                 <th style={{ ...summaryThStyle }} rowSpan={2}>
                                     Roll No
                                 </th>
-                                <th style={{ ...summaryThStyle }} rowSpan={2}>
+                                <th
+                                    style={{
+                                        ...summaryThStyle,
+                                        minWidth: 120,
+                                        maxWidth: 300,
+                                        whiteSpace: "normal",
+                                        wordBreak: "break-word",
+                                    }}
+                                    rowSpan={2}
+                                >
                                     Name
                                 </th>
                                 {SUBJECTS.map((subj) => (
@@ -588,6 +662,9 @@ function StudentList({
                                 </th>
                                 <th style={{ ...summaryThStyle }} rowSpan={2}>
                                     Grade
+                                </th>
+                                <th style={{ ...summaryThStyle }} rowSpan={2}>
+                                    Delete
                                 </th>
                             </tr>
                             <tr>
@@ -652,7 +729,15 @@ function StudentList({
                                                 <td style={summaryTdStyle}>
                                                     {stu.rollNo}
                                                 </td>
-                                                <td style={summaryTdStyle}>
+                                                <td
+                                                    style={{
+                                                        ...summaryTdStyle,
+                                                        minWidth: 120,
+                                                        maxWidth: 300,
+                                                        whiteSpace: "normal",
+                                                        wordBreak: "break-word",
+                                                    }}
+                                                >
                                                     {Object.values(
                                                         stu.subjects
                                                     )[0]?.name || "-"}
@@ -704,6 +789,30 @@ function StudentList({
                                                         stu.subjects
                                                     )}
                                                 </td>
+                                                <td style={summaryTdStyle}>
+                                                    <button
+                                                        onClick={() =>
+                                                            handleDeleteEntireStudent(
+                                                                stu.rollNo
+                                                            )
+                                                        }
+                                                        style={{
+                                                            background: accent,
+                                                            color: "#fff",
+                                                            border: "none",
+                                                            borderRadius: 6,
+                                                            padding: "4px 12px",
+                                                            fontWeight: 700,
+                                                            fontSize: 14,
+                                                            cursor: "pointer",
+                                                            boxShadow:
+                                                                theme.shadow,
+                                                            marginLeft: 4,
+                                                        }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
                                             </tr>
                                         );
                                     }
@@ -734,7 +843,17 @@ function StudentList({
                             <thead>
                                 <tr>
                                     <th style={subjectThStyle}>Roll No</th>
-                                    <th style={subjectThStyle}>Name</th>
+                                    <th
+                                        style={{
+                                            ...subjectThStyle,
+                                            minWidth: 120,
+                                            maxWidth: 300,
+                                            whiteSpace: "normal",
+                                            wordBreak: "break-word",
+                                        }}
+                                    >
+                                        Name
+                                    </th>
                                     <th style={subjectThStyle}>Theory</th>
                                     <th style={subjectThStyle}>Practical</th>
                                     <th style={subjectThStyle}>Total</th>
@@ -770,7 +889,15 @@ function StudentList({
                                             <td style={subjectTdStyle}>
                                                 {s.rollNo}
                                             </td>
-                                            <td style={subjectTdStyle}>
+                                            <td
+                                                style={{
+                                                    ...subjectTdStyle,
+                                                    minWidth: 120,
+                                                    maxWidth: 300,
+                                                    whiteSpace: "normal",
+                                                    wordBreak: "break-word",
+                                                }}
+                                            >
                                                 {s.name || "-"}
                                             </td>
                                             <td style={subjectTdStyle}>

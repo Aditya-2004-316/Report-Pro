@@ -472,12 +472,12 @@ function App() {
                                 }}
                             >
                                 <style>{`
-                                .profile-avatar-btn { background: #fff; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: ${ACCENT_DARK}; box-shadow: 0 2px 8px #e5393533; cursor: pointer; position: relative; transition: box-shadow 0.2s; }
-                                .profile-avatar-btn:focus, .profile-avatar-btn:active { outline: none; border: none; box-shadow: 0 0 0 2px ${ACCENT}; }
-                                .profile-dropdown { position: absolute; top: 54px; right: 0; background: #fff; color: ${ACCENT_DARK}; border-radius: 12px; box-shadow: 0 4px 24px #e5393533; min-width: 160px; z-index: 100; padding: 0.5rem 0; display: flex; flex-direction: column; }
-                                .profile-dropdown-btn { background: none; border: none; color: ${ACCENT_DARK}; font-size: 16px; font-weight: 600; text-align: left; padding: 12px 20px; cursor: pointer; border-radius: 8px; transition: background 0.15s; }
-                                .profile-dropdown-btn:hover { background: #ffeaea; }
-                                `}</style>
+                .profile-avatar-btn { background: #fff; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: ${ACCENT_DARK}; box-shadow: 0 2px 8px #e5393533; cursor: pointer; position: relative; transition: box-shadow 0.2s; }
+                .profile-avatar-btn:focus, .profile-avatar-btn:active { outline: none; border: none; box-shadow: 0 0 0 2px ${ACCENT}; }
+                .profile-dropdown { position: absolute; top: 54px; right: 0; background: #fff; color: ${ACCENT_DARK}; border-radius: 12px; box-shadow: 0 4px 24px #e5393533; min-width: 160px; z-index: 100; padding: 0.5rem 0; display: flex; flex-direction: column; }
+                .profile-dropdown-btn { background: none; border: none; color: ${ACCENT_DARK}; font-size: 16px; font-weight: 600; text-align: left; padding: 12px 20px; cursor: pointer; border-radius: 8px; transition: background 0.15s; }
+                .profile-dropdown-btn:hover { background: #ffeaea; }
+                `}</style>
                                 <div
                                     style={{
                                         display: "flex",
@@ -822,38 +822,38 @@ function App() {
                                 />
                             )}
                             <style>{`
-                              [data-theme="dark"] {
-                                background: #18191a !important;
-                                color: #f5f5f5 !important;
-                              }
-                              [data-theme="dark"] .dashboard-container,
-                              [data-theme="dark"] .results-container,
-                              [data-theme="dark"] .results-card,
-                              [data-theme="dark"] .markentry-form {
-                                background: #232526 !important;
-                                color: #f5f5f5 !important;
-                              }
-                              [data-theme="dark"] input,
-                              [data-theme="dark"] select,
-                              [data-theme="dark"] textarea {
-                                background: #232526 !important;
-                                color: #f5f5f5 !important;
-                                border-color: #444 !important;
-                              }
-                              [data-theme="dark"] .profile-dropdown {
-                                background: #232526 !important;
-                                color: #f5f5f5 !important;
-                              }
-                              [data-theme="dark"] .profile-dropdown-btn:hover {
-                                background: #333 !important;
-                              }
-                              [data-theme="dark"] .profile-avatar-btn,
-                              [data-theme="dark"] .profile-avatar-btn:focus,
-                              [data-theme="dark"] .profile-avatar-btn:active {
-                                background: #232526 !important;
-                                color: #ffeaea !important;
-                              }
-                            `}</style>
+              [data-theme="dark"] {
+                background: #18191a !important;
+                color: #f5f5f5 !important;
+              }
+              [data-theme="dark"] .dashboard-container,
+              [data-theme="dark"] .results-container,
+              [data-theme="dark"] .results-card,
+              [data-theme="dark"] .markentry-form {
+                background: #232526 !important;
+                color: #f5f5f5 !important;
+              }
+              [data-theme="dark"] input,
+              [data-theme="dark"] select,
+              [data-theme="dark"] textarea {
+                background: #232526 !important;
+                color: #f5f5f5 !important;
+                border-color: #444 !important;
+              }
+              [data-theme="dark"] .profile-dropdown {
+                background: #232526 !important;
+                color: #f5f5f5 !important;
+              }
+              [data-theme="dark"] .profile-dropdown-btn:hover {
+                background: #333 !important;
+              }
+              [data-theme="dark"] .profile-avatar-btn,
+              [data-theme="dark"] .profile-avatar-btn:focus,
+              [data-theme="dark"] .profile-avatar-btn:active {
+                background: #232526 !important;
+                color: #ffeaea !important;
+              }
+            `}</style>
                         </div>
                     ) : (
                         <Navigate to="/" replace />
