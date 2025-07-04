@@ -272,7 +272,7 @@ function Login({ onLogin, switchToSignup }) {
                                     onClick={() => setShowPassword((v) => !v)}
                                     style={{
                                         position: "absolute",
-                                        right: 10,
+                                        right: 20,
                                         top: "50%",
                                         transform: "translateY(-50%)",
                                         background: "none",
@@ -607,7 +607,7 @@ function Login({ onLogin, switchToSignup }) {
                                         }
                                         style={{
                                             position: "absolute",
-                                            right: 15,
+                                            right: 25,
                                             top: "50%",
                                             transform: "translateY(-50%)",
                                             background: "none",
