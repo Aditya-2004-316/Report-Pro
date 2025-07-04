@@ -44,6 +44,13 @@ function Dashboard({
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState(null);
     const csvLinkRef = useRef();
+    const [selectedClass, setSelectedClass] = useState("9th");
+    const [stats, setStats] = useState({
+        passFail: { pass: 0, fail: 0 },
+        classAverage: 0,
+        gradeDist: {},
+        topScorer: null,
+    });
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -58,18 +65,31 @@ function Dashboard({
         if (!session) setSession(sessionOptions[0]);
     }, []);
     useEffect(() => {
-        if (!session || !token) return;
+        if (!session || !token || !selectedClass) return;
         setLoading(true);
-        fetch(`${API_BASE}/api/students?session=${session}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+        fetch(
+            `${API_BASE}/api/students?session=${session}&class=${selectedClass}`,
+            {
+                headers: { Authorization: `Bearer ${token}` },
+            }
+        )
             .then((res) => res.json())
             .then((data) => {
                 setStudents(data);
                 setLoading(false);
                 setLastUpdated(new Date());
             });
-    }, [session, token]);
+        fetch(
+            `${API_BASE}/api/statistics?session=${session}&class=${selectedClass}`,
+            {
+                headers: { Authorization: `Bearer ${token}` },
+            }
+        )
+            .then((res) => res.json())
+            .then((data) => {
+                setStats(data);
+            });
+    }, [session, token, selectedClass]);
 
     if (loading) return <div>Loading...</div>;
 
@@ -570,6 +590,38 @@ function Dashboard({
                         ))}
                     </select>
                 </div>
+                <div style={{ maxWidth: 180, flex: 1 }}>
+                    <label
+                        style={{
+                            fontWeight: 700,
+                            color: accentDark,
+                            marginBottom: 4,
+                            fontSize: 16,
+                        }}
+                    >
+                        Class
+                    </label>
+                    <select
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "10px 8px",
+                            borderRadius: 6,
+                            border: `1.5px solid ${accent}`,
+                            fontSize: 16,
+                            fontWeight: 600,
+                            color: accentDark,
+                            background: theme.inputBg,
+                            marginTop: 4,
+                            marginBottom: 0,
+                        }}
+                        required
+                    >
+                        <option value="9th">9th</option>
+                        <option value="10th">10th</option>
+                    </select>
+                </div>
                 <div
                     style={{
                         display: "flex",
@@ -616,7 +668,7 @@ function Dashboard({
                         style={{ ...summaryIcon, color: "#43ea7b" }}
                         title="Pass Count"
                     />
-                    <span style={summaryValue}>{passCount}</span>
+                    <span style={summaryValue}>{stats.passFail.pass}</span>
                     <span style={summaryLabel}>Pass Count</span>
                 </div>
                 <div className="dashboard-card" style={summaryCard}>
@@ -624,7 +676,7 @@ function Dashboard({
                         style={{ ...summaryIcon, color: accent }}
                         title="Fail Count"
                     />
-                    <span style={summaryValue}>{failCount}</span>
+                    <span style={summaryValue}>{stats.passFail.fail}</span>
                     <span style={summaryLabel}>Fail Count</span>
                 </div>
                 <div className="dashboard-card" style={summaryCard}>
