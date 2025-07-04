@@ -335,6 +335,7 @@ function StudentList({
         const rows = [
             [
                 "Roll No",
+                "Name",
                 "Subject",
                 "Theory",
                 "Practical",
@@ -344,6 +345,7 @@ function StudentList({
             ],
             ...filtered.map((s) => [
                 s.rollNo,
+                s.name,
                 s.subject,
                 s.theory,
                 s.practical,
@@ -563,6 +565,9 @@ function StudentList({
                                 <th style={{ ...summaryThStyle }} rowSpan={2}>
                                     Roll No
                                 </th>
+                                <th style={{ ...summaryThStyle }} rowSpan={2}>
+                                    Name
+                                </th>
                                 {SUBJECTS.map((subj) => (
                                     <th
                                         key={subj}
@@ -647,6 +652,11 @@ function StudentList({
                                                 <td style={summaryTdStyle}>
                                                     {stu.rollNo}
                                                 </td>
+                                                <td style={summaryTdStyle}>
+                                                    {Object.values(
+                                                        stu.subjects
+                                                    )[0]?.name || "-"}
+                                                </td>
                                                 {SUBJECTS.map((subj) => [
                                                     <td
                                                         key={`${stu.rollNo}-${subj}-theory`}
@@ -724,6 +734,7 @@ function StudentList({
                             <thead>
                                 <tr>
                                     <th style={subjectThStyle}>Roll No</th>
+                                    <th style={subjectThStyle}>Name</th>
                                     <th style={subjectThStyle}>Theory</th>
                                     <th style={subjectThStyle}>Practical</th>
                                     <th style={subjectThStyle}>Total</th>
@@ -758,6 +769,9 @@ function StudentList({
                                         >
                                             <td style={subjectTdStyle}>
                                                 {s.rollNo}
+                                            </td>
+                                            <td style={subjectTdStyle}>
+                                                {s.name || "-"}
                                             </td>
                                             <td style={subjectTdStyle}>
                                                 {s.theory}

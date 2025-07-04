@@ -1,8 +1,8 @@
 export const SUBJECTS = [
-    "Science",
-    "Mathematics",
-    "English",
     "Hindi",
-    "Social Science",
+    "English",
     "Sanskrit",
+    "Mathematics",
+    "Science",
+    "Social Science",
 ];

@@ -13,6 +13,7 @@ function MarkEntryForm({
     students = [],
 }) {
     const [rollNo, setRollNo] = useState("");
+    const [name, setName] = useState("");
     const [theory, setTheory] = useState("");
     const [practical, setPractical] = useState("");
     const [validationError, setValidationError] = useState("");
@@ -37,6 +38,7 @@ function MarkEntryForm({
         e.preventDefault();
         if (
             !rollNo ||
+            !name ||
             !subject ||
             !session ||
             theory === "" ||
@@ -76,6 +78,7 @@ function MarkEntryForm({
         }
         const data = {
             rollNo: rollNo.trim(),
+            name: name.trim(),
             subject: subject.trim(),
             session: session.trim(),
             theory: Number(theory),
@@ -90,6 +93,7 @@ function MarkEntryForm({
         if (onSubmit) {
             onSubmit(data);
             setRollNo("");
+            setName("");
             setTheory("");
             setPractical("");
             // session and subject remain sticky
@@ -100,6 +104,7 @@ function MarkEntryForm({
         if (onSubmit && pendingData) {
             onSubmit(pendingData);
             setRollNo("");
+            setName("");
             setTheory("");
             setPractical("");
         }
@@ -357,6 +362,20 @@ function MarkEntryForm({
                     <input
                         value={rollNo}
                         onChange={(e) => setRollNo(e.target.value)}
+                        required
+                        className="markentry-input"
+                        style={inputStyle}
+                    />
+                </div>
+                <div>
+                    <label className="markentry-label" style={labelStyle}>
+                        Name
+                    </label>
+                    <input
+                        id="student-name"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
                         required
                         className="markentry-input"
                         style={inputStyle}

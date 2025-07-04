@@ -49,6 +49,7 @@ connectDB();
 const studentSchema = new mongoose.Schema(
     {
         rollNo: { type: String, required: true },
+        name: { type: String, required: true, default: "Unknown" },
         subject: { type: String, required: true },
         theory: { type: Number, required: true, min: 0, max: 75 },
         practical: { type: Number, required: true, min: 0, max: 25 },
@@ -150,7 +151,10 @@ function requireAuth(req, res, next) {
 // Add or update student marks for a subject
 app.post("/api/students", requireAuth, async (req, res) => {
     try {
-        const { rollNo, subject, theory, practical, session } = req.body;
+        let { rollNo, name, subject, theory, practical, session } = req.body;
+        if (!name || typeof name !== "string" || !name.trim()) {
+            name = "Unknown";
+        }
         const theoryNum = Number(theory);
         const practicalNum = Number(practical);
 
@@ -200,6 +204,7 @@ app.post("/api/students", requireAuth, async (req, res) => {
         const filter = { rollNo, subject, session, user: req.userId };
         const update = {
             rollNo,
+            name,
             subject,
             session,
             theory: theoryNum,
