@@ -52,13 +52,15 @@ function Dashboard({
         `${currentYear + 1}-${(currentYear + 2).toString().slice(-2)}`,
     ];
 
+    const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
     useEffect(() => {
         if (!session) setSession(sessionOptions[0]);
     }, []);
     useEffect(() => {
         if (!session || !token) return;
         setLoading(true);
-        fetch(`http://localhost:5000/api/students?session=${session}`, {
+        fetch(`${API_BASE}/api/students?session=${session}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import reportProLogo from "../assets/report-pro-logo.png";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function Login({ onLogin, switchToSignup }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -20,7 +22,7 @@ function Login({ onLogin, switchToSignup }) {
         setError("");
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:5000/api/login", {
+            const res = await fetch(`${API_BASE}/api/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -42,7 +44,7 @@ function Login({ onLogin, switchToSignup }) {
         setResetMessage("");
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:5000/api/request-reset", {
+            const res = await fetch(`${API_BASE}/api/request-reset`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: resetEmail }),
@@ -68,18 +70,15 @@ function Login({ onLogin, switchToSignup }) {
         setResetMessage("");
         setLoading(true);
         try {
-            const res = await fetch(
-                "http://localhost:5000/api/reset-password",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        email: resetEmail,
-                        code: resetCode,
-                        newPassword: resetNewPassword,
-                    }),
-                }
-            );
+            const res = await fetch(`${API_BASE}/api/reset-password`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: resetEmail,
+                    code: resetCode,
+                    newPassword: resetNewPassword,
+                }),
+            });
             const data = await res.json();
             if (!res.ok)
                 throw new Error(data.error || "Failed to reset password");

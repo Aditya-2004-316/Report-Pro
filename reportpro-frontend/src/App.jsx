@@ -145,6 +145,8 @@ function App() {
 
     const themeObj = theme === "dark" ? DARK_THEME : LIGHT_THEME;
 
+    const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
     // Validate stored token on app load
     useEffect(() => {
         const validateStoredToken = async () => {
@@ -157,7 +159,7 @@ function App() {
             }
 
             try {
-                const res = await fetch("http://localhost:5000/api/profile", {
+                const res = await fetch(`${API_BASE}/api/profile`, {
                     headers: { Authorization: `Bearer ${storedToken}` },
                 });
 
@@ -208,7 +210,7 @@ function App() {
     const handleMarkEntry = async (data) => {
         setMessage("");
         try {
-            const res = await fetch("http://localhost:5000/api/students", {
+            const res = await fetch(`${API_BASE}/api/students`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

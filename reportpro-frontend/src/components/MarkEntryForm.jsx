@@ -31,6 +31,8 @@ function MarkEntryForm({
         if (!session) setSession(sessionOptions[0]);
     }, []);
 
+    const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (
@@ -55,7 +57,7 @@ function MarkEntryForm({
         try {
             const token = localStorage.getItem("token");
             const res = await fetch(
-                `http://localhost:5000/api/students?session=${session}`,
+                `${API_BASE}/api/students?session=${session}`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 }

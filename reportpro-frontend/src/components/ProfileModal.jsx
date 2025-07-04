@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function ProfileModal({ token, onClose, onProfileUpdate, theme }) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -11,7 +13,7 @@ function ProfileModal({ token, onClose, onProfileUpdate, theme }) {
 
     useEffect(() => {
         setLoading(true);
-        fetch("http://localhost:5000/api/profile", {
+        fetch(`${API_BASE}/api/profile`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
@@ -29,7 +31,7 @@ function ProfileModal({ token, onClose, onProfileUpdate, theme }) {
         setMessage("");
         setError("");
         try {
-            const res = await fetch("http://localhost:5000/api/profile", {
+            const res = await fetch(`${API_BASE}/api/profile`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

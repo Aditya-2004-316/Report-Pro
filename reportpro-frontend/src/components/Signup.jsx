@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import reportProLogo from "../assets/report-pro-logo.png";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function Signup({ onSignup, switchToLogin }) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -14,7 +16,7 @@ function Signup({ onSignup, switchToLogin }) {
         setError("");
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:5000/api/signup", {
+            const res = await fetch(`${API_BASE}/api/signup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name, email, password }),

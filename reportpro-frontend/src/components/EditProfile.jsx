@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function EditProfile({
     token,
     user,
@@ -21,7 +23,7 @@ function EditProfile({
 
     useEffect(() => {
         setLoading(true);
-        fetch("http://localhost:5000/api/profile", {
+        fetch(`${API_BASE}/api/profile`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
@@ -57,14 +59,11 @@ function EditProfile({
         try {
             const formData = new FormData();
             formData.append("profilePicture", avatarFile);
-            const res = await fetch(
-                "http://localhost:5000/api/profile-picture",
-                {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
-                    body: formData,
-                }
-            );
+            const res = await fetch(`${API_BASE}/api/profile-picture`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData,
+            });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Upload failed");
             setAvatar(data.profilePicture);
@@ -91,7 +90,7 @@ function EditProfile({
         setMessage("");
         setError("");
         try {
-            const res = await fetch("http://localhost:5000/api/profile", {
+            const res = await fetch(`${API_BASE}/api/profile`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

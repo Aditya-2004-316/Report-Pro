@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { SUBJECTS } from "./subjects";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function StudentList({
     accent = "#e53935",
     accentDark = "#b71c1c",
@@ -33,7 +35,7 @@ function StudentList({
     }, []);
     useEffect(() => {
         if (!session || !token) return;
-        fetch(`http://localhost:5000/api/students?session=${session}`, {
+        fetch(`${API_BASE}/api/students?session=${session}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
@@ -401,7 +403,7 @@ function StudentList({
     async function confirmDeleteStudent() {
         const { rollNo, subject, session } = deleteModal;
         try {
-            const res = await fetch("http://localhost:5000/api/students", {
+            const res = await fetch(`${API_BASE}/api/students`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
