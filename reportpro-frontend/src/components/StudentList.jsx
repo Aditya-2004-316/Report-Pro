@@ -23,6 +23,10 @@ function StudentList({
     });
     const [subject, setSubject] = useState("Science");
     const [selectedClass, setSelectedClass] = useState("9th");
+    const [deleteStudentModal, setDeleteStudentModal] = useState({
+        open: false,
+        rollNo: null,
+    });
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -486,6 +490,44 @@ function StudentList({
         }
     }
 
+    async function confirmDeleteEntireStudent() {
+        const { rollNo } = deleteStudentModal;
+        try {
+            const res = await fetch(`${API_BASE}/api/students/all`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    rollNo,
+                    session: session,
+                    class: selectedClass,
+                }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                alert(data.error || "Failed to delete student.");
+                setDeleteStudentModal({ open: false, rollNo: null });
+                return;
+            }
+            setStudents((prev) =>
+                prev.filter(
+                    (s) =>
+                        s.rollNo !== rollNo ||
+                        s.session !== session ||
+                        s.class !== selectedClass
+                )
+            );
+        } catch (err) {
+            alert("Failed to delete student.");
+        }
+        setDeleteStudentModal({ open: false, rollNo: null });
+    }
+    function cancelDeleteEntireStudent() {
+        setDeleteStudentModal({ open: false, rollNo: null });
+    }
+
     return (
         <div className="results-container" style={containerStyle}>
             {responsiveStyleTag}
@@ -792,22 +834,32 @@ function StudentList({
                                                 <td style={summaryTdStyle}>
                                                     <button
                                                         onClick={() =>
-                                                            handleDeleteEntireStudent(
-                                                                stu.rollNo
+                                                            setDeleteStudentModal(
+                                                                {
+                                                                    open: true,
+                                                                    rollNo: stu.rollNo,
+                                                                }
                                                             )
                                                         }
                                                         style={{
                                                             background: accent,
                                                             color: "#fff",
                                                             border: "none",
-                                                            borderRadius: 6,
-                                                            padding: "4px 12px",
+                                                            borderRadius: 8,
+                                                            padding: "8px 20px",
                                                             fontWeight: 700,
-                                                            fontSize: 14,
+                                                            fontSize: 16,
                                                             cursor: "pointer",
                                                             boxShadow:
                                                                 theme.shadow,
+                                                            minWidth: 80,
+                                                            minHeight: 40,
+                                                            display:
+                                                                "inline-block",
                                                             marginLeft: 4,
+                                                            letterSpacing: 0.5,
+                                                            transition:
+                                                                "background 0.2s, box-shadow 0.2s",
                                                         }}
                                                     >
                                                         Delete
@@ -946,7 +998,7 @@ function StudentList({
                     {idx !== SUBJECTS.length - 1 && <hr style={divider} />}
                 </div>
             ))}
-            {deleteModal.open && (
+            {deleteStudentModal.open && (
                 <div
                     style={{
                         position: "fixed",
@@ -968,7 +1020,6 @@ function StudentList({
                             boxShadow: theme.shadow,
                             padding: "2rem 2.5rem",
                             minWidth: 320,
-                            maxWidth: 90,
                             color: theme.text,
                             textAlign: "center",
                             display: "flex",
@@ -988,43 +1039,45 @@ function StudentList({
                             Delete Student
                         </h3>
                         <div style={{ fontSize: 16, marginBottom: 12 }}>
-                            Are you sure you want to delete student{" "}
-                            <b>{deleteModal.rollNo}</b> (
-                            <b>{deleteModal.subject}</b>,{" "}
-                            <b>{deleteModal.session}</b>)?
+                            Are you sure you want to <b>delete all marks</b> for
+                            student with Roll No:{" "}
+                            <b>{deleteStudentModal.rollNo}</b>?
                         </div>
-                        <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+                        <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
                             <button
-                                onClick={confirmDeleteStudent}
+                                onClick={cancelDeleteEntireStudent}
+                                style={{
+                                    background: "#eee",
+                                    color: accentDark,
+                                    border: "none",
+                                    borderRadius: 8,
+                                    padding: "8px 20px",
+                                    fontWeight: 700,
+                                    fontSize: 16,
+                                    cursor: "pointer",
+                                    minWidth: 80,
+                                    transition: "background 0.2s, color 0.2s",
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeleteEntireStudent}
                                 style={{
                                     background: accent,
                                     color: "#fff",
                                     border: "none",
-                                    borderRadius: 6,
-                                    padding: "8px 22px",
+                                    borderRadius: 8,
+                                    padding: "8px 20px",
                                     fontWeight: 700,
                                     fontSize: 16,
                                     cursor: "pointer",
-                                    boxShadow: theme.shadow,
+                                    minWidth: 80,
+                                    transition:
+                                        "background 0.2s, box-shadow 0.2s",
                                 }}
                             >
                                 Delete
-                            </button>
-                            <button
-                                onClick={cancelDeleteStudent}
-                                style={{
-                                    background: theme.surface,
-                                    color: accentDark,
-                                    border: `2px solid ${accent}`,
-                                    borderRadius: 6,
-                                    padding: "8px 22px",
-                                    fontWeight: 700,
-                                    fontSize: 16,
-                                    cursor: "pointer",
-                                    boxShadow: theme.shadow,
-                                }}
-                            >
-                                Cancel
                             </button>
                         </div>
                     </div>
