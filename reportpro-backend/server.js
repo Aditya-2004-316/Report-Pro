@@ -12,8 +12,18 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
+const allowedOrigins = [
+    "https://report-pro-rho.vercel.app", // Your deployed frontend
+    "http://localhost:3000", // (Optional: for local dev)
+];
+
 // Middleware
-app.use(cors());
+app.use(
+    cors({
+        origin: allowedOrigins,
+        credentials: true, // Only if you use cookies or need credentials
+    })
+);
 app.use(bodyParser.json());
 
 // MongoDB Connection with better error handling
