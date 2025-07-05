@@ -495,32 +495,54 @@ function StudentList({
     async function confirmDeleteEntireStudent() {
         const { rollNo } = deleteStudentModal;
         try {
-            const res = await fetch(`${API_BASE}/api/students/all`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    rollNo,
-                    session: session,
-                    class: selectedClass,
-                }),
-            });
-            if (!res.ok) {
-                const data = await res.json();
-                alert(data.error || "Failed to delete student.");
-                setDeleteStudentModal({ open: false, rollNo: null });
-                return;
-            }
-            setStudents((prev) =>
-                prev.filter(
-                    (s) =>
-                        s.rollNo !== rollNo ||
-                        s.session !== session ||
-                        s.class !== selectedClass
-                )
+            // Get all subjects for this student
+            const studentSubjects = students.filter(
+                (s) =>
+                    s.rollNo === rollNo &&
+                    s.session === session &&
+                    s.class === selectedClass
             );
+
+            // Delete each subject individually (temporary workaround until backend is deployed)
+            let successCount = 0;
+            for (const student of studentSubjects) {
+                try {
+                    const res = await fetch(`${API_BASE}/api/students`, {
+                        method: "DELETE",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                            rollNo: student.rollNo,
+                            subject: student.subject,
+                            session: student.session,
+                        }),
+                    });
+                    if (res.ok) {
+                        successCount++;
+                    }
+                } catch (err) {
+                    console.error(`Failed to delete ${student.subject}:`, err);
+                }
+            }
+
+            if (successCount > 0) {
+                // Update the UI
+                setStudents((prev) =>
+                    prev.filter(
+                        (s) =>
+                            s.rollNo !== rollNo ||
+                            s.session !== session ||
+                            s.class !== selectedClass
+                    )
+                );
+                alert(
+                    `Successfully deleted ${successCount} subject(s) for student ${rollNo}`
+                );
+            } else {
+                alert("Failed to delete any subjects for this student.");
+            }
         } catch (err) {
             alert("Failed to delete student.");
         }
@@ -536,6 +558,11 @@ function StudentList({
             <style>{`
                 .${exportBtnClass}:active {
                     border: 2px solid #fff !important;
+                }
+                /* Remove the black border on active state for delete buttons */
+                button:active {
+                    border: none !important;
+                    outline: none !important;
                 }
             `}</style>
             <h2 style={gradientText}>Student Results</h2>
@@ -1016,6 +1043,93 @@ function StudentList({
                     {idx !== SUBJECTS.length - 1 && <hr style={divider} />}
                 </div>
             ))}
+            {/* Individual Subject Delete Modal */}
+            {deleteModal.open && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100vw",
+                        height: "100vh",
+                        background: "rgba(0,0,0,0.25)",
+                        zIndex: 2000,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    <div
+                        style={{
+                            background: theme.surface,
+                            borderRadius: 14,
+                            boxShadow: theme.shadow,
+                            padding: "2rem 2.5rem",
+                            minWidth: 320,
+                            color: theme.text,
+                            textAlign: "center",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 18,
+                        }}
+                    >
+                        <h3
+                            style={{
+                                color: accentDark,
+                                fontWeight: 800,
+                                fontSize: 20,
+                                marginBottom: 8,
+                            }}
+                        >
+                            Delete Subject Marks
+                        </h3>
+                        <div style={{ fontSize: 16, marginBottom: 12 }}>
+                            Are you sure you want to delete marks for{" "}
+                            <b>{deleteModal.subject}</b> (Roll No:{" "}
+                            <b>{deleteModal.rollNo}</b>)?
+                        </div>
+                        <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
+                            <button
+                                onClick={cancelDeleteStudent}
+                                style={{
+                                    background: "#eee",
+                                    color: accentDark,
+                                    border: "none",
+                                    borderRadius: 8,
+                                    padding: "8px 20px",
+                                    fontWeight: 700,
+                                    fontSize: 16,
+                                    cursor: "pointer",
+                                    minWidth: 80,
+                                    transition: "background 0.2s, color 0.2s",
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeleteStudent}
+                                style={{
+                                    background: accent,
+                                    color: "#fff",
+                                    border: "none",
+                                    borderRadius: 8,
+                                    padding: "8px 20px",
+                                    fontWeight: 700,
+                                    fontSize: 16,
+                                    cursor: "pointer",
+                                    minWidth: 80,
+                                    transition:
+                                        "background 0.2s, box-shadow 0.2s",
+                                }}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Delete All Student Marks Modal */}
             {deleteStudentModal.open && (
                 <div
                     style={{

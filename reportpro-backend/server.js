@@ -579,6 +579,39 @@ app.delete("/api/students", requireAuth, async (req, res) => {
     }
 });
 
+// Delete all students by rollNo, session, and class (and user)
+app.delete("/api/students/all", requireAuth, async (req, res) => {
+    try {
+        const { rollNo, session, class: studentClass } = req.body;
+        if (!rollNo || !session) {
+            return res
+                .status(400)
+                .json({ error: "Roll number and session are required." });
+        }
+
+        const filter = {
+            rollNo,
+            session,
+            user: req.userId,
+        };
+
+        // Add class filter if provided
+        if (studentClass) {
+            filter.class = studentClass;
+        }
+
+        const result = await Student.deleteMany(filter);
+        if (result.deletedCount === 0) {
+            return res
+                .status(404)
+                .json({ error: "No students found to delete." });
+        }
+        res.json({ success: true, deletedCount: result.deletedCount });
+    } catch (error) {
+        res.status(500).json({ error: "Server error", details: error.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
