@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { SUBJECTS } from "./subjects";
+import { MdDelete } from "react-icons/md";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -173,6 +174,7 @@ function StudentList({
         if (!studentsByRollNo[s.rollNo]) {
             studentsByRollNo[s.rollNo] = {
                 rollNo: s.rollNo,
+                name: s.name, // Store the name at the student level
                 subjects: {},
                 total: 0,
                 maxTotal: 0,
@@ -780,9 +782,7 @@ function StudentList({
                                                         wordBreak: "break-word",
                                                     }}
                                                 >
-                                                    {Object.values(
-                                                        stu.subjects
-                                                    )[0]?.name || "-"}
+                                                    {stu.name || "-"}
                                                 </td>
                                                 {SUBJECTS.map((subj) => [
                                                     <td
@@ -846,23 +846,30 @@ function StudentList({
                                                             color: "#fff",
                                                             border: "none",
                                                             borderRadius: 8,
-                                                            padding: "8px 20px",
+                                                            padding: "8px 24px",
                                                             fontWeight: 700,
                                                             fontSize: 16,
                                                             cursor: "pointer",
                                                             boxShadow:
                                                                 theme.shadow,
-                                                            minWidth: 80,
+                                                            minWidth: 50,
                                                             minHeight: 40,
                                                             display:
-                                                                "inline-block",
+                                                                "inline-flex",
+                                                            alignItems:
+                                                                "center",
+                                                            justifyContent:
+                                                                "center",
                                                             marginLeft: 4,
                                                             letterSpacing: 0.5,
                                                             transition:
                                                                 "background 0.2s, box-shadow 0.2s",
+                                                            whiteSpace:
+                                                                "nowrap",
                                                         }}
+                                                        aria-label="Delete all marks for this student"
                                                     >
-                                                        Delete
+                                                        <MdDelete size={22} />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -977,16 +984,27 @@ function StudentList({
                                                         background: accent,
                                                         color: "#fff",
                                                         border: "none",
-                                                        borderRadius: 6,
-                                                        padding: "4px 12px",
+                                                        borderRadius: 8,
+                                                        padding: "8px 24px",
                                                         fontWeight: 700,
-                                                        fontSize: 14,
+                                                        fontSize: 16,
                                                         cursor: "pointer",
                                                         boxShadow: theme.shadow,
+                                                        minWidth: 50,
+                                                        minHeight: 40,
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        justifyContent:
+                                                            "center",
                                                         marginLeft: 4,
+                                                        letterSpacing: 0.5,
+                                                        transition:
+                                                            "background 0.2s, box-shadow 0.2s",
+                                                        whiteSpace: "nowrap",
                                                     }}
+                                                    aria-label={`Delete marks for ${s.subject} (Roll No: ${s.rollNo})`}
                                                 >
-                                                    Delete
+                                                    <MdDelete size={22} />
                                                 </button>
                                             </td>
                                         </tr>

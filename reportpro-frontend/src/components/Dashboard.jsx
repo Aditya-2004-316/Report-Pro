@@ -98,12 +98,8 @@ function Dashboard({
     const totalMarks = students.reduce((sum, s) => sum + (s.total || 0), 0);
     const maxMarks = students.length * 100;
     const overallAvg = students.length ? (totalMarks / maxMarks) * 100 : 0;
-    const passCount = students.filter(
-        (s) => s.grade !== "E1" && s.grade !== "E2"
-    ).length;
-    const failCount = students.length - passCount;
     const overallPassRate = students.length
-        ? (passCount / students.length) * 100
+        ? (stats.passFail.pass / students.length) * 100
         : 0;
     // For overall grade distribution
     const gradeDist = students.reduce((acc, s) => {
@@ -115,8 +111,8 @@ function Dashboard({
         value: count,
     }));
     const passFailData = [
-        { name: "Pass", value: passCount },
-        { name: "Fail", value: failCount },
+        { name: "Pass", value: stats.passFail.pass },
+        { name: "Fail", value: stats.passFail.fail },
     ];
     // Use only grades present in the data for color mapping and legend
     const gradesInData = Array.from(
