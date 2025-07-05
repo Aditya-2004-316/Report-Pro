@@ -869,18 +869,18 @@ function StudentList({
                                                             )
                                                         }
                                                         style={{
-                                                            background: accent,
-                                                            color: "#fff",
+                                                            background:
+                                                                "transparent",
+                                                            color: theme.text,
                                                             border: "none",
-                                                            borderRadius: 8,
-                                                            padding: "8px 24px",
-                                                            fontWeight: 700,
+                                                            borderRadius: 0,
+                                                            padding: "8px",
+                                                            fontWeight: 400,
                                                             fontSize: 16,
                                                             cursor: "pointer",
-                                                            boxShadow:
-                                                                theme.shadow,
-                                                            minWidth: 50,
-                                                            minHeight: 40,
+                                                            boxShadow: "none",
+                                                            minWidth: "auto",
+                                                            minHeight: "auto",
                                                             display:
                                                                 "inline-flex",
                                                             alignItems:
@@ -888,9 +888,9 @@ function StudentList({
                                                             justifyContent:
                                                                 "center",
                                                             marginLeft: 4,
-                                                            letterSpacing: 0.5,
+                                                            letterSpacing: 0,
                                                             transition:
-                                                                "background 0.2s, box-shadow 0.2s",
+                                                                "color 0.2s",
                                                             whiteSpace:
                                                                 "nowrap",
                                                         }}
@@ -1008,25 +1008,26 @@ function StudentList({
                                                         )
                                                     }
                                                     style={{
-                                                        background: accent,
-                                                        color: "#fff",
+                                                        background:
+                                                            "transparent",
+                                                        color: theme.text,
                                                         border: "none",
-                                                        borderRadius: 8,
-                                                        padding: "8px 24px",
-                                                        fontWeight: 700,
+                                                        borderRadius: 0,
+                                                        padding: "8px",
+                                                        fontWeight: 400,
                                                         fontSize: 16,
                                                         cursor: "pointer",
-                                                        boxShadow: theme.shadow,
-                                                        minWidth: 50,
-                                                        minHeight: 40,
+                                                        boxShadow: "none",
+                                                        minWidth: "auto",
+                                                        minHeight: "auto",
                                                         display: "inline-flex",
                                                         alignItems: "center",
                                                         justifyContent:
                                                             "center",
                                                         marginLeft: 4,
-                                                        letterSpacing: 0.5,
+                                                        letterSpacing: 0,
                                                         transition:
-                                                            "background 0.2s, box-shadow 0.2s",
+                                                            "color 0.2s",
                                                         whiteSpace: "nowrap",
                                                     }}
                                                     aria-label={`Delete marks for ${s.subject} (Roll No: ${s.rollNo})`}

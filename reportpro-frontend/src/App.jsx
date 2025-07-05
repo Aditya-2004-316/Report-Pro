@@ -123,7 +123,7 @@ function ThemeToggle({ theme, setTheme }) {
 function App() {
     const [view, setView] = useState("home");
     const [message, setMessage] = useState("");
-    const [subject, setSubject] = useState("Science");
+    const [subject, setSubject] = useState("Hindi");
     const [session, setSession] = useState("");
     const [user, setUser] = useState(() => {
         const u = localStorage.getItem("user");
