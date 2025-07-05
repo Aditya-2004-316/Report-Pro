@@ -961,7 +961,7 @@ function StudentList({
                                 {studentsBySubject[subj].length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={6}
+                                            colSpan={7}
                                             style={{
                                                 textAlign: "center",
                                                 padding: 16,
