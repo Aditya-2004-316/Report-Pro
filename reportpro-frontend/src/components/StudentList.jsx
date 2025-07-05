@@ -871,7 +871,10 @@ function StudentList({
                                                         style={{
                                                             background:
                                                                 "transparent",
-                                                            color: theme.text,
+                                                            color:
+                                                                theme === "dark"
+                                                                    ? "#ff6f60"
+                                                                    : "#e53935",
                                                             border: "none",
                                                             borderRadius: 0,
                                                             padding: "8px",
@@ -896,7 +899,14 @@ function StudentList({
                                                         }}
                                                         aria-label="Delete all marks for this student"
                                                     >
-                                                        <MdDelete size={22} />
+                                                        <MdDelete
+                                                            size={22}
+                                                            color={
+                                                                theme === "dark"
+                                                                    ? "#ff6f60"
+                                                                    : "#e53935"
+                                                            }
+                                                        />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -1010,7 +1020,10 @@ function StudentList({
                                                     style={{
                                                         background:
                                                             "transparent",
-                                                        color: theme.text,
+                                                        color:
+                                                            theme === "dark"
+                                                                ? "#ff6f60"
+                                                                : "#e53935",
                                                         border: "none",
                                                         borderRadius: 0,
                                                         padding: "8px",
@@ -1032,7 +1045,14 @@ function StudentList({
                                                     }}
                                                     aria-label={`Delete marks for ${s.subject} (Roll No: ${s.rollNo})`}
                                                 >
-                                                    <MdDelete size={22} />
+                                                    <MdDelete
+                                                        size={22}
+                                                        color={
+                                                            theme === "dark"
+                                                                ? "#ff6f60"
+                                                                : "#e53935"
+                                                        }
+                                                    />
                                                 </button>
                                             </td>
                                         </tr>
