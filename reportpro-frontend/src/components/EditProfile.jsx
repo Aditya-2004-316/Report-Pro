@@ -119,6 +119,7 @@ function EditProfile({
 
     return (
         <div
+            className="edit-profile-container"
             style={{
                 minHeight: "100vh",
                 width: "100vw",
@@ -130,9 +131,100 @@ function EditProfile({
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
+                padding: "1rem",
+                boxSizing: "border-box",
             }}
         >
+            <style>{`
+                .edit-profile-container {
+                    transition: all 0.3s ease;
+                }
+                .edit-profile-content {
+                    transition: all 0.3s ease;
+                }
+                
+                /* Large Desktop (1400px and up) */
+                @media (min-width: 1400px) {
+                    .edit-profile-content {
+                        max-width: 480px !important;
+                        padding: 3rem 2.5rem !important;
+                    }
+                }
+                
+                /* Desktop (1024px to 1399px) */
+                @media (min-width: 1024px) and (max-width: 1399px) {
+                    .edit-profile-content {
+                        max-width: 450px !important;
+                        padding: 2.5rem 2rem !important;
+                    }
+                }
+                
+                /* Tablet Landscape (768px to 1023px) */
+                @media (min-width: 768px) and (max-width: 1023px) {
+                    .edit-profile-content {
+                        max-width: 420px !important;
+                        padding: 2.2rem 1.8rem !important;
+                    }
+                }
+                
+                /* Tablet Portrait (600px to 767px) */
+                @media (min-width: 600px) and (max-width: 767px) {
+                    .edit-profile-content {
+                        max-width: 400px !important;
+                        padding: 2rem 1.5rem !important;
+                    }
+                }
+                
+                /* Mobile Large (480px to 599px) */
+                @media (min-width: 480px) and (max-width: 599px) {
+                    .edit-profile-container {
+                        padding: 0.8rem !important;
+                    }
+                    .edit-profile-content {
+                        max-width: 95vw !important;
+                        padding: 1.8rem 1.2rem !important;
+                    }
+                }
+                
+                /* Mobile Small (320px to 479px) */
+                @media (max-width: 479px) {
+                    .edit-profile-container {
+                        padding: 0.5rem !important;
+                    }
+                    .edit-profile-content {
+                        max-width: 98vw !important;
+                        padding: 1.5rem 1rem !important;
+                        margin: 1rem auto !important;
+                    }
+                }
+                
+                /* Touch-friendly improvements */
+                @media (hover: none) and (pointer: coarse) {
+                    .edit-profile-content input {
+                        min-height: 44px !important;
+                    }
+                    .edit-profile-content button {
+                        min-height: 44px !important;
+                    }
+                }
+                
+                /* High contrast mode support */
+                @media (prefers-contrast: high) {
+                    .edit-profile-content {
+                        border: 2px solid #e53935 !important;
+                    }
+                }
+                
+                /* Reduced motion support */
+                @media (prefers-reduced-motion: reduce) {
+                    .edit-profile-container,
+                    .edit-profile-content {
+                        transition: none !important;
+                    }
+                }
+            `}</style>
             <div
+                className="edit-profile-content"
                 style={{
                     maxWidth: 420,
                     width: "100%",

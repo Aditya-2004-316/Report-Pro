@@ -45,6 +45,7 @@ function Dashboard({
     const [lastUpdated, setLastUpdated] = useState(null);
     const csvLinkRef = useRef();
     const [selectedClass, setSelectedClass] = useState("9th");
+    const [selectedExamType, setSelectedExamType] = useState("Monthly Test");
     const [stats, setStats] = useState({
         passFail: { pass: 0, fail: 0 },
         classAverage: 0,
@@ -93,16 +94,27 @@ function Dashboard({
 
     if (loading) return <div>Loading...</div>;
 
+    // Filter students by exam type if selected
+    const filteredStudents =
+        selectedExamType === "All"
+            ? students
+            : students.filter((s) => s.examType === selectedExamType);
+
     // --- SUMMARY CALCULATIONS ---
-    const totalStudents = new Set(students.map((s) => s.rollNo)).size;
-    const totalMarks = students.reduce((sum, s) => sum + (s.total || 0), 0);
-    const maxMarks = students.length * 100;
-    const overallAvg = students.length ? (totalMarks / maxMarks) * 100 : 0;
-    const overallPassRate = students.length
-        ? (stats.passFail.pass / students.length) * 100
+    const totalStudents = new Set(filteredStudents.map((s) => s.rollNo)).size;
+    const totalMarks = filteredStudents.reduce(
+        (sum, s) => sum + (s.total || 0),
+        0
+    );
+    const maxMarks = filteredStudents.length * 100;
+    const overallAvg = filteredStudents.length
+        ? (totalMarks / maxMarks) * 100
+        : 0;
+    const overallPassRate = filteredStudents.length
+        ? (stats.passFail.pass / filteredStudents.length) * 100
         : 0;
     // For overall grade distribution
-    const gradeDist = students.reduce((acc, s) => {
+    const gradeDist = filteredStudents.reduce((acc, s) => {
         acc[s.grade] = (acc[s.grade] || 0) + 1;
         return acc;
     }, {});
@@ -402,7 +414,7 @@ function Dashboard({
 
     // Group students by subject
     const studentsBySubject = SUBJECTS.reduce((acc, subj) => {
-        acc[subj] = students.filter((s) => s.subject === subj);
+        acc[subj] = filteredStudents.filter((s) => s.subject === subj);
         return acc;
     }, {});
 
@@ -410,55 +422,588 @@ function Dashboard({
     const maxGradeCount = (gradeDist) =>
         Math.max(1, ...Object.values(gradeDist));
 
-    // Responsive styles for Dashboard
+    // Comprehensive responsive styles
     const responsiveStyleTag = (
         <style>{`
-            @media (max-width: 900px) {
                 .dashboard-container {
-                    max-width: 98vw !important;
-                    padding: 1.2rem 0.5rem !important;
-                }
+                transition: all 0.3s ease;
+            }
+            
+            .dashboard-title {
+                transition: all 0.3s ease;
+            }
+            
+            .summary-grid {
+                transition: all 0.3s ease;
+            }
+            
                 .dashboard-card {
-                    padding: 14px !important;
-                    margin-bottom: 18px !important;
+                transition: all 0.3s ease;
+            }
+            
+            .chart-card {
+                transition: all 0.3s ease;
+            }
+            
+            .subject-grid {
+                transition: all 0.3s ease;
+            }
+            
+            .filters-container {
+                transition: all 0.3s ease;
+            }
+            
+            .filter-group {
+                transition: all 0.3s ease;
+            }
+            
+            .export-section {
+                transition: all 0.3s ease;
+            }
+            
+            /* Large Desktop (1400px and up) */
+            @media (min-width: 1400px) {
+                .dashboard-container {
+                    max-width: 1600px;
+                    padding: 3rem 2rem 2.5rem 2rem;
                 }
+                
                 .dashboard-title {
-                    font-size: 22px !important;
+                    font-size: 38px;
+                    margin-bottom: 24px;
+                }
+                
+                .summary-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    gap: 32px;
+                    margin-bottom: 42px;
+                }
+                
+                .dashboard-card {
+                    min-height: 140px;
+                    padding: 1.5rem 1.2rem;
+                }
+                
+                .summary-icon {
+                    font-size: 42px;
+                }
+                
+                .summary-value {
+                    font-size: 32px;
+                }
+                
+                .summary-label {
+                    font-size: 18px;
+                }
+                
+                .chart-card {
+                    min-height: 260px;
+                    padding: 1.5rem 1.2rem;
+                }
+                
+                .subject-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+                    gap: 36px;
+                }
+                
+                .filters-container {
+                    gap: 20px;
+                    margin-bottom: 24px;
+                }
+                
+                .filter-group {
+                    max-width: 360px;
+                }
+                
+                .filter-group select {
+                    padding: 12px 10px;
+                    font-size: 17px;
                 }
             }
-            @media (max-width: 600px) {
+            
+            /* Desktop (1024px to 1399px) */
+            @media (min-width: 1024px) and (max-width: 1399px) {
                 .dashboard-container {
-                    max-width: 100vw !important;
-                    padding: 0.5rem 0.2rem !important;
+                    max-width: 1200px;
+                    padding: 2.5rem 1.8rem 2rem 1.8rem;
                 }
-                .dashboard-card {
-                    padding: 8px !important;
-                    margin-bottom: 10px !important;
-                    min-width: 0 !important;
-                    width: 100% !important;
-                }
+                
                 .dashboard-title {
-                    font-size: 16px !important;
+                    font-size: 36px;
+                    margin-bottom: 20px;
                 }
-                .dashboard-label {
-                    font-size: 13px !important;
+                
+                .summary-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                    gap: 28px;
+                    margin-bottom: 36px;
                 }
-                .dashboard-value {
-                    font-size: 15px !important;
+                
+                .dashboard-card {
+                    min-height: 130px;
+                    padding: 1.3rem 1rem;
                 }
-                .summary-grid, .subject-grid {
-                    display: flex !important;
-                    flex-direction: column !important;
-                    gap: 14px !important;
+                
+                .summary-icon {
+                    font-size: 38px;
                 }
-                .chart-card, .dashboard-card {
-                    width: 100% !important;
-                    min-width: 0 !important;
-                    overflow-x: auto !important;
+                
+                .summary-value {
+                    font-size: 30px;
                 }
-                .recharts-responsive-container {
-                    width: 100% !important;
-                    min-width: 0 !important;
+                
+                .summary-label {
+                    font-size: 17px;
+                }
+                
+                .chart-card {
+                    min-height: 240px;
+                    padding: 1.3rem 1rem;
+                }
+                
+                .subject-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+                    gap: 32px;
+                }
+                
+                .filters-container {
+                    gap: 18px;
+                    margin-bottom: 20px;
+                }
+                
+                .filter-group {
+                    max-width: 320px;
+                }
+                
+                .filter-group select {
+                    padding: 11px 9px;
+                    font-size: 16px;
+                }
+            }
+            
+            /* Tablet Landscape (768px to 1023px) */
+            @media (min-width: 768px) and (max-width: 1023px) {
+                .dashboard-container {
+                    max-width: 100%;
+                    padding: 2rem 1.5rem 1.8rem 1.5rem;
+                    margin: 1.5rem auto;
+                }
+                
+                .dashboard-title {
+                    font-size: 32px;
+                    margin-bottom: 18px;
+                }
+                
+                .summary-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 24px;
+                    margin-bottom: 32px;
+                }
+                
+                .dashboard-card {
+                    min-height: 120px;
+                    padding: 1.2rem 0.9rem;
+                }
+                
+                .summary-icon {
+                    font-size: 34px;
+                }
+                
+                .summary-value {
+                    font-size: 26px;
+                }
+                
+                .summary-label {
+                    font-size: 15px;
+                }
+                
+                .chart-card {
+                    min-height: 220px;
+                    padding: 1.2rem 0.9rem;
+                }
+                
+                .subject-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+                    gap: 28px;
+                }
+                
+                .filters-container {
+                    gap: 16px;
+                    margin-bottom: 18px;
+                    flex-wrap: wrap;
+                }
+                
+                .filter-group {
+                    max-width: 280px;
+                    flex: 1 1 200px;
+                }
+                
+                .filter-group select {
+                    padding: 10px 8px;
+                    font-size: 15px;
+                }
+                
+                .export-section {
+                    flex: 1 1 100%;
+                    justify-content: center;
+                    margin-top: 12px;
+                }
+            }
+            
+            /* Tablet Portrait (600px to 767px) */
+            @media (min-width: 600px) and (max-width: 767px) {
+                .dashboard-container {
+                    max-width: 100%;
+                    padding: 1.8rem 1.2rem 1.5rem 1.2rem;
+                    margin: 1rem auto;
+                }
+                
+                .dashboard-title {
+                    font-size: 28px;
+                    margin-bottom: 16px;
+                }
+                
+                .summary-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    gap: 20px;
+                    margin-bottom: 28px;
+                }
+                
+                .dashboard-card {
+                    min-height: 110px;
+                    padding: 1rem 0.8rem;
+                }
+                
+                .summary-icon {
+                    font-size: 30px;
+                }
+                
+                .summary-value {
+                    font-size: 24px;
+                }
+                
+                .summary-label {
+                    font-size: 14px;
+                }
+                
+                .chart-card {
+                    min-height: 200px;
+                    padding: 1rem 0.8rem;
+                }
+                
+                .subject-grid {
+                    grid-template-columns: 1fr;
+                    gap: 24px;
+                }
+                
+                .filters-container {
+                    flex-direction: column;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                }
+                
+                .filter-group {
+                    max-width: 100%;
+                    flex: 1 1 auto;
+                }
+                
+                .filter-group select {
+                    padding: 12px 10px;
+                    font-size: 16px;
+                }
+                
+                .export-section {
+                    flex-direction: column;
+                    gap: 12px;
+                    align-items: center;
+                }
+                
+                .export-section span {
+                    text-align: center;
+                }
+            }
+            
+            /* Mobile Large (480px to 599px) */
+            @media (min-width: 480px) and (max-width: 599px) {
+                .dashboard-container {
+                    max-width: 100%;
+                    padding: 1.5rem 1rem 1.2rem 1rem;
+                    margin: 0.8rem auto;
+                }
+                
+                .dashboard-title {
+                    font-size: 26px;
+                    margin-bottom: 14px;
+                }
+                
+                .summary-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 16px;
+                    margin-bottom: 24px;
+                }
+                
+                .dashboard-card {
+                    min-height: 100px;
+                    padding: 0.9rem 0.7rem;
+                }
+                
+                .summary-icon {
+                    font-size: 28px;
+                }
+                
+                .summary-value {
+                    font-size: 22px;
+                }
+                
+                .summary-label {
+                    font-size: 13px;
+                }
+                
+                .chart-card {
+                    min-height: 180px;
+                    padding: 0.9rem 0.7rem;
+                }
+                
+                .subject-grid {
+                    grid-template-columns: 1fr;
+                    gap: 20px;
+                }
+                
+                .filters-container {
+                    flex-direction: column;
+                    gap: 10px;
+                    margin-bottom: 14px;
+                }
+                
+                .filter-group {
+                    max-width: 100%;
+                }
+                
+                .filter-group select {
+                    padding: 11px 9px;
+                    font-size: 15px;
+                }
+                
+                .export-section {
+                    flex-direction: column;
+                    gap: 10px;
+                    align-items: center;
+                }
+                
+                .export-section span {
+                    text-align: center;
+                    font-size: 14px;
+                }
+            }
+            
+            /* Mobile Small (320px to 479px) */
+            @media (max-width: 479px) {
+                .dashboard-container {
+                    max-width: 100%;
+                    padding: 1.2rem 0.8rem 1rem 0.8rem;
+                    margin: 0.5rem auto;
+                }
+                
+                .dashboard-title {
+                    font-size: 24px;
+                    margin-bottom: 12px;
+                }
+                
+                .summary-grid {
+                    grid-template-columns: 1fr;
+                    gap: 14px;
+                    margin-bottom: 20px;
+                }
+                
+                .dashboard-card {
+                    min-height: 90px;
+                    padding: 0.8rem 0.6rem;
+                }
+                
+                .summary-icon {
+                    font-size: 26px;
+                }
+                
+                .summary-value {
+                    font-size: 20px;
+                }
+                
+                .summary-label {
+                    font-size: 12px;
+                }
+                
+                .chart-card {
+                    min-height: 160px;
+                    padding: 0.8rem 0.6rem;
+                }
+                
+                .subject-grid {
+                    grid-template-columns: 1fr;
+                    gap: 16px;
+                }
+                
+                .filters-container {
+                    flex-direction: column;
+                    gap: 8px;
+                    margin-bottom: 12px;
+                }
+                
+                .filter-group {
+                    max-width: 100%;
+                }
+                
+                .filter-group select {
+                    padding: 10px 8px;
+                    font-size: 14px;
+                }
+                
+                .export-section {
+                    flex-direction: column;
+                    gap: 8px;
+                    align-items: center;
+                }
+                
+                .export-section span {
+                    text-align: center;
+                    font-size: 13px;
+                }
+                
+                .export-csv-btn {
+                    padding: 8px 16px !important;
+                    font-size: 14px !important;
+                }
+            }
+            
+            /* Touch-friendly improvements */
+            @media (hover: none) and (pointer: coarse) {
+                .dashboard-card:hover {
+                    transform: none !important;
+                }
+                
+                .filter-group select {
+                    min-height: 44px;
+                }
+                
+                .export-csv-btn {
+                    min-height: 44px;
+                    min-width: 120px;
+                }
+            }
+            
+            /* High contrast mode support */
+            @media (prefers-contrast: high) {
+                .dashboard-card {
+                    border-width: 3px;
+                }
+                
+                .chart-card {
+                    border-width: 3px;
+                }
+            }
+            
+            /* Chart container responsive improvements */
+            .chart-container {
+                transition: all 0.3s ease;
+            }
+            
+            /* Subject card responsive improvements */
+            .subject-card {
+                transition: all 0.3s ease;
+            }
+            
+            /* Subject stats container responsive */
+            .subject-stats-container {
+                transition: all 0.3s ease;
+            }
+            
+            @media (max-width: 767px) {
+                .subject-stats-container {
+                    flex-direction: column;
+                    align-items: stretch;
+                    gap: 12px;
+                }
+                
+                .subject-stats-container > div {
+                    flex: 1 1 auto !important;
+                    min-width: auto !important;
+                }
+                
+                .grade-legend {
+                    gap: 8px;
+                    margin-top: 8px;
+                }
+                
+                .grade-legend span {
+                    font-size: 12px !important;
+                }
+                
+                .grade-legend span span {
+                    width: 12px !important;
+                    height: 12px !important;
+                    border-radius: 6px !important;
+                }
+                
+                .bar-chart-legend {
+                    gap: 8px;
+                    margin-top: 4px;
+                    font-size: 12px !important;
+                }
+                
+                .bar-chart-legend span span {
+                    width: 12px !important;
+                    height: 12px !important;
+                    border-radius: 6px !important;
+                }
+                
+                .pass-fail-display {
+                    flex-direction: column;
+                    gap: 8px;
+                    align-items: flex-start;
+                }
+                
+                .pass-fail-display span {
+                    font-size: 14px !important;
+                }
+            }
+            
+            /* Responsive chart heights */
+            @media (max-width: 767px) {
+                .chart-container {
+                    height: 160px !important;
+                }
+            }
+            
+            @media (max-width: 479px) {
+                .chart-container {
+                    height: 140px !important;
+                }
+            }
+            
+            /* Improved touch targets for mobile */
+            @media (max-width: 767px) {
+                .dashboard-card {
+                    cursor: pointer;
+                }
+                
+                .dashboard-card:active {
+                    transform: scale(0.98);
+                }
+            }
+            
+            /* Reduced motion support */
+            @media (prefers-reduced-motion: reduce) {
+                .dashboard-container,
+                .dashboard-title,
+                .summary-grid,
+                .dashboard-card,
+                .chart-card,
+                .subject-grid,
+                .filters-container,
+                .filter-group,
+                .export-section,
+                .chart-container,
+                .subject-card {
+                    transition: none !important;
                 }
             }
         `}</style>
@@ -466,32 +1011,56 @@ function Dashboard({
 
     // CSV Export logic
     function exportCSV() {
+        // Create header information based on selected filters
+        const headerInfo = [
+            `Session: ${session || "All Sessions"}`,
+            `Class: ${selectedClass}`,
+            `Exam Type: ${selectedExamType}`,
+            `Export Date: ${new Date().toLocaleDateString()}`,
+            `Export Time: ${new Date().toLocaleTimeString()}`,
+            "", // Empty line for spacing
+        ];
+
         const rows = [
             [
                 "Roll No",
+                "Name",
+                "Class",
                 "Subject",
+                "Exam Type",
                 "Theory",
                 "Practical",
                 "Total",
                 "Grade",
                 "Session",
             ],
-            ...students.map((s) => [
-                s.rollNo,
-                s.subject,
-                s.theory,
-                s.practical,
-                s.total,
-                s.grade,
-                s.session,
+            ...filteredStudents.map((s) => [
+                s.rollNo || "",
+                s.name || "",
+                s.class || "",
+                s.subject || "",
+                s.examType || "",
+                s.theory || "",
+                s.practical || "",
+                s.total || "",
+                s.grade || "",
+                s.session || "",
             ]),
         ];
-        const csvContent = rows.map((r) => r.join(",")).join("\n");
+
+        // Combine header info and data rows
+        const csvContent = [
+            ...headerInfo,
+            ...rows.map((r) => r.join(",")),
+        ].join("\n");
+
         const blob = new Blob([csvContent], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `statistics_${session || "all"}.csv`;
+        a.download = `statistics_${
+            session || "all"
+        }_${selectedClass}_${selectedExamType}.csv`;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
@@ -542,6 +1111,7 @@ function Dashboard({
                 School Statistics
             </h2>
             <div
+                className="filters-container"
                 style={{
                     display: "flex",
                     alignItems: "center",
@@ -551,7 +1121,10 @@ function Dashboard({
                     flexWrap: "wrap",
                 }}
             >
-                <div style={{ maxWidth: 320, flex: 1 }}>
+                <div
+                    className="filter-group"
+                    style={{ maxWidth: 320, flex: 1 }}
+                >
                     <label
                         style={{
                             fontWeight: 700,
@@ -586,7 +1159,10 @@ function Dashboard({
                         ))}
                     </select>
                 </div>
-                <div style={{ maxWidth: 180, flex: 1 }}>
+                <div
+                    className="filter-group"
+                    style={{ maxWidth: 180, flex: 1 }}
+                >
                     <label
                         style={{
                             fontWeight: 700,
@@ -619,6 +1195,46 @@ function Dashboard({
                     </select>
                 </div>
                 <div
+                    className="filter-group"
+                    style={{ maxWidth: 200, flex: 1 }}
+                >
+                    <label
+                        style={{
+                            fontWeight: 700,
+                            color: accentDark,
+                            marginBottom: 4,
+                            fontSize: 16,
+                        }}
+                    >
+                        Exam Type
+                    </label>
+                    <select
+                        value={selectedExamType}
+                        onChange={(e) => setSelectedExamType(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "10px 8px",
+                            borderRadius: 6,
+                            border: `1.5px solid ${accent}`,
+                            fontSize: 16,
+                            fontWeight: 600,
+                            color: accentDark,
+                            background: theme.inputBg,
+                            marginTop: 4,
+                            marginBottom: 0,
+                        }}
+                    >
+                        <option value="Monthly Test">Monthly Test</option>
+                        <option value="Quarterly Exam">Quarterly Exam</option>
+                        <option value="Half Monthly Exam">
+                            Half Monthly Exam
+                        </option>
+                        <option value="Annual Exam">Annual Exam</option>
+                        <option value="All">All Exam Types</option>
+                    </select>
+                </div>
+                <div
+                    className="export-section"
                     style={{
                         display: "flex",
                         alignItems: "center",
@@ -650,37 +1266,69 @@ function Dashboard({
             </div>
             <div className="summary-grid" style={summaryGrid}>
                 <div className="dashboard-card" style={summaryCard}>
-                    <MdPeople style={summaryIcon} title="Total Students" />
-                    <span style={summaryValue}>{totalStudents}</span>
-                    <span style={summaryLabel}>Total Students</span>
+                    <MdPeople
+                        className="summary-icon"
+                        style={summaryIcon}
+                        title="Total Students"
+                    />
+                    <span className="summary-value" style={summaryValue}>
+                        {totalStudents}
+                    </span>
+                    <span className="summary-label" style={summaryLabel}>
+                        Total Students
+                    </span>
                 </div>
                 <div className="dashboard-card" style={summaryCard}>
-                    <MdPercent style={summaryIcon} title="Overall Average" />
-                    <span style={summaryValue}>{overallAvg.toFixed(2)}%</span>
-                    <span style={summaryLabel}>Overall Average</span>
+                    <MdPercent
+                        className="summary-icon"
+                        style={summaryIcon}
+                        title="Overall Average"
+                    />
+                    <span className="summary-value" style={summaryValue}>
+                        {overallAvg.toFixed(2)}%
+                    </span>
+                    <span className="summary-label" style={summaryLabel}>
+                        Overall Average
+                    </span>
                 </div>
                 <div className="dashboard-card" style={summaryCard}>
                     <MdCheckCircle
+                        className="summary-icon"
                         style={{ ...summaryIcon, color: "#43ea7b" }}
                         title="Pass Count"
                     />
-                    <span style={summaryValue}>{stats.passFail.pass}</span>
-                    <span style={summaryLabel}>Pass Count</span>
+                    <span className="summary-value" style={summaryValue}>
+                        {stats.passFail.pass}
+                    </span>
+                    <span className="summary-label" style={summaryLabel}>
+                        Pass Count
+                    </span>
                 </div>
                 <div className="dashboard-card" style={summaryCard}>
                     <MdCancel
+                        className="summary-icon"
                         style={{ ...summaryIcon, color: accent }}
                         title="Fail Count"
                     />
-                    <span style={summaryValue}>{stats.passFail.fail}</span>
-                    <span style={summaryLabel}>Fail Count</span>
+                    <span className="summary-value" style={summaryValue}>
+                        {stats.passFail.fail}
+                    </span>
+                    <span className="summary-label" style={summaryLabel}>
+                        Fail Count
+                    </span>
                 </div>
                 <div className="dashboard-card" style={summaryCard}>
-                    <MdBarChart style={summaryIcon} title="Pass Rate" />
-                    <span style={summaryValue}>
+                    <MdBarChart
+                        className="summary-icon"
+                        style={summaryIcon}
+                        title="Pass Rate"
+                    />
+                    <span className="summary-value" style={summaryValue}>
                         {overallPassRate.toFixed(2)}%
                     </span>
-                    <span style={summaryLabel}>Pass Rate</span>
+                    <span className="summary-label" style={summaryLabel}>
+                        Pass Rate
+                    </span>
                 </div>
             </div>
             <div className="summary-grid" style={summaryGrid}>
@@ -694,7 +1342,11 @@ function Dashboard({
                     >
                         Overall Grade Distribution
                     </h4>
-                    <ResponsiveContainer width="100%" height={180}>
+                    <ResponsiveContainer
+                        width="100%"
+                        height={180}
+                        className="chart-container"
+                    >
                         <PieChart>
                             <Pie
                                 data={gradeDistData}
@@ -723,6 +1375,7 @@ function Dashboard({
                     </ResponsiveContainer>
                     {/* Grade color legend */}
                     <div
+                        className="grade-legend"
                         style={{
                             display: "flex",
                             flexWrap: "wrap",
@@ -769,7 +1422,11 @@ function Dashboard({
                     >
                         Overall Pass/Fail
                     </h4>
-                    <ResponsiveContainer width="100%" height={180}>
+                    <ResponsiveContainer
+                        width="100%"
+                        height={180}
+                        className="chart-container"
+                    >
                         <PieChart>
                             <Pie
                                 data={passFailData}
@@ -828,7 +1485,7 @@ function Dashboard({
                     });
                     return (
                         <div
-                            className="dashboard-card"
+                            className="dashboard-card subject-card"
                             style={{ ...statCardStyle, minWidth: 320 }}
                             key={subj}
                         >
@@ -855,6 +1512,7 @@ function Dashboard({
                                 </span>
                             </div>
                             <div
+                                className="subject-stats-container"
                                 style={{
                                     display: "flex",
                                     flexWrap: "wrap",
@@ -964,6 +1622,7 @@ function Dashboard({
                                     style={{ flex: "1 1 120px", minWidth: 120 }}
                                 >
                                     <div
+                                        className="pass-fail-display"
                                         style={{
                                             display: "flex",
                                             alignItems: "center",
@@ -1093,6 +1752,7 @@ function Dashboard({
                                         {/* <RechartsTooltip /> */}
                                     </BarChart>
                                     <div
+                                        className="bar-chart-legend"
                                         style={{
                                             display: "flex",
                                             gap: 10,

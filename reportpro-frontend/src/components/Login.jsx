@@ -101,20 +101,24 @@ function Login({ onLogin, switchToSignup }) {
 
     return (
         <div
+            className="login-container"
             style={{
                 minHeight: "100vh",
-                width: "100vw",
+                width: "99vw",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 background:
                     "linear-gradient(135deg, #fff5f5 0%, #ffeaea 60%, #fbe9e7 100%)",
                 animation: "fadeInBg 1s",
+                padding: "1rem",
+                boxSizing: "border-box",
             }}
         >
             <style>{`
                 @keyframes fadeInCard { from { opacity: 0; transform: translateY(30px);} to { opacity: 1; transform: none; } }
                 @keyframes fadeInBg { from { opacity: 0; } to { opacity: 1; } }
+                .login-container { transition: all 0.3s ease; }
                 .login-card { animation: fadeInCard 0.8s cubic-bezier(.4,0,.2,1); }
                 .login-input:focus { border: 1.5px solid #e53935 !important; box-shadow: 0 0 0 2px #e5393533; }
                 .login-btn:active { border: 2px solid #fff; }
@@ -123,7 +127,220 @@ function Login({ onLogin, switchToSignup }) {
                 .login-divider:before, .login-divider:after { content: ""; flex: 1; height: 1.5px; background: #ffeaea; }
                 .login-spinner { border: 2.5px solid #fff; border-top: 2.5px solid #e53935; border-radius: 50%; width: 18px; height: 18px; animation: spin 0.7s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
                 @keyframes spin { 100% { transform: rotate(360deg); } }
-                @media (max-width: 500px) { .login-card { padding: 1.5rem 0.5rem !important; max-width: 98vw !important; } }
+                
+                /* Large Desktop (1400px and up) */
+                @media (min-width: 1400px) {
+                    .login-container {
+                        padding: 2rem !important;
+                    }
+                    .login-card {
+                        max-width: 480px !important;
+                        padding: 3rem 2.5rem !important;
+                    }
+                    .login-title {
+                        font-size: 32px !important;
+                        margin-bottom: 24px !important;
+                    }
+                    .login-logo {
+                        width: 120px !important;
+                        height: 120px !important;
+                        margin-bottom: 16px !important;
+                    }
+                    .login-input {
+                        padding: 14px !important;
+                        font-size: 17px !important;
+                    }
+                    .login-btn {
+                        padding: 16px 0 !important;
+                        font-size: 17px !important;
+                    }
+                }
+                
+                /* Desktop (1024px to 1399px) */
+                @media (min-width: 1024px) and (max-width: 1399px) {
+                    .login-card {
+                        max-width: 440px !important;
+                        padding: 2.5rem 2rem !important;
+                    }
+                    .login-title {
+                        font-size: 30px !important;
+                        margin-bottom: 20px !important;
+                    }
+                    .login-logo {
+                        width: 110px !important;
+                        height: 110px !important;
+                        margin-bottom: 14px !important;
+                    }
+                }
+                
+                /* Tablet Landscape (768px to 1023px) */
+                @media (min-width: 768px) and (max-width: 1023px) {
+                    .login-card {
+                        max-width: 420px !important;
+                        padding: 2.2rem 1.8rem !important;
+                    }
+                    .login-title {
+                        font-size: 28px !important;
+                        margin-bottom: 18px !important;
+                    }
+                    .login-logo {
+                        width: 100px !important;
+                        height: 100px !important;
+                        margin-bottom: 12px !important;
+                    }
+                }
+                
+                /* Tablet Portrait (600px to 767px) */
+                @media (min-width: 600px) and (max-width: 767px) {
+                    .login-card {
+                        max-width: 400px !important;
+                        padding: 2rem 1.5rem !important;
+                    }
+                    .login-title {
+                        font-size: 26px !important;
+                        margin-bottom: 16px !important;
+                    }
+                    .login-logo {
+                        width: 90px !important;
+                        height: 90px !important;
+                        margin-bottom: 10px !important;
+                    }
+                    .login-input {
+                        padding: 12px !important;
+                        font-size: 16px !important;
+                    }
+                    .login-btn {
+                        padding: 14px 0 !important;
+                        font-size: 16px !important;
+                    }
+                }
+                
+                /* Mobile Large (480px to 599px) */
+                @media (min-width: 480px) and (max-width: 599px) {
+                    .login-card {
+                        max-width: 95vw !important;
+                        padding: 1.8rem 1.2rem !important;
+                    }
+                    .login-title {
+                        font-size: 24px !important;
+                        margin-bottom: 14px !important;
+                    }
+                    .login-logo {
+                        width: 80px !important;
+                        height: 80px !important;
+                        margin-bottom: 8px !important;
+                    }
+                    .login-input {
+                        padding: 11px !important;
+                        font-size: 15px !important;
+                    }
+                    .login-btn {
+                        padding: 13px 0 !important;
+                        font-size: 15px !important;
+                    }
+                }
+                
+                /* Mobile Small (320px to 479px) */
+                @media (max-width: 479px) {
+                    .login-container {
+                        padding: 0.5rem !important;
+                    }
+                    .login-card {
+                        max-width: 98vw !important;
+                        padding: 1.5rem 1rem !important;
+                        margin: 1rem !important;
+                    }
+                    .login-title {
+                        font-size: 22px !important;
+                        margin-bottom: 12px !important;
+                    }
+                    .login-logo {
+                        width: 70px !important;
+                        height: 70px !important;
+                        margin-bottom: 6px !important;
+                    }
+                    .login-input {
+                        padding: 10px !important;
+                        font-size: 14px !important;
+                    }
+                    .login-btn {
+                        padding: 12px 0 !important;
+                        font-size: 14px !important;
+                    }
+                    .login-link-btn {
+                        font-size: 14px !important;
+                    }
+                }
+                
+                /* Touch-friendly improvements */
+                @media (hover: none) and (pointer: coarse) {
+                    .login-input {
+                        min-height: 44px !important;
+                    }
+                    .login-btn {
+                        min-height: 44px !important;
+                    }
+                    .password-toggle-btn {
+                        min-width: 44px !important;
+                        min-height: 44px !important;
+                    }
+                }
+                
+                /* High contrast mode support */
+                @media (prefers-contrast: high) {
+                    .login-card {
+                        border: 2px solid #e53935 !important;
+                    }
+                    .login-input {
+                        border-width: 2px !important;
+                    }
+                }
+                
+                /* Reduced motion support */
+                @media (prefers-reduced-motion: reduce) {
+                    .login-card,
+                    .login-input,
+                    .login-btn {
+                        animation: none !important;
+                        transition: none !important;
+                    }
+                }
+                
+                /* Password reset form responsive improvements */
+                @media (max-width: 767px) {
+                    .reset-form {
+                        gap: 14px !important;
+                    }
+                    .reset-form label {
+                        font-size: 15px !important;
+                    }
+                    .reset-form input {
+                        padding: 11px !important;
+                        font-size: 15px !important;
+                    }
+                    .reset-form button {
+                        padding: 13px 0 !important;
+                        font-size: 15px !important;
+                    }
+                }
+                
+                @media (max-width: 479px) {
+                    .reset-form {
+                        gap: 12px !important;
+                    }
+                    .reset-form label {
+                        font-size: 14px !important;
+                    }
+                    .reset-form input {
+                        padding: 10px !important;
+                        font-size: 14px !important;
+                    }
+                    .reset-form button {
+                        padding: 12px 0 !important;
+                        font-size: 14px !important;
+                    }
+                }
+                
                 .password-toggle-btn, .password-toggle-btn:focus, .password-toggle-btn:active { border: none !important; outline: none !important; box-shadow: none !important; }
                 .login-link-btn, .login-link-btn:focus, .login-link-btn:active { border: none !important; outline: none !important; box-shadow: none !important; background: none; }
             `}</style>
@@ -153,6 +370,7 @@ function Login({ onLogin, switchToSignup }) {
                     <img
                         src={reportProLogo}
                         alt="ReportPro Logo"
+                        className="login-logo"
                         style={{
                             width: 100,
                             height: 100,
@@ -162,6 +380,7 @@ function Login({ onLogin, switchToSignup }) {
                     />
                 </div>
                 <h2
+                    className="login-title"
                     style={{
                         background:
                             "linear-gradient(90deg, #e53935 0%, #b71c1c 100%)",
@@ -272,7 +491,7 @@ function Login({ onLogin, switchToSignup }) {
                                     onClick={() => setShowPassword((v) => !v)}
                                     style={{
                                         position: "absolute",
-                                        right: 20,
+                                        right: 45,
                                         top: "50%",
                                         transform: "translateY(-50%)",
                                         background: "none",
@@ -395,6 +614,7 @@ function Login({ onLogin, switchToSignup }) {
                     <>
                         {resetStep === 1 ? (
                             <form
+                                className="reset-form"
                                 onSubmit={handleResetRequest}
                                 style={{
                                     display: "flex",
@@ -525,6 +745,7 @@ function Login({ onLogin, switchToSignup }) {
                             </form>
                         ) : (
                             <form
+                                className="reset-form"
                                 onSubmit={handleResetPassword}
                                 style={{
                                     display: "flex",

@@ -5,6 +5,7 @@ import Dashboard from "./components/Dashboard";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
 import ProfileModal from "./components/ProfileModal";
+import Footer from "./components/Footer";
 import { MdEdit, MdListAlt, MdBarChart, MdSchool } from "react-icons/md";
 import reportProLogo from "./assets/report-pro-logo.png";
 import { useState as useReactState } from "react";
@@ -14,36 +15,22 @@ import {
     useNavigate,
     Navigate,
     useLocation,
+    Outlet,
 } from "react-router-dom";
+import AdmissionDetails from "./components/AdmissionDetails";
+import HelpSupport from "./components/HelpSupport";
+import ContactUs from "./components/ContactUs";
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import TermsOfService from "./components/TermsOfService";
+import Settings from "./components/Settings";
+import MainLayout from "./components/MainLayout";
+import DashboardLayout from "./components/DashboardLayout";
+import Welcome from "./components/Welcome";
+import { DARK_THEME, LIGHT_THEME } from "./theme";
 
 const ACCENT = "#e53935"; // Red accent
 const ACCENT_DARK = "#b71c1c";
 const BG_GRADIENT = "linear-gradient(135deg, #fff 0%, #ffeaea 100%)";
-
-const DARK_THEME = {
-    background: "#18191a",
-    surface: "#32353b",
-    border: "rgba(255,255,255,0.10)",
-    text: "#f5f6fa",
-    textSecondary: "#b0b3b8",
-    accent: "#ff6f61",
-    accentHover: "#e57373",
-    inputBg: "#232526",
-    inputBorder: "#44474a",
-    shadow: "0 4px 24px #0008",
-};
-const LIGHT_THEME = {
-    background: BG_GRADIENT,
-    surface: "#fff",
-    border: "#fbe9e7",
-    text: "#222",
-    textSecondary: "#888",
-    accent: ACCENT,
-    accentHover: ACCENT_DARK,
-    inputBg: "#fff",
-    inputBorder: "#eee",
-    shadow: "0 4px 24px #e5393522",
-};
 
 function ThemeToggle({ theme, setTheme }) {
     const isDark = theme === "dark";
@@ -126,11 +113,11 @@ function App() {
     const [subject, setSubject] = useState("Hindi");
     const [session, setSession] = useState("");
     const [user, setUser] = useState(() => {
-        const u = localStorage.getItem("user");
+        const u = sessionStorage.getItem("user");
         return u ? JSON.parse(u) : null;
     });
     const [token, setToken] = useState(
-        () => localStorage.getItem("token") || ""
+        () => sessionStorage.getItem("token") || ""
     );
     const [authPage, setAuthPage] = useState("login"); // or "signup"
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -139,19 +126,30 @@ function App() {
     const [theme, setTheme] = useReactState(
         () => localStorage.getItem("theme") || "light"
     );
+    // Accent color state
+    const [accent, setAccent] = useReactState(
+        () => localStorage.getItem("accent") || "#e53935"
+    );
     const [isValidatingToken, setIsValidatingToken] = useState(true);
+    const [isConnected, setIsConnected] = useState(true);
+    const [lastUpdated, setLastUpdated] = useState(new Date());
     const navigate = useNavigate();
     const location = useLocation();
 
-    const themeObj = theme === "dark" ? DARK_THEME : LIGHT_THEME;
+    // Dynamically generate theme object with accent
+    const themeObj = {
+        ...(theme === "dark" ? DARK_THEME : LIGHT_THEME),
+        accent,
+        accentHover: accent + "cc", // fallback for hover
+    };
 
     const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
     // Validate stored token on app load
     useEffect(() => {
         const validateStoredToken = async () => {
-            const storedToken = localStorage.getItem("token");
-            const storedUser = localStorage.getItem("user");
+            const storedToken = sessionStorage.getItem("token");
+            const storedUser = sessionStorage.getItem("user");
 
             if (!storedToken || !storedUser) {
                 setIsValidatingToken(false);
@@ -168,16 +166,16 @@ function App() {
                     setIsValidatingToken(false);
                 } else {
                     // Token is invalid, clear stored data
-                    localStorage.removeItem("user");
-                    localStorage.removeItem("token");
+                    sessionStorage.removeItem("user");
+                    sessionStorage.removeItem("token");
                     setUser(null);
                     setToken("");
                     setIsValidatingToken(false);
                 }
             } catch (error) {
                 // Network error or server down, clear stored data
-                localStorage.removeItem("user");
-                localStorage.removeItem("token");
+                sessionStorage.removeItem("user");
+                sessionStorage.removeItem("token");
                 setUser(null);
                 setToken("");
                 setIsValidatingToken(false);
@@ -191,6 +189,9 @@ function App() {
         document.body.setAttribute("data-theme", theme);
         localStorage.setItem("theme", theme);
     }, [theme]);
+    useEffect(() => {
+        localStorage.setItem("accent", accent);
+    }, [accent]);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -232,6 +233,7 @@ function App() {
                 return;
             }
             setMessage("Student marks saved successfully!");
+            setLastUpdated(new Date());
         } catch (err) {
             setMessage("Error saving marks.");
         }
@@ -241,8 +243,8 @@ function App() {
     const handleLogin = (userData) => {
         setUser(userData);
         setToken(userData.token);
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("token", userData.token);
+        sessionStorage.setItem("user", JSON.stringify(userData));
+        sessionStorage.setItem("token", userData.token);
         setAuthPage(null);
         setView("home");
         navigate("/dashboard");
@@ -250,8 +252,8 @@ function App() {
     const handleSignup = (userData) => {
         setUser(userData);
         setToken(userData.token);
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("token", userData.token);
+        sessionStorage.setItem("user", JSON.stringify(userData));
+        sessionStorage.setItem("token", userData.token);
         setAuthPage(null);
         setView("home");
         navigate("/dashboard");
@@ -259,8 +261,8 @@ function App() {
     const handleLogout = () => {
         setUser(null);
         setToken("");
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("token");
         setAuthPage("login");
         navigate("/");
     };
@@ -270,7 +272,7 @@ function App() {
         if (updated && user) {
             const newUser = { ...user, ...updated };
             setUser(newUser);
-            localStorage.setItem("user", JSON.stringify(newUser));
+            sessionStorage.setItem("user", JSON.stringify(newUser));
         }
     };
 
@@ -332,23 +334,61 @@ function App() {
         justifyContent: "center",
         marginBottom: isMobile ? 12 : 0,
     };
-    // Responsive style tag for nav grid
+    // Comprehensive responsive style tag for nav grid and overall layout
     const navResponsiveStyleTag = (
         <style>{`
-            @media (max-width: 600px) {
+            /* Large Desktop (1400px and up) */
+            @media (min-width: 1400px) {
                 .nav-grid {
                     display: flex !important;
-                    flex-wrap: wrap !important;
-                    gap: 12px !important;
-                    max-width: 340px !important;
+                    flex-wrap: nowrap !important;
+                    gap: 20px !important;
+                    max-width: 700px !important;
                 }
                 .nav-btn-wrap {
-                    flex: 1 1 45% !important;
-                    min-width: 140px !important;
-                    margin-bottom: 12px !important;
+                    flex: 0 0 auto !important;
+                    min-width: 0 !important;
+                    margin-bottom: 0 !important;
+                }
+                .app-header {
+                    padding: 2rem 3rem !important;
+                }
+                .app-title {
+                    font-size: 48px !important;
+                }
+                .app-logo {
+                    width: 90px !important;
+                    height: 90px !important;
                 }
             }
-            @media (min-width: 601px) {
+            
+            /* Desktop (1024px to 1399px) */
+            @media (min-width: 1024px) and (max-width: 1399px) {
+                .nav-grid {
+                    display: flex !important;
+                    flex-wrap: nowrap !important;
+                    gap: 18px !important;
+                    max-width: 650px !important;
+                }
+                .nav-btn-wrap {
+                    flex: 0 0 auto !important;
+                    min-width: 0 !important;
+                    margin-bottom: 0 !important;
+                }
+                .app-header {
+                    padding: 1.8rem 2.5rem !important;
+                }
+                .app-title {
+                    font-size: 42px !important;
+                }
+                .app-logo {
+                    width: 85px !important;
+                    height: 85px !important;
+                }
+            }
+            
+            /* Tablet Landscape (768px to 1023px) */
+            @media (min-width: 768px) and (max-width: 1023px) {
                 .nav-grid {
                     display: flex !important;
                     flex-wrap: nowrap !important;
@@ -359,6 +399,143 @@ function App() {
                     flex: 0 0 auto !important;
                     min-width: 0 !important;
                     margin-bottom: 0 !important;
+                }
+                .app-header {
+                    padding: 1.5rem 2rem !important;
+                }
+                .app-title {
+                    font-size: 38px !important;
+                }
+                .app-logo {
+                    width: 80px !important;
+                    height: 80px !important;
+                }
+            }
+            
+                            /* Tablet Portrait (600px to 767px) */
+                @media (min-width: 600px) and (max-width: 767px) {
+                    .nav-grid {
+                        display: flex !important;
+                        flex-wrap: wrap !important;
+                        gap: 14px !important;
+                        max-width: 500px !important;
+                    }
+                    .nav-btn-wrap {
+                        flex: 1 1 48% !important;
+                        min-width: 160px !important;
+                        margin-bottom: 10px !important;
+                    }
+                    .app-header {
+                        padding: 1.3rem 1.5rem !important;
+                    }
+                    .app-title {
+                        font-size: 34px !important;
+                    }
+                    .app-logo {
+                        width: 75px !important;
+                        height: 75px !important;
+                    }
+                    .app-title-text {
+                        display: none !important;
+                    }
+                    .app-title {
+                        justify-content: center !important;
+                    }
+                }
+            
+                            /* Mobile Large (480px to 599px) */
+                @media (min-width: 480px) and (max-width: 599px) {
+                    .nav-grid {
+                        display: flex !important;
+                        flex-wrap: wrap !important;
+                        gap: 12px !important;
+                        max-width: 400px !important;
+                    }
+                    .nav-btn-wrap {
+                        flex: 1 1 46% !important;
+                        min-width: 150px !important;
+                        margin-bottom: 8px !important;
+                    }
+                    .app-header {
+                        padding: 1.2rem 1rem !important;
+                    }
+                    .app-title {
+                        font-size: 30px !important;
+                    }
+                    .app-logo {
+                        width: 70px !important;
+                        height: 70px !important;
+                    }
+                    .app-title-text {
+                        display: none !important;
+                    }
+                    .app-title {
+                        justify-content: center !important;
+                    }
+                }
+            
+                            /* Mobile Small (320px to 479px) */
+                @media (max-width: 479px) {
+                    .nav-grid {
+                        display: flex !important;
+                        flex-wrap: wrap !important;
+                        gap: 10px !important;
+                        max-width: 340px !important;
+                    }
+                    .nav-btn-wrap {
+                        flex: 1 1 45% !important;
+                        min-width: 140px !important;
+                        margin-bottom: 8px !important;
+                    }
+                    .app-header {
+                        padding: 1rem 0.8rem !important;
+                    }
+                    .app-title {
+                        font-size: 26px !important;
+                    }
+                    .app-logo {
+                        width: 60px !important;
+                        height: 60px !important;
+                    }
+                    .app-title-text {
+                        display: none !important;
+                    }
+                    .app-title {
+                        justify-content: center !important;
+                    }
+                }
+            
+            /* Touch-friendly improvements */
+            @media (hover: none) and (pointer: coarse) {
+                .nav-btn {
+                    min-height: 44px !important;
+                    min-width: 120px !important;
+                }
+                .profile-avatar-btn {
+                    min-width: 48px !important;
+                    min-height: 48px !important;
+                }
+            }
+            
+            /* High contrast mode support */
+            @media (prefers-contrast: high) {
+                .nav-btn {
+                    border-width: 2px !important;
+                }
+                .app-header {
+                    border-bottom: 2px solid #e53935 !important;
+                }
+            }
+            
+            /* Reduced motion support */
+            @media (prefers-reduced-motion: reduce) {
+                .nav-grid,
+                .nav-btn-wrap,
+                .app-header,
+                .app-title,
+                .app-logo {
+                    transition: none !important;
+                    animation: none !important;
                 }
             }
         `}</style>
@@ -414,6 +591,12 @@ function App() {
         );
     }
 
+    // Add export data handler
+    const handleExportData = () => {
+        // TODO: Implement export logic
+        alert("Export Data functionality coming soon!");
+    };
+
     // Routing logic
     return (
         <Routes>
@@ -443,423 +626,91 @@ function App() {
                 path="/dashboard"
                 element={
                     user ? (
-                        <div
-                            style={{
-                                fontFamily: "Segoe UI, Arial, sans-serif",
-                                background:
-                                    theme === "dark" ? "#18191a" : BG_GRADIENT,
-                                minHeight: "100vh",
-                                width: "99vw",
-                                overflowX: "hidden",
-                                color: theme === "dark" ? "#f5f5f5" : undefined,
-                                transition: "background 0.3s, color 0.3s",
-                            }}
-                        >
-                            <header
-                                style={{
-                                    background:
-                                        theme === "dark"
-                                            ? "linear-gradient(90deg, #7b1f24 0%, #b71c1c 100%)"
-                                            : "linear-gradient(90deg, #e53935 0%, #b71c1c 100%)",
-                                    color: "#fff",
-                                    padding: isMobile
-                                        ? "1.2rem 0.5rem"
-                                        : "1.5rem 2rem",
-                                    textAlign: "center",
-                                    borderRadius: "0 0 18px 18px",
-                                    boxShadow: themeObj.shadow,
-                                    marginBottom: 24,
-                                }}
-                            >
-                                <style>{`
-                .profile-avatar-btn { background: #fff; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: ${ACCENT_DARK}; box-shadow: 0 2px 8px #e5393533; cursor: pointer; position: relative; transition: box-shadow 0.2s; }
-                .profile-avatar-btn:focus, .profile-avatar-btn:active { outline: none; border: none; box-shadow: 0 0 0 2px ${ACCENT}; }
-                .profile-dropdown { position: absolute; top: 54px; right: 0; background: #fff; color: ${ACCENT_DARK}; border-radius: 12px; box-shadow: 0 4px 24px #e5393533; min-width: 160px; z-index: 100; padding: 0.5rem 0; display: flex; flex-direction: column; }
-                .profile-dropdown-btn { background: none; border: none; color: ${ACCENT_DARK}; font-size: 16px; font-weight: 600; text-align: left; padding: 12px 20px; cursor: pointer; border-radius: 8px; transition: background 0.15s; }
-                .profile-dropdown-btn:hover { background: #ffeaea; }
-                `}</style>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        maxWidth: 1400,
-                                        margin: "0 auto",
-                                        position: "relative",
-                                    }}
-                                >
-                                    <h1
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            fontSize: isMobile ? 32 : 44,
-                                            fontWeight: 800,
-                                            letterSpacing: 1,
-                                            margin: 0,
-                                            fontFamily:
-                                                "Segoe UI, Arial, sans-serif",
-                                        }}
-                                    >
-                                        <img
-                                            src={reportProLogo}
-                                            alt="ReportPro Logo"
-                                            style={{
-                                                width: 80,
-                                                height: 80,
-                                                marginRight: 28,
-                                                borderRadius: 18,
-                                                verticalAlign: "middle",
-                                                boxShadow:
-                                                    "0 2px 8px #e5393522",
-                                            }}
-                                        />
-                                        Report Pro
-                                    </h1>
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 18,
-                                            position: "relative",
-                                        }}
-                                    >
-                                        <ThemeToggle
-                                            theme={theme}
-                                            setTheme={setTheme}
-                                        />
-                                        <span
-                                            onClick={() =>
-                                                setProfileMenuOpen((v) => !v)
-                                            }
-                                            aria-label="Profile menu"
-                                            tabIndex={0}
-                                            ref={profileMenuRef}
-                                            style={{
-                                                width: 48,
-                                                height: 48,
-                                                borderRadius: "50%",
-                                                background: "#ffeaea",
-                                                color: "#b71c1c",
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                fontWeight: 700,
-                                                fontSize: 22,
-                                                textTransform: "uppercase",
-                                                letterSpacing: 1,
-                                                userSelect: "none",
-                                                aspectRatio: "1 / 1",
-                                                verticalAlign: "middle",
-                                                cursor: "pointer",
-                                                boxShadow:
-                                                    "0 2px 8px #e5393533",
-                                                border: "none",
-                                                outline: "none",
-                                                transition: "box-shadow 0.2s",
-                                            }}
-                                        >
-                                            {user?.name ? (
-                                                (() => {
-                                                    const parts = user.name
-                                                        .trim()
-                                                        .split(" ");
-                                                    if (parts.length === 1)
-                                                        return parts[0][0];
-                                                    return (
-                                                        parts[0][0] +
-                                                        parts[
-                                                            parts.length - 1
-                                                        ][0]
-                                                    );
-                                                })()
-                                            ) : (
-                                                <i
-                                                    className="fa fa-user"
-                                                    aria-hidden="true"
-                                                ></i>
-                                            )}
-                                        </span>
-                                        {profileMenuOpen && (
-                                            <div
-                                                className="profile-dropdown"
-                                                ref={profileMenuRef}
-                                            >
-                                                <button
-                                                    className="profile-dropdown-btn"
-                                                    onClick={() => {
-                                                        setShowProfile(true);
-                                                        setProfileMenuOpen(
-                                                            false
-                                                        );
-                                                    }}
-                                                >
-                                                    Edit Profile
-                                                </button>
-                                                <button
-                                                    className="profile-dropdown-btn"
-                                                    onClick={() => {
-                                                        handleLogout();
-                                                        setProfileMenuOpen(
-                                                            false
-                                                        );
-                                                    }}
-                                                >
-                                                    Logout
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <nav
-                                    style={{
-                                        marginTop: isMobile ? "1rem" : "1.5rem",
-                                    }}
-                                >
-                                    {navResponsiveStyleTag}
-                                    <div
-                                        className="nav-grid"
-                                        style={navGridStyle}
-                                    >
-                                        <div
-                                            className="nav-btn-wrap"
-                                            style={navBtnWrapStyle}
-                                        >
-                                            <button
-                                                onClick={() =>
-                                                    setView("markEntry")
-                                                }
-                                                style={navBtn("markEntry")}
-                                            >
-                                                <MdEdit
-                                                    style={{
-                                                        marginRight: 8,
-                                                        verticalAlign: "middle",
-                                                        fontSize: 20,
-                                                    }}
-                                                />
-                                                Enter Marks
-                                            </button>
-                                        </div>
-                                        <div
-                                            className="nav-btn-wrap"
-                                            style={navBtnWrapStyle}
-                                        >
-                                            <button
-                                                onClick={() =>
-                                                    setView("results")
-                                                }
-                                                style={navBtn("results")}
-                                            >
-                                                <MdListAlt
-                                                    style={{
-                                                        marginRight: 8,
-                                                        verticalAlign: "middle",
-                                                        fontSize: 20,
-                                                    }}
-                                                />
-                                                View Results
-                                            </button>
-                                        </div>
-                                        <div
-                                            className="nav-btn-wrap"
-                                            style={navBtnWrapStyle}
-                                        >
-                                            <button
-                                                onClick={() =>
-                                                    setView("statistics")
-                                                }
-                                                style={navBtn("statistics")}
-                                            >
-                                                <MdBarChart
-                                                    style={{
-                                                        marginRight: 8,
-                                                        verticalAlign: "middle",
-                                                        fontSize: 20,
-                                                    }}
-                                                />
-                                                Statistics
-                                            </button>
-                                        </div>
-                                        <div
-                                            className="nav-btn-wrap"
-                                            style={navBtnWrapStyle}
-                                        >
-                                            <button
-                                                onClick={() =>
-                                                    setView("admission")
-                                                }
-                                                style={navBtn("admission")}
-                                            >
-                                                <MdSchool
-                                                    style={{
-                                                        marginRight: 8,
-                                                        verticalAlign: "middle",
-                                                        fontSize: 20,
-                                                    }}
-                                                />
-                                                Admission Details
-                                            </button>
-                                        </div>
-                                    </div>
-                                </nav>
-                            </header>
-                            <main style={mainStyle}>
-                                {view === "markEntry" && (
-                                    <>
-                                        <MarkEntryForm
-                                            onSubmit={handleMarkEntry}
-                                            accent={themeObj.accent}
-                                            accentDark={themeObj.accentHover}
-                                            subject={subject}
-                                            setSubject={setSubject}
-                                            session={session}
-                                            setSession={setSession}
-                                            theme={themeObj}
-                                        />
-                                        {message && (
-                                            <div
-                                                style={{
-                                                    marginTop: 16,
-                                                    color: message.includes(
-                                                        "Error"
-                                                    )
-                                                        ? ACCENT
-                                                        : ACCENT_DARK,
-                                                    textAlign: "center",
-                                                    fontWeight: 600,
-                                                }}
-                                            >
-                                                {message}
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                                {view === "home" && (
-                                    <>
-                                        <h2
-                                            style={{
-                                                color: ACCENT_DARK,
-                                                fontWeight: 700,
-                                                fontSize: 28,
-                                                margin: "2rem 0 1rem",
-                                            }}
-                                        >
-                                            Welcome to Report Pro
-                                        </h2>
-                                        <p
-                                            style={{
-                                                color: "#666",
-                                                fontSize: 18,
-                                            }}
-                                        >
-                                            Select an option above to get
-                                            started.
-                                        </p>
-                                    </>
-                                )}
-                                {view === "results" && (
-                                    <StudentList
-                                        accent={themeObj.accent}
-                                        accentDark={themeObj.accentHover}
-                                        session={session}
-                                        setSession={setSession}
-                                        token={token}
-                                        theme={themeObj}
-                                    />
-                                )}
-                                {view === "statistics" && (
-                                    <Dashboard
-                                        accent={themeObj.accent}
-                                        accentDark={themeObj.accentHover}
-                                        session={session}
-                                        setSession={setSession}
-                                        token={token}
-                                        theme={themeObj}
-                                    />
-                                )}
-                                {view === "admission" && (
-                                    <div
-                                        style={{
-                                            background: themeObj.surface,
-                                            borderRadius: 16,
-                                            boxShadow: themeObj.shadow,
-                                            padding: isMobile ? 24 : 40,
-                                            maxWidth: 480,
-                                            margin: "2rem auto",
-                                            color: themeObj.text,
-                                        }}
-                                    >
-                                        <h2
-                                            style={{
-                                                color: ACCENT_DARK,
-                                                fontWeight: 700,
-                                                fontSize: 26,
-                                                marginBottom: 18,
-                                                letterSpacing: 1,
-                                            }}
-                                        >
-                                            Admission Details
-                                        </h2>
-                                        <p
-                                            style={{
-                                                color: ACCENT,
-                                                fontSize: 18,
-                                                fontWeight: 600,
-                                            }}
-                                        >
-                                            This feature will be added soon.
-                                        </p>
-                                    </div>
-                                )}
-                            </main>
-                            {showProfile && (
-                                <ProfileModal
-                                    token={token}
-                                    onClose={() => setShowProfile(false)}
-                                    onProfileUpdate={handleProfileUpdate}
-                                    profilePicture={user?.profilePicture}
-                                    theme={themeObj}
-                                />
-                            )}
-                            <style>{`
-              [data-theme="dark"] {
-                background: #18191a !important;
-                color: #f5f5f5 !important;
-              }
-              [data-theme="dark"] .dashboard-container,
-              [data-theme="dark"] .results-container,
-              [data-theme="dark"] .results-card,
-              [data-theme="dark"] .markentry-form {
-                background: #232526 !important;
-                color: #f5f5f5 !important;
-              }
-              [data-theme="dark"] input,
-              [data-theme="dark"] select,
-              [data-theme="dark"] textarea {
-                background: #232526 !important;
-                color: #f5f5f5 !important;
-                border-color: #444 !important;
-              }
-              [data-theme="dark"] .profile-dropdown {
-                background: #232526 !important;
-                color: #f5f5f5 !important;
-              }
-              [data-theme="dark"] .profile-dropdown-btn:hover {
-                background: #333 !important;
-              }
-              [data-theme="dark"] .profile-avatar-btn,
-              [data-theme="dark"] .profile-avatar-btn:focus,
-              [data-theme="dark"] .profile-avatar-btn:active {
-                background: #232526 !important;
-                color: #ffeaea !important;
-              }
-            `}</style>
-                        </div>
+                        <DashboardLayout
+                            theme={theme}
+                            user={user}
+                            setTheme={setTheme}
+                            onLogout={handleLogout}
+                            onProfileUpdate={handleProfileUpdate}
+                        />
                     ) : (
                         <Navigate to="/" replace />
                     )
                 }
-            />
+            >
+                <Route index element={<Navigate to="welcome" replace />} />
+                <Route path="welcome" element={<Welcome />} />
+                <Route
+                    path="results"
+                    element={
+                        <StudentList
+                            accent={themeObj.accent}
+                            accentDark={themeObj.accentHover}
+                            session={session}
+                            setSession={setSession}
+                            token={token}
+                            theme={themeObj}
+                        />
+                    }
+                />
+                <Route
+                    path="statistics"
+                    element={
+                        <Dashboard
+                            accent={themeObj.accent}
+                            accentDark={themeObj.accentHover}
+                            session={session}
+                            setSession={setSession}
+                            token={token}
+                            theme={themeObj}
+                        />
+                    }
+                />
+                <Route
+                    path="admission"
+                    element={<AdmissionDetails theme={themeObj} />}
+                />
+                <Route
+                    path="markEntry"
+                    element={
+                        <MarkEntryForm
+                            onSubmit={handleMarkEntry}
+                            accent={themeObj.accent}
+                            accentDark={themeObj.accentHover}
+                            subject={subject}
+                            setSubject={setSubject}
+                            session={session}
+                            setSession={setSession}
+                            theme={themeObj}
+                        />
+                    }
+                />
+                <Route path="help" element={<HelpSupport theme={themeObj} />} />
+                <Route
+                    path="contact"
+                    element={<ContactUs theme={themeObj} />}
+                />
+                <Route
+                    path="privacy"
+                    element={<PrivacyPolicy theme={themeObj} />}
+                />
+                <Route
+                    path="terms"
+                    element={<TermsOfService theme={themeObj} />}
+                />
+                <Route
+                    path="settings"
+                    element={
+                        <Settings
+                            theme={themeObj}
+                            user={user}
+                            onProfileUpdate={handleProfileUpdate}
+                            onThemeChange={setTheme}
+                            onAccentChange={setAccent}
+                        />
+                    }
+                />
+            </Route>
             <Route
                 path="*"
                 element={<Navigate to={user ? "/dashboard" : "/"} replace />}

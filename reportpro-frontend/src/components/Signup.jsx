@@ -33,26 +33,244 @@ function Signup({ onSignup, switchToLogin }) {
 
     return (
         <div
+            className="signup-container"
             style={{
                 minHeight: "100vh",
-                width: "100vw",
+                width: "99vw",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 background:
                     "linear-gradient(135deg, #fff5f5 0%, #ffeaea 60%, #fbe9e7 100%)",
                 animation: "fadeInBg 1s",
+                padding: "1rem",
+                boxSizing: "border-box",
             }}
         >
             <style>{`
                 @keyframes fadeInCard { from { opacity: 0; transform: translateY(30px);} to { opacity: 1; transform: none; } }
                 @keyframes fadeInBg { from { opacity: 0; } to { opacity: 1; } }
+                .signup-container { transition: all 0.3s ease; }
                 .signup-card { animation: fadeInCard 0.8s cubic-bezier(.4,0,.2,1); }
                 .signup-input:focus { border: 1.5px solid #e53935 !important; box-shadow: 0 0 0 2px #e5393533; }
                 .signup-btn:active { border: 2px solid #fff; }
                 .signup-spinner { border: 2.5px solid #fff; border-top: 2.5px solid #e53935; border-radius: 50%; width: 18px; height: 18px; animation: spin 0.7s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
                 @keyframes spin { 100% { transform: rotate(360deg); } }
-                @media (max-width: 500px) { .signup-card { padding: 1.5rem 0.5rem !important; max-width: 98vw !important; } }
+                
+                /* Large Desktop (1400px and up) */
+                @media (min-width: 1400px) {
+                    .signup-container {
+                        padding: 2rem !important;
+                    }
+                    .signup-card {
+                        max-width: 480px !important;
+                        padding: 3rem 2.5rem !important;
+                    }
+                    .signup-title {
+                        font-size: 32px !important;
+                        margin-bottom: 24px !important;
+                    }
+                    .signup-logo {
+                        width: 120px !important;
+                        height: 120px !important;
+                        margin-bottom: 16px !important;
+                    }
+                    .signup-input {
+                        padding: 14px !important;
+                        font-size: 17px !important;
+                    }
+                    .signup-btn {
+                        padding: 16px 0 !important;
+                        font-size: 17px !important;
+                    }
+                }
+                
+                /* Desktop (1024px to 1399px) */
+                @media (min-width: 1024px) and (max-width: 1399px) {
+                    .signup-card {
+                        max-width: 440px !important;
+                        padding: 2.5rem 2rem !important;
+                    }
+                    .signup-title {
+                        font-size: 30px !important;
+                        margin-bottom: 20px !important;
+                    }
+                    .signup-logo {
+                        width: 110px !important;
+                        height: 110px !important;
+                        margin-bottom: 14px !important;
+                    }
+                }
+                
+                /* Tablet Landscape (768px to 1023px) */
+                @media (min-width: 768px) and (max-width: 1023px) {
+                    .signup-card {
+                        max-width: 420px !important;
+                        padding: 2.2rem 1.8rem !important;
+                    }
+                    .signup-title {
+                        font-size: 28px !important;
+                        margin-bottom: 18px !important;
+                    }
+                    .signup-logo {
+                        width: 100px !important;
+                        height: 100px !important;
+                        margin-bottom: 12px !important;
+                    }
+                }
+                
+                /* Tablet Portrait (600px to 767px) */
+                @media (min-width: 600px) and (max-width: 767px) {
+                    .signup-card {
+                        max-width: 400px !important;
+                        padding: 2rem 1.5rem !important;
+                    }
+                    .signup-title {
+                        font-size: 26px !important;
+                        margin-bottom: 16px !important;
+                    }
+                    .signup-logo {
+                        width: 90px !important;
+                        height: 90px !important;
+                        margin-bottom: 10px !important;
+                    }
+                    .signup-input {
+                        padding: 12px !important;
+                        font-size: 16px !important;
+                    }
+                    .signup-btn {
+                        padding: 14px 0 !important;
+                        font-size: 16px !important;
+                    }
+                }
+                
+                /* Mobile Large (480px to 599px) */
+                @media (min-width: 480px) and (max-width: 599px) {
+                    .signup-card {
+                        max-width: 95vw !important;
+                        padding: 1.8rem 1.2rem !important;
+                    }
+                    .signup-title {
+                        font-size: 24px !important;
+                        margin-bottom: 14px !important;
+                    }
+                    .signup-logo {
+                        width: 80px !important;
+                        height: 80px !important;
+                        margin-bottom: 8px !important;
+                    }
+                    .signup-input {
+                        padding: 11px !important;
+                        font-size: 15px !important;
+                    }
+                    .signup-btn {
+                        padding: 13px 0 !important;
+                        font-size: 15px !important;
+                    }
+                }
+                
+                /* Mobile Small (320px to 479px) */
+                @media (max-width: 479px) {
+                    .signup-container {
+                        padding: 0.5rem !important;
+                    }
+                    .signup-card {
+                        max-width: 98vw !important;
+                        padding: 1.5rem 1rem !important;
+                        margin: 1rem !important;
+                    }
+                    .signup-title {
+                        font-size: 22px !important;
+                        margin-bottom: 12px !important;
+                    }
+                    .signup-logo {
+                        width: 70px !important;
+                        height: 70px !important;
+                        margin-bottom: 6px !important;
+                    }
+                    .signup-input {
+                        padding: 10px !important;
+                        font-size: 14px !important;
+                    }
+                    .signup-btn {
+                        padding: 12px 0 !important;
+                        font-size: 14px !important;
+                    }
+                    .signup-link-btn {
+                        font-size: 14px !important;
+                    }
+                }
+                
+                /* Touch-friendly improvements */
+                @media (hover: none) and (pointer: coarse) {
+                    .signup-input {
+                        min-height: 44px !important;
+                    }
+                    .signup-btn {
+                        min-height: 44px !important;
+                    }
+                    .password-toggle-btn {
+                        min-width: 44px !important;
+                        min-height: 44px !important;
+                    }
+                }
+                
+                /* High contrast mode support */
+                @media (prefers-contrast: high) {
+                    .signup-card {
+                        border: 2px solid #e53935 !important;
+                    }
+                    .signup-input {
+                        border-width: 2px !important;
+                    }
+                }
+                
+                /* Reduced motion support */
+                @media (prefers-reduced-motion: reduce) {
+                    .signup-container,
+                    .signup-card,
+                    .signup-input,
+                    .signup-btn {
+                        animation: none !important;
+                        transition: none !important;
+                    }
+                }
+                
+                /* Form responsive improvements */
+                @media (max-width: 767px) {
+                    .signup-form {
+                        gap: 14px !important;
+                    }
+                    .signup-form label {
+                        font-size: 15px !important;
+                    }
+                    .signup-form input {
+                        padding: 11px !important;
+                        font-size: 15px !important;
+                    }
+                    .signup-form button {
+                        padding: 13px 0 !important;
+                        font-size: 15px !important;
+                    }
+                }
+                
+                @media (max-width: 479px) {
+                    .signup-form {
+                        gap: 12px !important;
+                    }
+                    .signup-form label {
+                        font-size: 14px !important;
+                    }
+                    .signup-form input {
+                        padding: 10px !important;
+                        font-size: 14px !important;
+                    }
+                    .signup-form button {
+                        padding: 12px 0 !important;
+                        font-size: 14px !important;
+                    }
+                }
+                
                 .password-toggle-btn, .password-toggle-btn:focus, .password-toggle-btn:active { border: none !important; outline: none !important; box-shadow: none !important; }
                 .signup-link-btn, .signup-link-btn:focus, .signup-link-btn:active { border: none !important; outline: none !important; box-shadow: none !important; background: none; }
             `}</style>
@@ -81,6 +299,7 @@ function Signup({ onSignup, switchToLogin }) {
                     <img
                         src={reportProLogo}
                         alt="ReportPro Logo"
+                        className="signup-logo"
                         style={{
                             width: 100,
                             height: 100,
@@ -90,6 +309,7 @@ function Signup({ onSignup, switchToLogin }) {
                     />
                 </div>
                 <h2
+                    className="signup-title"
                     style={{
                         background:
                             "linear-gradient(90deg, #e53935 0%, #b71c1c 100%)",
@@ -105,6 +325,7 @@ function Signup({ onSignup, switchToLogin }) {
                     Sign Up
                 </h2>
                 <form
+                    className="signup-form"
                     onSubmit={handleSubmit}
                     style={{
                         display: "flex",
@@ -226,7 +447,7 @@ function Signup({ onSignup, switchToLogin }) {
                             onClick={() => setShowPassword((v) => !v)}
                             style={{
                                 position: "absolute",
-                                right: 20,
+                                right: 45,
                                 top: "50%",
                                 transform: "translateY(-50%)",
                                 background: "none",
@@ -238,33 +459,13 @@ function Signup({ onSignup, switchToLogin }) {
                                 fontSize: 20,
                             }}
                         >
-                            <span
-                                role="img"
-                                aria-label={showPassword ? "Hide" : "Show"}
-                            >
-                                {showPassword ? (
-                                    "🙈"
-                                ) : (
-                                    <svg
-                                        width="22"
-                                        height="22"
-                                        fill="none"
-                                        stroke="#b71c1c"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <ellipse
-                                            cx="12"
-                                            cy="12"
-                                            rx="8"
-                                            ry="5"
-                                        />
-                                        <circle cx="12" cy="12" r="2.5" />
-                                    </svg>
-                                )}
-                            </span>
+                            <i
+                                className={
+                                    showPassword
+                                        ? "fa fa-eye-slash"
+                                        : "fa fa-eye"
+                                }
+                            ></i>
                         </button>
                     </div>
                     <div

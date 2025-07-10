@@ -14,6 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 const allowedOrigins = [
     "https://report-pro-rho.vercel.app", // Your deployed frontend
+    "http://localhost:5173", // Vite dev server
     "http://localhost:3000", // (Optional: for local dev)
 ];
 
@@ -51,6 +52,16 @@ const studentSchema = new mongoose.Schema(
         rollNo: { type: String, required: true },
         name: { type: String, required: true, default: "Unknown" },
         class: { type: String, enum: ["9th", "10th"], required: true },
+        examType: {
+            type: String,
+            enum: [
+                "Monthly Test",
+                "Quarterly Exam",
+                "Half Monthly Exam",
+                "Annual Exam",
+            ],
+            required: true,
+        },
         subject: { type: String, required: true },
         theory: { type: Number, required: true, min: 0, max: 75 },
         practical: { type: Number, required: true, min: 0, max: 25 },
@@ -68,9 +79,9 @@ const studentSchema = new mongoose.Schema(
     }
 );
 
-// Create a compound index for rollNo, subject, session, and user (per-user uniqueness)
+// Create a compound index for rollNo, subject, examType, session, and user (per-user uniqueness)
 studentSchema.index(
-    { rollNo: 1, subject: 1, session: 1, user: 1 },
+    { rollNo: 1, subject: 1, examType: 1, session: 1, user: 1 },
     { unique: true }
 );
 
@@ -156,6 +167,7 @@ app.post("/api/students", requireAuth, async (req, res) => {
             rollNo,
             name,
             class: studentClass,
+            examType,
             subject,
             theory,
             practical,
@@ -169,12 +181,36 @@ app.post("/api/students", requireAuth, async (req, res) => {
                 .status(400)
                 .json({ error: "Class must be '9th' or '10th'." });
         }
+        if (
+            !examType ||
+            ![
+                "Monthly Test",
+                "Quarterly Exam",
+                "Half Monthly Exam",
+                "Annual Exam",
+            ].includes(examType)
+        ) {
+            return res.status(400).json({
+                error: "Exam type must be one of: Monthly Test, Quarterly Exam, Half Monthly Exam, Annual Exam.",
+            });
+        }
         const theoryNum = Number(theory);
         const practicalNum = Number(practical);
 
         // Specific validation for each field
-        if (!rollNo || typeof rollNo !== "string" || !rollNo.trim()) {
-            return res.status(400).json({ error: "Roll number is required." });
+        if (
+            examType !== "Monthly Test" &&
+            (!rollNo || typeof rollNo !== "string" || !rollNo.trim())
+        ) {
+            return res
+                .status(400)
+                .json({
+                    error: "Roll number is required for all exam types except Monthly Test.",
+                });
+        }
+        // For Monthly Test, if rollNo is empty, set it to "N/A"
+        if (examType === "Monthly Test" && (!rollNo || !rollNo.trim())) {
+            rollNo = "N/A";
         }
         if (!subject || typeof subject !== "string" || !subject.trim()) {
             return res.status(400).json({ error: "Subject is required." });
@@ -215,11 +251,12 @@ app.post("/api/students", requireAuth, async (req, res) => {
 
         const total = theoryNum + practicalNum;
         const grade = calculateGrade(total, theoryNum);
-        const filter = { rollNo, subject, session, user: req.userId };
+        const filter = { rollNo, subject, examType, session, user: req.userId };
         const update = {
             rollNo,
             name,
             class: studentClass,
+            examType,
             subject,
             session,
             theory: theoryNum,

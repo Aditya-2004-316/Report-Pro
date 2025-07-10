@@ -24,10 +24,13 @@ function StudentList({
     });
     const [subject, setSubject] = useState("Science");
     const [selectedClass, setSelectedClass] = useState("9th");
+    const [selectedExamType, setSelectedExamType] = useState("Monthly Test");
     const [deleteStudentModal, setDeleteStudentModal] = useState({
         open: false,
         rollNo: null,
     });
+    const [selectedRows, setSelectedRows] = useState([]);
+    const [popupMsg, setPopupMsg] = useState("");
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -56,8 +59,9 @@ function StudentList({
 
     const filtered = students.filter(
         (s) =>
-            s.rollNo.toLowerCase().includes(search.toLowerCase()) ||
-            s.subject.toLowerCase().includes(search.toLowerCase())
+            (selectedExamType === "All" || s.examType === selectedExamType) &&
+            (s.rollNo.toLowerCase().includes(search.toLowerCase()) ||
+                s.subject.toLowerCase().includes(search.toLowerCase()))
     );
 
     const containerStyle = {
@@ -168,26 +172,28 @@ function StudentList({
         return acc;
     }, {});
 
-    // Group students by rollNo for summary table
+    // Group students by rollNo and examType for summary table
     const studentsByRollNo = {};
     filtered.forEach((s) => {
-        if (!studentsByRollNo[s.rollNo]) {
-            studentsByRollNo[s.rollNo] = {
+        const key = `${s.rollNo}-${s.examType}`;
+        if (!studentsByRollNo[key]) {
+            studentsByRollNo[key] = {
                 rollNo: s.rollNo,
-                name: s.name, // Store the name at the student level
+                name: s.name,
+                examType: s.examType,
                 subjects: {},
                 total: 0,
                 maxTotal: 0,
             };
         }
-        studentsByRollNo[s.rollNo].subjects[s.subject] = {
+        studentsByRollNo[key].subjects[s.subject] = {
             theory: s.theory,
             practical: s.practical,
             total: s.total,
             grade: s.grade,
         };
-        studentsByRollNo[s.rollNo].total += s.total;
-        studentsByRollNo[s.rollNo].maxTotal += 100; // Each subject max 100
+        studentsByRollNo[key].total += s.total;
+        studentsByRollNo[key].maxTotal += 100; // Each subject max 100
     });
     // Helper to get overall grade from percentage with subject failure rule
     function getOverallGrade(percentage, studentSubjects) {
@@ -293,18 +299,65 @@ function StudentList({
     // Add responsive styles via a <style> tag
     const responsiveStyleTag = (
         <style>{`
-            @media (max-width: 900px) {
+            /* Large tablets and small desktops */
+            @media (max-width: 1024px) {
                 .results-container {
-                    max-width: 98vw !important;
-                    padding: 1.2rem 0.5rem !important;
+                    max-width: 95vw !important;
+                    padding: 1.8rem 1.2rem !important;
+                    margin: 1.5rem auto !important;
                 }
                 .results-card {
-                    padding: 14px !important;
-                    margin-bottom: 18px !important;
+                    padding: 20px !important;
+                    margin-bottom: 24px !important;
+                    border-radius: 12px !important;
                 }
                 .results-table th, .results-table td {
                     font-size: 14px !important;
-                    padding: 8px !important;
+                    padding: 10px 8px !important;
+                }
+                .results-header-right {
+                    flex-direction: column !important;
+                    align-items: flex-end !important;
+                    gap: 12px !important;
+                    padding-right: 0 !important;
+                }
+                .results-title {
+                    font-size: 24px !important;
+                    margin-bottom: 16px !important;
+                }
+                .results-summary-title {
+                    font-size: 20px !important;
+                    margin-bottom: 10px !important;
+                }
+                .results-filters {
+                    flex-wrap: wrap !important;
+                    gap: 12px !important;
+                }
+                .results-filter-item {
+                    min-width: 140px !important;
+                    flex: 1 !important;
+                }
+                .results-search {
+                    font-size: 15px !important;
+                    padding: 11px 10px !important;
+                }
+            }
+            
+            /* Tablets */
+            @media (max-width: 768px) {
+                .results-container {
+                    max-width: 98vw !important;
+                    padding: 1.5rem 1rem !important;
+                    margin: 1rem auto !important;
+                }
+                .results-card {
+                    padding: 16px !important;
+                    margin-bottom: 20px !important;
+                    border-radius: 10px !important;
+                }
+                .results-table th, .results-table td {
+                    font-size: 13px !important;
+                    padding: 8px 6px !important;
                 }
                 .results-header-right {
                     flex-direction: column !important;
@@ -312,22 +365,48 @@ function StudentList({
                     gap: 10px !important;
                     padding-right: 0 !important;
                 }
+                .results-title {
+                    font-size: 22px !important;
+                    margin-bottom: 14px !important;
+                }
+                .results-summary-title {
+                    font-size: 18px !important;
+                    margin-bottom: 8px !important;
+                }
+                .results-filters {
+                    flex-direction: column !important;
+                    gap: 10px !important;
+                }
+                .results-filter-item {
+                    width: 100% !important;
+                    max-width: none !important;
+                }
+                .results-search {
+                    font-size: 14px !important;
+                    padding: 10px 8px !important;
+                }
+                .results-table-container {
+                    overflow-x: auto !important;
+                    border-radius: 8px !important;
+                }
             }
+            
+            /* Large phones */
             @media (max-width: 600px) {
                 .results-container {
                     max-width: 100vw !important;
-                    padding: 0.5rem 0.2rem !important;
+                    padding: 1.2rem 0.8rem !important;
+                    margin: 0.5rem auto !important;
+                    border-radius: 12px !important;
                 }
                 .results-card {
-                    padding: 8px !important;
-                    margin-bottom: 10px !important;
+                    padding: 12px !important;
+                    margin-bottom: 16px !important;
+                    border-radius: 8px !important;
                 }
                 .results-table th, .results-table td {
-                    font-size: 12px !important;
-                    padding: 5px !important;
-                }
-                .results-summary-title {
-                    font-size: 16px !important;
+                    font-size: 11px !important;
+                    padding: 6px 4px !important;
                 }
                 .results-header-right {
                     flex-direction: column !important;
@@ -335,41 +414,242 @@ function StudentList({
                     gap: 8px !important;
                     padding-right: 0 !important;
                 }
+                .results-title {
+                    font-size: 20px !important;
+                    margin-bottom: 12px !important;
+                    letter-spacing: 0.5px !important;
+                }
+                .results-summary-title {
+                    font-size: 16px !important;
+                    margin-bottom: 6px !important;
+                }
+                .results-filters {
+                    flex-direction: column !important;
+                    gap: 8px !important;
+                }
+                .results-filter-item {
+                    width: 100% !important;
+                    max-width: none !important;
+                }
+                .results-search {
+                    font-size: 13px !important;
+                    padding: 9px 7px !important;
+                    border-radius: 6px !important;
+                }
+                .results-table-container {
+                    overflow-x: auto !important;
+                    border-radius: 6px !important;
+                }
+                .results-export-btn {
+                    padding: 6px 12px !important;
+                    font-size: 13px !important;
+                }
+            }
+            
+            /* Small phones */
+            @media (max-width: 480px) {
+                .results-container {
+                    padding: 1rem 0.6rem !important;
+                    margin: 0.3rem auto !important;
+                    border-radius: 10px !important;
+                }
+                .results-card {
+                    padding: 10px !important;
+                    margin-bottom: 12px !important;
+                    border-radius: 6px !important;
+                }
+                .results-table th, .results-table td {
+                    font-size: 10px !important;
+                    padding: 5px 3px !important;
+                }
+                .results-title {
+                    font-size: 18px !important;
+                    margin-bottom: 10px !important;
+                }
+                .results-summary-title {
+                    font-size: 14px !important;
+                    margin-bottom: 4px !important;
+                }
+                .results-filters {
+                    gap: 6px !important;
+                }
+                .results-search {
+                    font-size: 12px !important;
+                    padding: 8px 6px !important;
+                    border-radius: 5px !important;
+                }
+                .results-export-btn {
+                    padding: 5px 10px !important;
+                    font-size: 12px !important;
+                }
+            }
+            
+            /* Extra small phones */
+            @media (max-width: 360px) {
+                .results-container {
+                    padding: 0.8rem 0.4rem !important;
+                    margin: 0.2rem auto !important;
+                }
+                .results-card {
+                    padding: 8px !important;
+                    margin-bottom: 10px !important;
+                }
+                .results-table th, .results-table td {
+                    font-size: 9px !important;
+                    padding: 4px 2px !important;
+                }
+                .results-title {
+                    font-size: 16px !important;
+                    margin-bottom: 8px !important;
+                }
+                .results-summary-title {
+                    font-size: 13px !important;
+                    margin-bottom: 3px !important;
+                }
+                .results-search {
+                    font-size: 11px !important;
+                    padding: 7px 5px !important;
+                }
+                .results-export-btn {
+                    padding: 4px 8px !important;
+                    font-size: 11px !important;
+                }
+            }
+            
+            /* Landscape orientation on phones */
+            @media (max-height: 500px) and (orientation: landscape) {
+                .results-container {
+                    margin: 0.5rem auto !important;
+                    padding: 1rem 1.5rem !important;
+                }
+                .results-title {
+                    font-size: 18px !important;
+                    margin-bottom: 8px !important;
+                }
+                .results-card {
+                    margin-bottom: 12px !important;
+                    padding: 12px !important;
+                }
+            }
+            
+            /* Focus states for better accessibility */
+            .results-search:focus {
+                border-color: #e53935 !important;
+                box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.2) !important;
+                outline: none !important;
+            }
+            
+            .results-filter-item select:focus {
+                border-color: #e53935 !important;
+                box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.2) !important;
+                outline: none !important;
+            }
+            
+            /* Hover effects for better interactivity */
+            .results-search:hover {
+                border-color: #b71c1c !important;
+            }
+            
+            .results-filter-item select:hover {
+                border-color: #b71c1c !important;
+            }
+            
+            /* Smooth transitions */
+            .results-container * {
+                transition: all 0.2s ease-in-out !important;
+            }
+            
+            /* Table responsiveness */
+            .results-table-container {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: thin !important;
+            }
+            
+            .results-table-container::-webkit-scrollbar {
+                height: 6px !important;
+            }
+            
+            .results-table-container::-webkit-scrollbar-track {
+                background: #f1f1f1 !important;
+                border-radius: 3px !important;
+            }
+            
+            .results-table-container::-webkit-scrollbar-thumb {
+                background: #e53935 !important;
+                border-radius: 3px !important;
+            }
+            
+            .results-table-container::-webkit-scrollbar-thumb:hover {
+                background: #b71c1c !important;
             }
         `}</style>
     );
 
+    // Helper to get unique key for a student row
+    function getStudentKey(stu) {
+        return `${stu.rollNo}-${stu.examType}`;
+    }
+
     // CSV Export logic
     function exportCSV() {
-        // Only export filtered students
+        // Create header information based on selected filters
+        const headerInfo = [
+            `Session: ${session || "All Sessions"}`,
+            `Class: ${selectedClass}`,
+            `Subject: ${subject}`,
+            `Exam Type: ${selectedExamType}`,
+            `Export Date: ${new Date().toLocaleDateString()}`,
+            `Export Time: ${new Date().toLocaleTimeString()}`,
+            "", // Empty line for spacing
+        ];
+        // Only export selected students if any are checked, else all filtered
+        const studentsToExport =
+            selectedRows.length > 0
+                ? Object.values(studentsByRollNo).filter((stu) =>
+                      selectedRows.includes(getStudentKey(stu))
+                  )
+                : Object.values(studentsByRollNo);
         const rows = [
             [
                 "Roll No",
                 "Name",
+                "Class",
                 "Subject",
+                "Exam Type",
                 "Theory",
                 "Practical",
                 "Total",
                 "Grade",
                 "Session",
             ],
-            ...filtered.map((s) => [
-                s.rollNo,
-                s.name,
-                s.subject,
-                s.theory,
-                s.practical,
-                s.total,
-                s.grade,
-                s.session,
-            ]),
+            ...studentsToExport.flatMap((stu) =>
+                SUBJECTS.map((subj) => [
+                    stu.rollNo || "",
+                    stu.name || "",
+                    stu.class || selectedClass || "",
+                    subj,
+                    stu.examType || "",
+                    stu.subjects[subj]?.theory ?? "",
+                    stu.subjects[subj]?.practical ?? "",
+                    stu.subjects[subj]?.total ?? "",
+                    stu.subjects[subj]?.grade ?? "",
+                    session || "",
+                ])
+            ),
         ];
-        const csvContent = rows.map((r) => r.join(",")).join("\n");
+        // Combine header info and data rows
+        const csvContent = [
+            ...headerInfo,
+            ...rows.map((r) => r.join(",")),
+        ].join("\n");
         const blob = new Blob([csvContent], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `students_${session || "all"}.csv`;
+        a.download = `students_${
+            session || "all"
+        }_${selectedClass}_${subject}_${selectedExamType}.csv`;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
@@ -537,11 +817,13 @@ function StudentList({
                             s.class !== selectedClass
                     )
                 );
-                alert(
+                setPopupMsg(
                     `Successfully deleted ${successCount} subject(s) for student ${rollNo}`
                 );
+                setTimeout(() => setPopupMsg(""), 2500);
             } else {
-                alert("Failed to delete any subjects for this student.");
+                setPopupMsg("Failed to delete any subjects for this student.");
+                setTimeout(() => setPopupMsg(""), 2500);
             }
         } catch (err) {
             alert("Failed to delete student.");
@@ -565,8 +847,11 @@ function StudentList({
                     outline: none !important;
                 }
             `}</style>
-            <h2 style={gradientText}>Student Results</h2>
+            <h2 className="results-title" style={gradientText}>
+                Student Results
+            </h2>
             <div
+                className="results-filters"
                 style={{
                     display: "flex",
                     alignItems: "center",
@@ -576,7 +861,10 @@ function StudentList({
                     flexWrap: "wrap",
                 }}
             >
-                <div style={{ maxWidth: 320, flex: 1 }}>
+                <div
+                    className="results-filter-item"
+                    style={{ maxWidth: 320, flex: 1 }}
+                >
                     <label
                         style={{
                             fontWeight: 700,
@@ -611,7 +899,10 @@ function StudentList({
                         ))}
                     </select>
                 </div>
-                <div style={{ maxWidth: 180, flex: 1 }}>
+                <div
+                    className="results-filter-item"
+                    style={{ maxWidth: 180, flex: 1 }}
+                >
                     <label
                         style={{
                             fontWeight: 700,
@@ -643,6 +934,45 @@ function StudentList({
                         <option value="10th">10th</option>
                     </select>
                 </div>
+                <div
+                    className="results-filter-item"
+                    style={{ maxWidth: 200, flex: 1 }}
+                >
+                    <label
+                        style={{
+                            fontWeight: 700,
+                            color: accentDark,
+                            marginBottom: 4,
+                            fontSize: 16,
+                        }}
+                    >
+                        Exam Type
+                    </label>
+                    <select
+                        value={selectedExamType}
+                        onChange={(e) => setSelectedExamType(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "10px 8px",
+                            borderRadius: 6,
+                            border: `1.5px solid ${accent}`,
+                            fontSize: 16,
+                            fontWeight: 600,
+                            color: accentDark,
+                            background: theme.inputBg,
+                            marginTop: 4,
+                            marginBottom: 0,
+                        }}
+                    >
+                        <option value="Monthly Test">Monthly Test</option>
+                        <option value="Quarterly Exam">Quarterly Exam</option>
+                        <option value="Half Monthly Exam">
+                            Half Monthly Exam
+                        </option>
+                        <option value="Annual Exam">Annual Exam</option>
+                        <option value="All">All Exam Types</option>
+                    </select>
+                </div>
                 <div className="results-header-right" style={rightSectionStyle}>
                     {lastUpdated && (
                         <span style={lastUpdatedStyle}>
@@ -651,7 +981,7 @@ function StudentList({
                     )}
                     <button
                         onClick={exportCSV}
-                        className={exportBtnClass}
+                        className={`${exportBtnClass} results-export-btn`}
                         style={exportBtnStyle}
                     >
                         Export CSV
@@ -660,6 +990,7 @@ function StudentList({
             </div>
             <input
                 type="text"
+                className="results-search"
                 placeholder="Search by roll no or subject..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -690,14 +1021,37 @@ function StudentList({
                 >
                     All Subjects Summary
                 </h3>
-                <div style={{ overflowX: "auto" }}>
+                <div
+                    className="results-table-container"
+                    style={{ overflowX: "auto" }}
+                >
                     <table className="results-table" style={summaryTableStyle}>
-                        <thead
-                            style={{
-                                borderBottom: `2.5px solid ${summaryThBorderColor}`,
-                            }}
-                        >
+                        <thead>
                             <tr>
+                                <th style={{ ...summaryThStyle }} rowSpan={2}>
+                                    <input
+                                        type="checkbox"
+                                        checked={
+                                            selectedRows.length ===
+                                                Object.values(studentsByRollNo)
+                                                    .length &&
+                                            Object.values(studentsByRollNo)
+                                                .length > 0
+                                        }
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedRows(
+                                                    Object.values(
+                                                        studentsByRollNo
+                                                    ).map(getStudentKey)
+                                                );
+                                            } else {
+                                                setSelectedRows([]);
+                                            }
+                                        }}
+                                        aria-label="Select all students"
+                                    />
+                                </th>
                                 <th style={{ ...summaryThStyle }} rowSpan={2}>
                                     Roll No
                                 </th>
@@ -712,6 +1066,9 @@ function StudentList({
                                     rowSpan={2}
                                 >
                                     Name
+                                </th>
+                                <th style={{ ...summaryThStyle }} rowSpan={2}>
+                                    Exam Type
                                 </th>
                                 {SUBJECTS.map((subj) => (
                                     <th
@@ -771,7 +1128,7 @@ function StudentList({
                             {Object.values(studentsByRollNo).length === 0 ? (
                                 <tr>
                                     <td
-                                        colSpan={SUBJECTS.length * 4 + 4}
+                                        colSpan={SUBJECTS.length * 4 + 6}
                                         style={{
                                             textAlign: "center",
                                             padding: 16,
@@ -788,15 +1145,48 @@ function StudentList({
                                         const percentage = stu.maxTotal
                                             ? (stu.total / stu.maxTotal) * 100
                                             : 0;
+                                        const key = getStudentKey(stu);
                                         return (
                                             <tr
-                                                key={stu.rollNo}
+                                                key={key}
                                                 style={
                                                     idx % 2 === 1
                                                         ? trAltStyle
                                                         : {}
                                                 }
                                             >
+                                                <td style={summaryTdStyle}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedRows.includes(
+                                                            key
+                                                        )}
+                                                        onChange={(e) => {
+                                                            if (
+                                                                e.target.checked
+                                                            ) {
+                                                                setSelectedRows(
+                                                                    (prev) => [
+                                                                        ...prev,
+                                                                        key,
+                                                                    ]
+                                                                );
+                                                            } else {
+                                                                setSelectedRows(
+                                                                    (prev) =>
+                                                                        prev.filter(
+                                                                            (
+                                                                                k
+                                                                            ) =>
+                                                                                k !==
+                                                                                key
+                                                                        )
+                                                                );
+                                                            }
+                                                        }}
+                                                        aria-label={`Select student ${stu.rollNo}`}
+                                                    />
+                                                </td>
                                                 <td style={summaryTdStyle}>
                                                     {stu.rollNo}
                                                 </td>
@@ -810,6 +1200,9 @@ function StudentList({
                                                     }}
                                                 >
                                                     {stu.name || "-"}
+                                                </td>
+                                                <td style={summaryTdStyle}>
+                                                    {stu.examType || "-"}
                                                 </td>
                                                 {SUBJECTS.map((subj) => [
                                                     <td
@@ -934,7 +1327,10 @@ function StudentList({
                     <h3 style={{ ...subjectTitle, ...headingBorderStyle }}>
                         {subj}
                     </h3>
-                    <div style={{ overflowX: "auto" }}>
+                    <div
+                        className="results-table-container"
+                        style={{ overflowX: "auto" }}
+                    >
                         <table className="results-table" style={tableStyle}>
                             <thead>
                                 <tr>
@@ -1236,6 +1632,36 @@ function StudentList({
                     </div>
                 </div>
             )}
+            {/* Popup Snackbar */}
+            {popupMsg && (
+                <div
+                    style={{
+                        position: "fixed",
+                        left: "50%",
+                        bottom: 32,
+                        transform: "translateX(-50%)",
+                        background: accentDark,
+                        color: "#fff",
+                        padding: "14px 32px",
+                        borderRadius: 8,
+                        fontWeight: 600,
+                        fontSize: 16,
+                        boxShadow: "0 4px 24px #e5393533",
+                        zIndex: 3000,
+                        minWidth: 220,
+                        textAlign: "center",
+                        animation: "fadeInUp 0.3s cubic-bezier(.4,0,.2,1)",
+                    }}
+                >
+                    {popupMsg}
+                </div>
+            )}
+            <style>{`
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(32px); }
+                    to { opacity: 1; transform: none; }
+                }
+            `}</style>
         </div>
     );
 }
