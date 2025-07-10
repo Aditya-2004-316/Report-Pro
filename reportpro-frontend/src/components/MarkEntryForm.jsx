@@ -21,6 +21,21 @@ function MarkEntryForm({
     const [confirmModal, setConfirmModal] = useState(false);
     const [pendingData, setPendingData] = useState(null);
     const [studentClass, setStudentClass] = useState("9th");
+    const [month, setMonth] = useState("");
+    const MONTHS = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ];
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -33,6 +48,10 @@ function MarkEntryForm({
     useEffect(() => {
         if (!session) setSession(sessionOptions[0]);
     }, []);
+    // Reset month when exam type changes
+    useEffect(() => {
+        setMonth("");
+    }, [examType]);
 
     const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -52,9 +71,15 @@ function MarkEntryForm({
             Number(theory) < 0 ||
             Number(theory) > 75 ||
             Number(practical) < 0 ||
-            Number(practical) > 25
+            Number(practical) > 25 ||
+            (examType === "Monthly Test" && !month)
         ) {
-            setValidationError("Please fill all fields with valid marks.");
+            setValidationError(
+                "Please fill all fields with valid marks." +
+                    (examType === "Monthly Test" && !month
+                        ? " (Select month)"
+                        : "")
+            );
             return;
         }
         setValidationError("");
@@ -94,6 +119,7 @@ function MarkEntryForm({
             session: session.trim(),
             theory: Number(theory),
             practical: Number(practical),
+            ...(examType === "Monthly Test" ? { month } : {}),
         };
         if (exists) {
             setPendingData(data);
@@ -110,6 +136,7 @@ function MarkEntryForm({
             setTheory("");
             setPractical("");
             // session and subject remain sticky
+            setMonth("");
         }
     };
 
@@ -596,6 +623,33 @@ function MarkEntryForm({
                             <option value="Annual Exam">Annual Exam</option>
                         </select>
                     </div>
+                    {/* Month dropdown for Monthly Test */}
+                    {examType === "Monthly Test" && (
+                        <div>
+                            <label
+                                className="markentry-label"
+                                style={labelStyle}
+                            >
+                                Month
+                            </label>
+                            <select
+                                value={month}
+                                onChange={(e) => setMonth(e.target.value)}
+                                className="markentry-input"
+                                style={selectStyle}
+                                required
+                            >
+                                <option value="" disabled>
+                                    Select month
+                                </option>
+                                {MONTHS.map((m) => (
+                                    <option key={m} value={m}>
+                                        {m}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     <div>
                         <label className="markentry-label" style={labelStyle}>
                             Subject

@@ -73,6 +73,7 @@ const studentSchema = new mongoose.Schema(
             ref: "User",
             required: true,
         },
+        month: { type: String }, // <-- add month field
     },
     {
         timestamps: true,
@@ -172,6 +173,7 @@ app.post("/api/students", requireAuth, async (req, res) => {
             theory,
             practical,
             session,
+            month, // <-- get month from body
         } = req.body;
         if (!name || typeof name !== "string" || !name.trim()) {
             name = "Unknown";
@@ -194,6 +196,32 @@ app.post("/api/students", requireAuth, async (req, res) => {
                 error: "Exam type must be one of: Monthly Test, Quarterly Exam, Half Monthly Exam, Annual Exam.",
             });
         }
+        // Validate month for Monthly Test
+        const MONTHS = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ];
+        if (examType === "Monthly Test") {
+            if (!month || !MONTHS.includes(month)) {
+                return res
+                    .status(400)
+                    .json({
+                        error: "Month is required and must be valid for Monthly Test.",
+                    });
+            }
+        } else {
+            month = undefined; // Only store month for Monthly Test
+        }
         const theoryNum = Number(theory);
         const practicalNum = Number(practical);
 
@@ -202,11 +230,9 @@ app.post("/api/students", requireAuth, async (req, res) => {
             examType !== "Monthly Test" &&
             (!rollNo || typeof rollNo !== "string" || !rollNo.trim())
         ) {
-            return res
-                .status(400)
-                .json({
-                    error: "Roll number is required for all exam types except Monthly Test.",
-                });
+            return res.status(400).json({
+                error: "Roll number is required for all exam types except Monthly Test.",
+            });
         }
         // For Monthly Test, if rollNo is empty, set it to "N/A"
         if (examType === "Monthly Test" && (!rollNo || !rollNo.trim())) {
@@ -251,24 +277,32 @@ app.post("/api/students", requireAuth, async (req, res) => {
 
         const total = theoryNum + practicalNum;
         const grade = calculateGrade(total, theoryNum);
-        const filter = { rollNo, subject, examType, session, user: req.userId };
+        // When creating/updating, include month if present
         const update = {
-            rollNo,
-            name,
+            rollNo: rollNo.trim(),
+            name: name.trim(),
             class: studentClass,
             examType,
-            subject,
-            session,
+            subject: subject.trim(),
             theory: theoryNum,
             practical: practicalNum,
             total,
             grade,
+            session: session.trim(),
             user: req.userId,
         };
-        const student = await Student.findOneAndUpdate(filter, update, {
-            upsert: true,
-            new: true,
-        });
+        if (examType === "Monthly Test") update.month = month;
+        const student = await Student.findOneAndUpdate(
+            {
+                rollNo: rollNo.trim(),
+                subject: subject.trim(),
+                examType,
+                session: session.trim(),
+                user: req.userId,
+            },
+            update,
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
 
         console.log("Student saved successfully:", student);
         res.json(student);
@@ -285,11 +319,20 @@ app.post("/api/students", requireAuth, async (req, res) => {
 // Get all students (optionally filter by session)
 app.get("/api/students", requireAuth, async (req, res) => {
     try {
-        const filter = { user: req.userId };
-        if (req.query.session) {
-            filter.session = req.query.session;
-        }
-        const students = await Student.find(filter);
+        const {
+            session,
+            class: studentClass,
+            examType,
+            subject,
+            month,
+        } = req.query;
+        const query = { user: req.userId };
+        if (session) query.session = session;
+        if (studentClass) query.class = studentClass;
+        if (examType) query.examType = examType;
+        if (subject) query.subject = subject;
+        if (examType === "Monthly Test" && month) query.month = month;
+        const students = await Student.find(query);
         res.json(students);
     } catch (error) {
         console.error("Error fetching students:", error);

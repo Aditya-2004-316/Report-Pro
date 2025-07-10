@@ -46,6 +46,45 @@ function Dashboard({
     const csvLinkRef = useRef();
     const [selectedClass, setSelectedClass] = useState("9th");
     const [selectedExamType, setSelectedExamType] = useState("Monthly Test");
+    const [selectedMonth, setSelectedMonth] = useState("");
+    const MONTHS = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ];
+    // Reset month when exam type changes
+    useEffect(() => {
+        setSelectedMonth("");
+    }, [selectedExamType]);
+    // Set default month: last used or current month
+    useEffect(() => {
+        const lastUsedMonth = localStorage.getItem("statistics_last_month");
+        if (selectedExamType === "Monthly Test") {
+            if (lastUsedMonth && MONTHS.includes(lastUsedMonth)) {
+                setSelectedMonth(lastUsedMonth);
+            } else {
+                const now = new Date();
+                const currentMonth = MONTHS[now.getMonth()];
+                setSelectedMonth(currentMonth);
+            }
+        } else {
+            setSelectedMonth("");
+        }
+    }, [selectedExamType]);
+    useEffect(() => {
+        if (selectedExamType === "Monthly Test" && selectedMonth) {
+            localStorage.setItem("statistics_last_month", selectedMonth);
+        }
+    }, [selectedMonth, selectedExamType]);
     const [stats, setStats] = useState({
         passFail: { pass: 0, fail: 0 },
         classAverage: 0,
@@ -94,11 +133,14 @@ function Dashboard({
 
     if (loading) return <div>Loading...</div>;
 
-    // Filter students by exam type if selected
-    const filteredStudents =
-        selectedExamType === "All"
-            ? students
-            : students.filter((s) => s.examType === selectedExamType);
+    // Filter students by exam type and month if selected
+    const filteredStudents = students.filter(
+        (s) =>
+            (selectedExamType === "All" || s.examType === selectedExamType) &&
+            (selectedExamType !== "Monthly Test" ||
+                !selectedMonth ||
+                s.month === selectedMonth)
+    );
 
     // --- SUMMARY CALCULATIONS ---
     const totalStudents = new Set(filteredStudents.map((s) => s.rollNo)).size;
@@ -1115,9 +1157,8 @@ function Dashboard({
                 style={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: 18,
-                    gap: 16,
+                    gap: 18,
+                    marginBottom: 24,
                     flexWrap: "wrap",
                 }}
             >
@@ -1233,6 +1274,47 @@ function Dashboard({
                         <option value="All">All Exam Types</option>
                     </select>
                 </div>
+                {/* Month filter for Monthly Test */}
+                {selectedExamType === "Monthly Test" && (
+                    <div
+                        className="filter-group"
+                        style={{ maxWidth: 180, flex: 1 }}
+                    >
+                        <label
+                            style={{
+                                fontWeight: 700,
+                                color: accentDark,
+                                marginBottom: 4,
+                                fontSize: 16,
+                            }}
+                        >
+                            Month
+                        </label>
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            style={{
+                                width: "100%",
+                                padding: "10px 8px",
+                                borderRadius: 6,
+                                border: `1.5px solid ${accent}`,
+                                fontSize: 16,
+                                fontWeight: 600,
+                                color: accentDark,
+                                background: theme.inputBg,
+                                marginTop: 4,
+                                marginBottom: 0,
+                            }}
+                        >
+                            {MONTHS.map((m) => (
+                                <option key={m} value={m}>
+                                    {m}
+                                </option>
+                            ))}
+                            <option value="">All Months</option>
+                        </select>
+                    </div>
+                )}
                 <div
                     className="export-section"
                     style={{

@@ -25,6 +25,48 @@ function StudentList({
     const [subject, setSubject] = useState("Science");
     const [selectedClass, setSelectedClass] = useState("9th");
     const [selectedExamType, setSelectedExamType] = useState("Monthly Test");
+    const [selectedMonth, setSelectedMonth] = useState("");
+    const MONTHS = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ];
+    // Reset month when exam type changes
+    useEffect(() => {
+        setSelectedMonth("");
+    }, [selectedExamType]);
+    // Set default month: last used or current month
+    useEffect(() => {
+        // Try to get last used month from localStorage
+        const lastUsedMonth = localStorage.getItem("results_last_month");
+        if (selectedExamType === "Monthly Test") {
+            if (lastUsedMonth && MONTHS.includes(lastUsedMonth)) {
+                setSelectedMonth(lastUsedMonth);
+            } else {
+                // Default to current month
+                const now = new Date();
+                const currentMonth = MONTHS[now.getMonth()];
+                setSelectedMonth(currentMonth);
+            }
+        } else {
+            setSelectedMonth("");
+        }
+    }, [selectedExamType]);
+    // Save last used month when changed
+    useEffect(() => {
+        if (selectedExamType === "Monthly Test" && selectedMonth) {
+            localStorage.setItem("results_last_month", selectedMonth);
+        }
+    }, [selectedMonth, selectedExamType]);
     const [deleteStudentModal, setDeleteStudentModal] = useState({
         open: false,
         rollNo: null,
@@ -60,6 +102,9 @@ function StudentList({
     const filtered = students.filter(
         (s) =>
             (selectedExamType === "All" || s.examType === selectedExamType) &&
+            (selectedExamType !== "Monthly Test" ||
+                !selectedMonth ||
+                s.month === selectedMonth) &&
             (s.rollNo.toLowerCase().includes(search.toLowerCase()) ||
                 s.subject.toLowerCase().includes(search.toLowerCase()))
     );
@@ -973,6 +1018,47 @@ function StudentList({
                         <option value="All">All Exam Types</option>
                     </select>
                 </div>
+                {/* Month filter for Monthly Test */}
+                {selectedExamType === "Monthly Test" && (
+                    <div
+                        className="results-filter-item"
+                        style={{ maxWidth: 180, flex: 1 }}
+                    >
+                        <label
+                            style={{
+                                fontWeight: 700,
+                                color: accentDark,
+                                marginBottom: 4,
+                                fontSize: 16,
+                            }}
+                        >
+                            Month
+                        </label>
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            style={{
+                                width: "100%",
+                                padding: "10px 8px",
+                                borderRadius: 6,
+                                border: `1.5px solid ${accent}`,
+                                fontSize: 16,
+                                fontWeight: 600,
+                                color: accentDark,
+                                background: theme.inputBg,
+                                marginTop: 4,
+                                marginBottom: 0,
+                            }}
+                        >
+                            {MONTHS.map((m) => (
+                                <option key={m} value={m}>
+                                    {m}
+                                </option>
+                            ))}
+                            <option value="">All Months</option>
+                        </select>
+                    </div>
+                )}
                 <div className="results-header-right" style={rightSectionStyle}>
                     {lastUpdated && (
                         <span style={lastUpdatedStyle}>
