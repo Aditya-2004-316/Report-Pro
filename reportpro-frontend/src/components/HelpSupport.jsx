@@ -111,7 +111,7 @@ const HelpSupport = ({ theme }) => (
         </p>
         <p style={{ marginBottom: 8 }}>
             <strong>Contact Form:</strong>{" "}
-            <Link to="/contact" style={{ color: theme.accent }}>
+            <Link to="/dashboard/contact" style={{ color: theme.accent }}>
                 Contact Us
             </Link>
         </p>

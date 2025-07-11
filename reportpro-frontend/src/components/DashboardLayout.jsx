@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Footer from "./Footer";
 import ProfileModal from "./ProfileModal";
@@ -13,8 +13,39 @@ function DashboardLayout({ theme, user, setTheme, onLogout, onProfileUpdate }) {
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const profileMenuRef = useRef();
-    const isMobile = window.innerWidth < 600;
-    const themeObj = useMemo(
+    const profileBtnRef = useRef();
+    const [dropdownLeft, setDropdownLeft] = useState(false); // false = open right, true = open left
+    // Responsive: update isMobile and isTablet on window resize
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
+    const [isTablet, setIsTablet] = useState(window.innerWidth < 1024);
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 600);
+            setIsTablet(window.innerWidth < 1024);
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+    useEffect(() => {
+        if (
+            profileMenuOpen &&
+            profileBtnRef.current &&
+            profileMenuRef.current
+        ) {
+            // Check available space to the right of the profile icon
+            const btnRect = profileBtnRef.current.getBoundingClientRect();
+            const dropdownRect = profileMenuRef.current.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const margin = 16; // px from edge
+            // If dropdown would overflow right edge, open to left
+            if (btnRect.right + dropdownRect.width + margin > viewportWidth) {
+                setDropdownLeft(true);
+            } else {
+                setDropdownLeft(false);
+            }
+        }
+    }, [profileMenuOpen, isMobile]);
+    const themeObj = useState(
         () => (theme === "dark" ? DARK_THEME : LIGHT_THEME),
         [theme]
     );
@@ -60,9 +91,9 @@ function DashboardLayout({ theme, user, setTheme, onLogout, onProfileUpdate }) {
         gap: 16,
         maxWidth: isMobile ? "100%" : 600,
         width: isMobile ? "100%" : undefined,
-        marginLeft: isMobile ? 0 : -24, // only use negative margin on desktop
-        paddingLeft: isMobile ? 8 : 0, // add left padding on mobile
-        paddingRight: isMobile ? 24 : 0, // add right padding on mobile
+        marginLeft: isTablet ? 0 : -24, // shift left for tablet and mobile
+        paddingLeft: isTablet ? -16 : 0, // add left padding for tablet and mobile
+        paddingRight: isTablet ? 24 : 0,
         boxSizing: "border-box",
     };
     const navBtnWrapStyle = {
@@ -159,7 +190,7 @@ function DashboardLayout({ theme, user, setTheme, onLogout, onProfileUpdate }) {
                             onClick={() => setProfileMenuOpen((v) => !v)}
                             aria-label="Profile menu"
                             tabIndex={0}
-                            ref={profileMenuRef}
+                            ref={profileBtnRef}
                             className="profile-avatar-btn"
                             style={{
                                 width: 48,
@@ -206,7 +237,19 @@ function DashboardLayout({ theme, user, setTheme, onLogout, onProfileUpdate }) {
                                 style={{
                                     position: "absolute",
                                     top: 54,
-                                    right: 0,
+                                    right:
+                                        !isMobile && !dropdownLeft ? 0 : "auto",
+                                    left:
+                                        !isMobile && dropdownLeft
+                                            ? -60
+                                            : isMobile
+                                            ? "50%"
+                                            : "auto",
+                                    transform: isMobile
+                                        ? "translateX(-80%)"
+                                        : !isMobile && dropdownLeft
+                                        ? "none"
+                                        : "none",
                                     background: "#fff",
                                     color: "#b71c1c",
                                     borderRadius: 12,
@@ -216,6 +259,10 @@ function DashboardLayout({ theme, user, setTheme, onLogout, onProfileUpdate }) {
                                     padding: "0.5rem 0",
                                     display: "flex",
                                     flexDirection: "column",
+                                    marginRight:
+                                        !isMobile && !dropdownLeft ? 16 : 0,
+                                    marginLeft:
+                                        !isMobile && dropdownLeft ? 16 : 0,
                                 }}
                             >
                                 <button

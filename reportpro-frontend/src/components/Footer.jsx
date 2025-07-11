@@ -355,7 +355,7 @@ function Footer({
                             <div style={sectionTitleUnderlineStyle}></div>
                         </h4>
                         <Link
-                            to="/help"
+                            to="/dashboard/help"
                             style={footerLinkStyle}
                             className="footer-link"
                             onMouseEnter={(e) => {
@@ -372,7 +372,7 @@ function Footer({
                             <span>📚</span> Help & Support
                         </Link>
                         <Link
-                            to="/contact"
+                            to="/dashboard/contact"
                             style={footerLinkStyle}
                             className="footer-link"
                             onMouseEnter={(e) => {
@@ -389,7 +389,7 @@ function Footer({
                             <span>📧</span> Contact Us
                         </Link>
                         <Link
-                            to="/privacy"
+                            to="/dashboard/privacy"
                             style={footerLinkStyle}
                             className="footer-link"
                             onMouseEnter={(e) => {
@@ -406,7 +406,7 @@ function Footer({
                             <span>🔒</span> Privacy Policy
                         </Link>
                         <Link
-                            to="/terms"
+                            to="/dashboard/terms"
                             style={footerLinkStyle}
                             className="footer-link"
                             onMouseEnter={(e) => {
@@ -837,6 +837,24 @@ function Footer({
                     margin-bottom: 0.5rem !important;
                     font-size: 16px !important;
                     letter-spacing: 0.5px !important;
+                }
+                .footer-link, .footer-link:visited, .footer-link:active {
+                    color: #888;
+                    transition: color 0.3s, transform 0.3s;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.7rem;
+                }
+                .footer-link span:first-child {
+                    display: flex;
+                    align-items: center;
+                    font-size: 1.15em;
+                    min-width: 1.5em;
+                    justify-content: center;
+                }
+                .footer-link:hover {
+                    color: #e53935;
+                    transform: translateX(4px);
                 }
             `}</style>
         </footer>
