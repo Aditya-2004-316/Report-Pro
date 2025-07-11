@@ -45,10 +45,8 @@ function DashboardLayout({ theme, user, setTheme, onLogout, onProfileUpdate }) {
             }
         }
     }, [profileMenuOpen, isMobile]);
-    const themeObj = useState(
-        () => (theme === "dark" ? DARK_THEME : LIGHT_THEME),
-        [theme]
-    );
+    // Fix themeObj to be the actual theme object, not a state tuple
+    const themeObj = theme === "dark" ? DARK_THEME : LIGHT_THEME;
 
     // Original nav button style
     const navBtn = (path) => ({
@@ -68,7 +66,7 @@ function DashboardLayout({ theme, user, setTheme, onLogout, onProfileUpdate }) {
                 : "#b71c1c",
         border:
             location.pathname === path
-                ? `2px solid #fff`
+                ? `2px solid ${themeObj.accent}`
                 : `2px solid ${themeObj.accent}`,
         boxShadow:
             location.pathname === path
