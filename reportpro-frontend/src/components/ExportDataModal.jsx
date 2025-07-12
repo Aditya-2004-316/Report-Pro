@@ -104,6 +104,7 @@ function ExportDataModal({ open, onClose, theme }) {
         const headerInfo = [
             `Session: ${session || "All Sessions"}`,
             `Class: ${selectedClass}`,
+            `Exam Type: ${selectedExamType}`,
             `Export Date: ${new Date().toLocaleDateString()}`,
             `Export Time: ${new Date().toLocaleTimeString()}`,
             "",
@@ -121,6 +122,7 @@ function ExportDataModal({ open, onClose, theme }) {
                 "Class",
                 "Subject",
                 "Exam Type",
+                ...(selectedExamType === "Monthly Test" ? ["Month"] : []),
                 "Theory",
                 "Practical",
                 "Total",
@@ -134,6 +136,9 @@ function ExportDataModal({ open, onClose, theme }) {
                     stu.class || selectedClass || "",
                     subj,
                     stu.examType || "",
+                    ...(selectedExamType === "Monthly Test"
+                        ? [stu.subjects[subj]?.month || ""]
+                        : []),
                     stu.subjects[subj]?.theory ?? "",
                     stu.subjects[subj]?.practical ?? "",
                     stu.subjects[subj]?.total ?? "",
@@ -150,7 +155,9 @@ function ExportDataModal({ open, onClose, theme }) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `students_${session || "all"}_${selectedClass}.csv`;
+        a.download = `students_${
+            session || "all"
+        }_${selectedClass}_${selectedExamType}.csv`;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {

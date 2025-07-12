@@ -644,6 +644,9 @@ function StudentList({
             `Class: ${selectedClass}`,
             `Subject: ${subject}`,
             `Exam Type: ${selectedExamType}`,
+            ...(selectedExamType === "Monthly Test" && selectedMonth
+                ? [`Month: ${selectedMonth}`]
+                : []),
             `Export Date: ${new Date().toLocaleDateString()}`,
             `Export Time: ${new Date().toLocaleTimeString()}`,
             "", // Empty line for spacing
@@ -662,6 +665,7 @@ function StudentList({
                 "Class",
                 "Subject",
                 "Exam Type",
+                ...(selectedExamType === "Monthly Test" ? ["Month"] : []),
                 "Theory",
                 "Practical",
                 "Total",
@@ -675,6 +679,9 @@ function StudentList({
                     stu.class || selectedClass || "",
                     subj,
                     stu.examType || "",
+                    ...(selectedExamType === "Monthly Test"
+                        ? [stu.subjects[subj]?.month || ""]
+                        : []),
                     stu.subjects[subj]?.theory ?? "",
                     stu.subjects[subj]?.practical ?? "",
                     stu.subjects[subj]?.total ?? "",
@@ -694,7 +701,11 @@ function StudentList({
         a.href = url;
         a.download = `students_${
             session || "all"
-        }_${selectedClass}_${subject}_${selectedExamType}.csv`;
+        }_${selectedClass}_${subject}_${selectedExamType}${
+            selectedExamType === "Monthly Test" && selectedMonth
+                ? `_${selectedMonth}`
+                : ""
+        }.csv`;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {

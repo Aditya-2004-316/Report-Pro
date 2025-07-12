@@ -1058,6 +1058,9 @@ function Dashboard({
             `Session: ${session || "All Sessions"}`,
             `Class: ${selectedClass}`,
             `Exam Type: ${selectedExamType}`,
+            ...(selectedExamType === "Monthly Test" && selectedMonth
+                ? [`Month: ${selectedMonth}`]
+                : []),
             `Export Date: ${new Date().toLocaleDateString()}`,
             `Export Time: ${new Date().toLocaleTimeString()}`,
             "", // Empty line for spacing
@@ -1070,6 +1073,7 @@ function Dashboard({
                 "Class",
                 "Subject",
                 "Exam Type",
+                ...(selectedExamType === "Monthly Test" ? ["Month"] : []),
                 "Theory",
                 "Practical",
                 "Total",
@@ -1082,6 +1086,7 @@ function Dashboard({
                 s.class || "",
                 s.subject || "",
                 s.examType || "",
+                ...(selectedExamType === "Monthly Test" ? [s.month || ""] : []),
                 s.theory || "",
                 s.practical || "",
                 s.total || "",
@@ -1102,7 +1107,11 @@ function Dashboard({
         a.href = url;
         a.download = `statistics_${
             session || "all"
-        }_${selectedClass}_${selectedExamType}.csv`;
+        }_${selectedClass}_${selectedExamType}${
+            selectedExamType === "Monthly Test" && selectedMonth
+                ? `_${selectedMonth}`
+                : ""
+        }.csv`;
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
