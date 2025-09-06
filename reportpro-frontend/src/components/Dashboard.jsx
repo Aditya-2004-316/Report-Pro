@@ -39,6 +39,7 @@ function Dashboard({
     setSession,
     token,
     theme = "light",
+    dataRefreshTrigger = 0, // Add this prop
 }) {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -47,6 +48,7 @@ function Dashboard({
     const [selectedClass, setSelectedClass] = useState("9th");
     const [selectedExamType, setSelectedExamType] = useState("Monthly Test");
     const [selectedMonth, setSelectedMonth] = useState("");
+    const [selectedSubject, setSelectedSubject] = useState("All");
     const MONTHS = [
         "January",
         "February",
@@ -61,9 +63,10 @@ function Dashboard({
         "November",
         "December",
     ];
-    // Reset month when exam type changes
+    // Reset month and subject when exam type changes
     useEffect(() => {
         setSelectedMonth("");
+        setSelectedSubject("All");
     }, [selectedExamType]);
     // Set default month: last used or current month
     useEffect(() => {
@@ -91,6 +94,8 @@ function Dashboard({
         gradeDist: {},
         topScorer: null,
     });
+    const [registryStudents, setRegistryStudents] = useState([]);
+    const [loadingRegistry, setLoadingRegistry] = useState(false);
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -105,68 +110,242 @@ function Dashboard({
         if (!session) setSession(sessionOptions[0]);
     }, []);
     useEffect(() => {
-        if (!session || !token || !selectedClass) return;
+        if (!session || !token || !selectedClass) {
+            console.log(
+                "Dashboard: Skipping data fetch - missing required params:",
+                { session, token: !!token, selectedClass }
+            );
+            return;
+        }
         setLoading(true);
+        console.log("Dashboard: Fetching data with params:", {
+            session,
+            selectedClass,
+            selectedExamType,
+            selectedSubject,
+            selectedMonth,
+        });
+
+        // Fetch all students for the session/class (for general student list)
         fetch(
             `${API_BASE}/api/students?session=${session}&class=${selectedClass}`,
             {
                 headers: { Authorization: `Bearer ${token}` },
             }
         )
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                return res.json();
+            })
             .then((data) => {
-                setStudents(data);
+                console.log(
+                    "Dashboard: Students data received:",
+                    data.length,
+                    "students"
+                );
+                // Validate data structure
+                if (Array.isArray(data)) {
+                    const validStudents = data.filter(
+                        (student) =>
+                            student &&
+                            typeof student === "object" &&
+                            student.rollNo &&
+                            student.subject &&
+                            student.examType
+                    );
+                    console.log(
+                        "Dashboard: Valid students:",
+                        validStudents.length,
+                        "out of",
+                        data.length
+                    );
+                    if (validStudents.length !== data.length) {
+                        console.warn(
+                            "Dashboard: Some students were filtered out due to missing fields"
+                        );
+                        console.log(
+                            "Dashboard: Sample invalid student:",
+                            data.find(
+                                (s) => !s.rollNo || !s.subject || !s.examType
+                            )
+                        );
+                    }
+                    setStudents(validStudents);
+                } else {
+                    console.error(
+                        "Dashboard: Invalid data format received:",
+                        typeof data
+                    );
+                    setStudents([]);
+                }
                 setLoading(false);
                 setLastUpdated(new Date());
+            })
+            .catch((error) => {
+                console.error("Dashboard: Error fetching students:", error);
+                setLoading(false);
             });
+
+        // Fetch statistics with current filters
+        fetchFilteredStatistics();
+    }, [session, token, selectedClass]);
+
+    // Function to fetch statistics with current filters
+    const fetchFilteredStatistics = async () => {
+        if (!session || !token || !selectedClass) return;
+
+        try {
+            console.log("Dashboard: Fetching statistics with filters:", {
+                session,
+                selectedClass,
+                selectedExamType,
+                selectedSubject,
+                selectedMonth,
+            });
+
+            const response = await fetch(
+                `${API_BASE}/api/statistics?session=${session}&class=${selectedClass}&examType=${selectedExamType}&subject=${selectedSubject}${
+                    selectedExamType === "Monthly Test" && selectedMonth
+                        ? `&month=${selectedMonth}`
+                        : ""
+                }`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log("Dashboard: Statistics received:", data);
+            setStats(data);
+        } catch (error) {
+            console.error(
+                "Dashboard: Error fetching filtered statistics:",
+                error
+            );
+            // Set empty stats on error
+            setStats({
+                topScorer: null,
+                classAverage: 0,
+                gradeDist: {},
+                passFail: { pass: 0, fail: 0 },
+                totalStudents: 0,
+                totalSubjectRecords: 0,
+            });
+        }
+    };
+
+    // Refetch statistics when filters change
+    useEffect(() => {
+        fetchFilteredStatistics();
+    }, [
+        session,
+        token,
+        selectedClass,
+        selectedExamType,
+        selectedSubject,
+        selectedMonth,
+    ]);
+
+    // Refresh data when dataRefreshTrigger changes (after mark entry)
+    useEffect(() => {
+        if (dataRefreshTrigger > 0) {
+            console.log(
+                "Dashboard: Refreshing data due to trigger:",
+                dataRefreshTrigger
+            );
+            fetchFilteredStatistics();
+        }
+    }, [dataRefreshTrigger]);
+
+    // Fetch student registry when session or class changes
+    useEffect(() => {
+        if (!session || !selectedClass) {
+            setRegistryStudents([]);
+            return;
+        }
+        setLoadingRegistry(true);
+        const token = sessionStorage.getItem("token");
         fetch(
-            `${API_BASE}/api/statistics?session=${session}&class=${selectedClass}`,
+            `${API_BASE}/api/student-registry?session=${session}&class=${selectedClass}`,
             {
                 headers: { Authorization: `Bearer ${token}` },
             }
         )
             .then((res) => res.json())
             .then((data) => {
-                setStats(data);
+                setRegistryStudents(data && data.students ? data.students : []);
+                setLoadingRegistry(false);
+            })
+            .catch(() => {
+                setRegistryStudents([]);
+                setLoadingRegistry(false);
             });
-    }, [session, token, selectedClass]);
+    }, [session, selectedClass]);
+
+    // Function to get student name from registry
+    function getStudentNameFromRegistry(rollNo) {
+        if (!registryStudents.length) return null;
+        const student = registryStudents.find(
+            (s) => s.rollNo.toLowerCase() === rollNo.toLowerCase()
+        );
+        return student ? student.name : null;
+    }
+
+    // Update the filtered students to use registry names when available (for display purposes only)
+    const filteredStudents = students.map((student) => ({
+        ...student,
+        // Use registry name if available, otherwise fall back to stored name
+        name:
+            getStudentNameFromRegistry(student.rollNo) ||
+            student.name ||
+            "Unknown",
+    }));
+
+    // Debug logging
+    console.log("Dashboard Debug:", {
+        totalStudents: students.length,
+        filteredStudents: filteredStudents.length,
+        selectedExamType,
+        selectedSubject,
+        selectedMonth,
+        filters: {
+            examType: selectedExamType,
+            subject: selectedSubject,
+            month: selectedMonth,
+        },
+        currentSession: session,
+        currentClass: selectedClass,
+        token: token ? "Present" : "Missing",
+        statsFromAPI: stats,
+    });
 
     if (loading) return <div>Loading...</div>;
 
-    // Filter students by exam type and month if selected
-    const filteredStudents = students.filter(
-        (s) =>
-            (selectedExamType === "All" || s.examType === selectedExamType) &&
-            (selectedExamType !== "Monthly Test" ||
-                !selectedMonth ||
-                s.month === selectedMonth)
-    );
+    // Use statistics from API instead of local calculations
+    const totalStudents = stats.totalStudents || 0;
+    const passCount = stats.passFail?.pass || 0;
+    const failCount = stats.passFail?.fail || 0;
+    const classAverage = stats.classAverage || 0;
+    const overallAvg = classAverage; // Use classAverage as the overall average
+    const overallPassRate =
+        totalStudents > 0 ? (passCount / totalStudents) * 100 : 0;
 
-    // --- SUMMARY CALCULATIONS ---
-    const totalStudents = new Set(filteredStudents.map((s) => s.rollNo)).size;
-    const totalMarks = filteredStudents.reduce(
-        (sum, s) => sum + (s.total || 0),
-        0
-    );
-    const maxMarks = filteredStudents.length * 100;
-    const overallAvg = filteredStudents.length
-        ? (totalMarks / maxMarks) * 100
-        : 0;
-    const overallPassRate = filteredStudents.length
-        ? (stats.passFail.pass / filteredStudents.length) * 100
-        : 0;
-    // For overall grade distribution
-    const gradeDist = filteredStudents.reduce((acc, s) => {
-        acc[s.grade] = (acc[s.grade] || 0) + 1;
-        return acc;
-    }, {});
+    // Grade distribution from API
+    const gradeDist = stats.gradeDist || {};
     const gradeDistData = Object.entries(gradeDist).map(([grade, count]) => ({
         name: grade,
         value: count,
     }));
+
     const passFailData = [
-        { name: "Pass", value: stats.passFail.pass },
-        { name: "Fail", value: stats.passFail.fail },
+        { name: "Pass", value: passCount },
+        { name: "Fail", value: failCount },
     ];
     // Use only grades present in the data for color mapping and legend
     const gradesInData = Array.from(
@@ -501,6 +680,29 @@ function Dashboard({
             
             .export-section {
                 transition: all 0.3s ease;
+            }
+            
+            /* Enhanced responsive styles for better dashboard layout */
+            @media (max-width: 992px) {
+                .dashboard-header {
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    gap: 16px !important;
+                    position: static !important;
+                }
+                .dashboard-header-actions {
+                    position: static !important;
+                    width: 100% !important;
+                    justify-content: flex-end !important;
+                    flex-wrap: wrap !important;
+                }
+            }
+            
+            @media (max-width: 768px) {
+                .dashboard-header-actions {
+                    justify-content: center !important;
+                    gap: 8px !important;
+                }
             }
             
             /* Large Desktop (1400px and up) */
@@ -1144,37 +1346,93 @@ function Dashboard({
                     border: 2px solid #fff !important;
                 }
             `}</style>
-            <h2
-                className="dashboard-title"
+
+            <div
+                className="dashboard-header"
                 style={{
-                    background:
-                        "linear-gradient(90deg, #e53935 0%, #b71c1c 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    fontWeight: 800,
-                    fontSize: 34,
-                    marginBottom: 18,
-                    letterSpacing: 1,
-                    textAlign: "center",
-                    width: "100%",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "flex-start",
+                    marginBottom: 24,
+                    gap: 20,
+                    flexWrap: "wrap",
+                    position: "relative",
                 }}
             >
-                School Statistics
-            </h2>
+                <h2
+                    className="dashboard-title"
+                    style={{
+                        background:
+                            "linear-gradient(90deg, #e53935 0%, #b71c1c 100%)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        fontWeight: 800,
+                        fontSize: 34,
+                        margin: 0,
+                        letterSpacing: 1,
+                        textAlign: "center",
+                        flex: "1 1 auto",
+                    }}
+                >
+                    School Statistics
+                </h2>
+                <div
+                    className="dashboard-header-actions"
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
+                        flex: "0 0 auto",
+                        position: "absolute",
+                        right: 0,
+                        top: 0,
+                    }}
+                >
+                    {lastUpdated && (
+                        <span
+                            style={{
+                                color: accentDark,
+                                fontWeight: 500,
+                                fontSize: 13,
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            Updated: {lastUpdated.toLocaleTimeString()}
+                        </span>
+                    )}
+                    <button
+                        onClick={exportCSV}
+                        className={exportBtnClass}
+                        style={{
+                            ...exportBtnStyle,
+                            padding: "10px 16px",
+                            fontSize: 14,
+                            fontWeight: 600,
+                            borderRadius: 8,
+                            boxShadow: "0 2px 4px rgba(229, 57, 53, 0.3)",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        Export CSV
+                    </button>
+                </div>
+            </div>
+
             <div
                 className="filters-container"
                 style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 18,
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: 16,
                     marginBottom: 24,
-                    flexWrap: "wrap",
+                    padding: 20,
+                    background: theme.surface,
+                    borderRadius: 12,
+                    border: `1px solid ${theme.border}`,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                 }}
             >
-                <div
-                    className="filter-group"
-                    style={{ maxWidth: 320, flex: 1 }}
-                >
+                <div className="filter-group">
                     <label
                         style={{
                             fontWeight: 700,
@@ -1209,10 +1467,7 @@ function Dashboard({
                         ))}
                     </select>
                 </div>
-                <div
-                    className="filter-group"
-                    style={{ maxWidth: 180, flex: 1 }}
-                >
+                <div className="filter-group">
                     <label
                         style={{
                             fontWeight: 700,
@@ -1244,10 +1499,7 @@ function Dashboard({
                         <option value="10th">10th</option>
                     </select>
                 </div>
-                <div
-                    className="filter-group"
-                    style={{ maxWidth: 200, flex: 1 }}
-                >
+                <div className="filter-group">
                     <label
                         style={{
                             fontWeight: 700,
@@ -1283,12 +1535,45 @@ function Dashboard({
                         <option value="All">All Exam Types</option>
                     </select>
                 </div>
+                {/* Subject filter */}
+                <div className="filter-group">
+                    <label
+                        style={{
+                            fontWeight: 700,
+                            color: accentDark,
+                            marginBottom: 4,
+                            fontSize: 16,
+                        }}
+                    >
+                        Subject
+                    </label>
+                    <select
+                        value={selectedSubject}
+                        onChange={(e) => setSelectedSubject(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "10px 8px",
+                            borderRadius: 6,
+                            border: `1.5px solid ${accent}`,
+                            fontSize: 16,
+                            fontWeight: 600,
+                            color: accentDark,
+                            background: theme.inputBg,
+                            marginTop: 4,
+                            marginBottom: 0,
+                        }}
+                    >
+                        <option value="All">All Subjects</option>
+                        {SUBJECTS.map((subj) => (
+                            <option key={subj} value={subj}>
+                                {subj}
+                            </option>
+                        ))}
+                    </select>
+                </div>
                 {/* Month filter for Monthly Test */}
                 {selectedExamType === "Monthly Test" && (
-                    <div
-                        className="filter-group"
-                        style={{ maxWidth: 180, flex: 1 }}
-                    >
+                    <div className="filter-group">
                         <label
                             style={{
                                 fontWeight: 700,
@@ -1324,36 +1609,6 @@ function Dashboard({
                         </select>
                     </div>
                 )}
-                <div
-                    className="export-section"
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 18,
-                        flex: 1,
-                        justifyContent: "flex-end",
-                        minWidth: 220,
-                    }}
-                >
-                    {lastUpdated && (
-                        <span
-                            style={{
-                                color: accentDark,
-                                fontWeight: 500,
-                                fontSize: 15,
-                            }}
-                        >
-                            Last updated: {lastUpdated.toLocaleString()}
-                        </span>
-                    )}
-                    <button
-                        onClick={exportCSV}
-                        className={exportBtnClass}
-                        style={exportBtnStyle}
-                    >
-                        Export CSV
-                    </button>
-                </div>
             </div>
             <div className="summary-grid" style={summaryGrid}>
                 <div className="dashboard-card" style={summaryCard}>
@@ -1389,7 +1644,7 @@ function Dashboard({
                         title="Pass Count"
                     />
                     <span className="summary-value" style={summaryValue}>
-                        {stats.passFail.pass}
+                        {passCount}
                     </span>
                     <span className="summary-label" style={summaryLabel}>
                         Pass Count
@@ -1402,7 +1657,7 @@ function Dashboard({
                         title="Fail Count"
                     />
                     <span className="summary-value" style={summaryValue}>
-                        {stats.passFail.fail}
+                        {failCount}
                     </span>
                     <span className="summary-label" style={summaryLabel}>
                         Fail Count
@@ -1552,8 +1807,8 @@ function Dashboard({
                         ([grade, count]) => ({ name: grade, value: count })
                     );
                     const classAvg = stats.classAverage;
-                    const pass = stats.passFail.pass;
-                    const fail = stats.passFail.fail;
+                    const pass = passCount;
+                    const fail = failCount;
                     const topScorer = stats.topScorer;
                     // Grouped bar chart data: for each grade, count pass/fail
                     const gradePassFailData = gradeDistData.map(({ name }) => {

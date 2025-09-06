@@ -27,6 +27,7 @@ import MainLayout from "./components/MainLayout";
 import DashboardLayout from "./components/DashboardLayout";
 import Welcome from "./components/Welcome";
 import { DARK_THEME, LIGHT_THEME } from "./theme";
+import StudentRegistry from "./components/StudentRegistry";
 
 const ACCENT = "#e53935"; // Red accent
 const ACCENT_DARK = "#b71c1c";
@@ -110,8 +111,11 @@ function ThemeToggle({ theme, setTheme }) {
 function App() {
     const [view, setView] = useState("home");
     const [message, setMessage] = useState("");
-    const [subject, setSubject] = useState("Hindi");
-    const [session, setSession] = useState("");
+    const [subject, setSubject] = useState("All");
+    const [session, setSession] = useState(() => {
+        const currentYear = new Date().getFullYear();
+        return `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+    });
     const [user, setUser] = useState(() => {
         const u = sessionStorage.getItem("user");
         return u ? JSON.parse(u) : null;
@@ -133,6 +137,7 @@ function App() {
     const [isValidatingToken, setIsValidatingToken] = useState(true);
     const [isConnected, setIsConnected] = useState(true);
     const [lastUpdated, setLastUpdated] = useState(new Date());
+    const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0); // Add this line
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -219,6 +224,7 @@ function App() {
                 },
                 body: JSON.stringify(data),
             });
+
             if (!res.ok) {
                 let errorMsg = "Error saving marks.";
                 try {
@@ -230,12 +236,23 @@ function App() {
                     // ignore JSON parse error, use default message
                 }
                 setMessage(errorMsg);
-                return;
+                // Return false to indicate failure
+                return { success: false, error: errorMsg };
             }
+
             setMessage("Student marks saved successfully!");
             setLastUpdated(new Date());
+
+            // Trigger data refresh across all components
+            setDataRefreshTrigger((prev) => prev + 1);
+            
+            // Return true to indicate success
+            return { success: true };
         } catch (err) {
-            setMessage("Error saving marks.");
+            const errorMsg = "Error saving marks.";
+            setMessage(errorMsg);
+            // Return false to indicate failure
+            return { success: false, error: errorMsg };
         }
     };
 
@@ -650,6 +667,9 @@ function App() {
                             setSession={setSession}
                             token={token}
                             theme={themeObj}
+                            dataRefreshTrigger={dataRefreshTrigger}
+                            subject={subject}
+                            setSubject={setSubject}
                         />
                     }
                 />
@@ -663,6 +683,7 @@ function App() {
                             setSession={setSession}
                             token={token}
                             theme={themeObj}
+                            dataRefreshTrigger={dataRefreshTrigger}
                         />
                     }
                 />
@@ -707,6 +728,14 @@ function App() {
                             onProfileUpdate={handleProfileUpdate}
                             onThemeChange={setTheme}
                             onAccentChange={setAccent}
+                        />
+                    }
+                />
+                <Route
+                    path="registry"
+                    element={
+                        <StudentRegistry
+                            theme={theme === "dark" ? DARK_THEME : LIGHT_THEME}
                         />
                     }
                 />

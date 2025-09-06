@@ -4,12 +4,17 @@ import { SUBJECTS } from "./subjects";
 // Dummy API_BASE for demonstration; replace with actual API if needed
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-function ExportDataModal({ open, onClose, theme }) {
-    const [students, setStudents] = useState([]);
+function ExportDataModal({
+    open,
+    onClose,
+    theme,
+    students,
+    session,
+    selectedClass,
+    selectedExamType,
+    registryStudents = [], // Add prop for registry students
+}) {
     const [search, setSearch] = useState("");
-    const [session, setSession] = useState("");
-    const [selectedClass, setSelectedClass] = useState("9th");
-    const [selectedExamType, setSelectedExamType] = useState("Monthly Test");
     const [selectedRows, setSelectedRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -22,45 +27,46 @@ function ExportDataModal({ open, onClose, theme }) {
     ];
 
     useEffect(() => {
-        setSession(sessionOptions[0]);
+        // setSession(sessionOptions[0]); // This line is removed as session is now a prop
     }, []);
 
     useEffect(() => {
-        if (!session || !selectedClass) return;
+        // if (!session || !selectedClass) return; // This line is removed as session is now a prop
         setLoading(true);
         setError("");
         const token = localStorage.getItem("token");
-        fetch(
-            `${API_BASE}/api/students?session=${session}&class=${selectedClass}`,
-            {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            }
-        )
-            .then(async (res) => {
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        throw new Error(
-                            "Unauthorized: Please log in to export data."
-                        );
-                    }
-                    throw new Error("Failed to fetch students.");
-                }
-                return res.json();
-            })
-            .then((data) => {
-                if (Array.isArray(data)) {
-                    setStudents(data);
-                } else {
-                    setStudents([]);
-                    setError("Unexpected response from server.");
-                }
-                setLoading(false);
-            })
-            .catch((err) => {
-                setStudents([]);
-                setError(err.message || "Failed to fetch students.");
-                setLoading(false);
-            });
+        // This fetch call is no longer needed as students are passed as props
+        // fetch(
+        //     `${API_BASE}/api/students?session=${session}&class=${selectedClass}`,
+        //     {
+        //         headers: token ? { Authorization: `Bearer ${token}` } : {},
+        //     }
+        // )
+        //     .then(async (res) => {
+        //         if (!res.ok) {
+        //             if (res.status === 401) {
+        //                 throw new Error(
+        //                     "Unauthorized: Please log in to export data."
+        //                 );
+        //             }
+        //             throw new Error("Failed to fetch students.");
+        //         }
+        //         return res.json();
+        //     })
+        //     .then((data) => {
+        //         if (Array.isArray(data)) {
+        //             setStudents(data);
+        //         } else {
+        //             setStudents([]);
+        //             setError("Unexpected response from server.");
+        //         }
+        //         setLoading(false);
+        //     })
+        //     .catch((err) => {
+        //         setStudents([]);
+        //         setError(err.message || "Failed to fetch students.");
+        //         setLoading(false);
+        //     });
     }, [session, selectedClass]);
 
     const filtered = students.filter(
@@ -100,7 +106,25 @@ function ExportDataModal({ open, onClose, theme }) {
         return `${stu.rollNo}-${stu.examType}`;
     }
 
-    function exportCSV() {
+    // Function to get student name from registry
+    function getStudentNameFromRegistry(rollNo) {
+        if (!registryStudents.length) return null;
+        const student = registryStudents.find(
+            (s) => s.rollNo.toLowerCase() === rollNo.toLowerCase()
+        );
+        return student ? student.name : null;
+    }
+
+    const exportCSV = () => {
+        const studentsToExport = students.map((student) => ({
+            ...student,
+            // Use registry name if available, otherwise fall back to stored name
+            name:
+                getStudentNameFromRegistry(student.rollNo) ||
+                student.name ||
+                "Unknown",
+        }));
+
         const headerInfo = [
             `Session: ${session || "All Sessions"}`,
             `Class: ${selectedClass}`,
@@ -109,12 +133,7 @@ function ExportDataModal({ open, onClose, theme }) {
             `Export Time: ${new Date().toLocaleTimeString()}`,
             "",
         ];
-        const studentsToExport =
-            selectedRows.length > 0
-                ? Object.values(studentsByRollNo).filter((stu) =>
-                      selectedRows.includes(getStudentKey(stu))
-                  )
-                : Object.values(studentsByRollNo);
+
         const rows = [
             [
                 "Roll No",
@@ -132,7 +151,7 @@ function ExportDataModal({ open, onClose, theme }) {
             ...studentsToExport.flatMap((stu) =>
                 SUBJECTS.map((subj) => [
                     stu.rollNo || "",
-                    stu.name || "",
+                    stu.name || "", // This will now use registry name if available
                     stu.class || selectedClass || "",
                     subj,
                     stu.examType || "",
@@ -164,7 +183,7 @@ function ExportDataModal({ open, onClose, theme }) {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }, 0);
-    }
+    };
 
     // Modal styles
     const overlayStyle = {
@@ -280,7 +299,10 @@ function ExportDataModal({ open, onClose, theme }) {
                         </label>
                         <select
                             value={session}
-                            onChange={(e) => setSession(e.target.value)}
+                            onChange={(e) => {
+                                // This onChange is no longer needed as session is a prop
+                                // setSession(e.target.value);
+                            }}
                             style={{
                                 width: "100%",
                                 padding: "8px 6px",
@@ -314,7 +336,10 @@ function ExportDataModal({ open, onClose, theme }) {
                         </label>
                         <select
                             value={selectedClass}
-                            onChange={(e) => setSelectedClass(e.target.value)}
+                            onChange={(e) => {
+                                // This onChange is no longer needed as selectedClass is a prop
+                                // setSelectedClass(e.target.value);
+                            }}
                             style={{
                                 width: "100%",
                                 padding: "8px 6px",
@@ -345,9 +370,10 @@ function ExportDataModal({ open, onClose, theme }) {
                         </label>
                         <select
                             value={selectedExamType}
-                            onChange={(e) =>
-                                setSelectedExamType(e.target.value)
-                            }
+                            onChange={(e) => {
+                                // This onChange is no longer needed as selectedExamType is a prop
+                                // setSelectedExamType(e.target.value);
+                            }}
                             style={{
                                 width: "100%",
                                 padding: "8px 6px",

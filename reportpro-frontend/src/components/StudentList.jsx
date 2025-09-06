@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SUBJECTS } from "./subjects";
 import { MdDelete } from "react-icons/md";
 
@@ -11,6 +11,9 @@ function StudentList({
     setSession,
     token,
     theme = "light",
+    dataRefreshTrigger = 0, // Add this prop
+    subject, // Add global subject state (from marks entry form - not used for filtering)
+    setSubject, // Add global subject setter (not used for filtering)
 }) {
     const [students, setStudents] = useState([]);
     const [search, setSearch] = useState("");
@@ -22,10 +25,11 @@ function StudentList({
         subject: null,
         session: null,
     });
-    const [subject, setSubject] = useState("Science");
     const [selectedClass, setSelectedClass] = useState("9th");
     const [selectedExamType, setSelectedExamType] = useState("Monthly Test");
     const [selectedMonth, setSelectedMonth] = useState("");
+    // Add local subject filter for results page (independent from global subject)
+    const [localSubjectFilter, setLocalSubjectFilter] = useState("All");
     const MONTHS = [
         "January",
         "February",
@@ -46,8 +50,8 @@ function StudentList({
     }, [selectedExamType]);
     // Set default month: last used or current month
     useEffect(() => {
-        // Try to get last used month from localStorage
-        const lastUsedMonth = localStorage.getItem("results_last_month");
+        // Try to get last used month from localStorage (use same key as MarkEntryForm)
+        const lastUsedMonth = localStorage.getItem("markentry_month");
         if (selectedExamType === "Monthly Test") {
             if (lastUsedMonth && MONTHS.includes(lastUsedMonth)) {
                 setSelectedMonth(lastUsedMonth);
@@ -61,10 +65,10 @@ function StudentList({
             setSelectedMonth("");
         }
     }, [selectedExamType]);
-    // Save last used month when changed
+    // Save last used month when changed (use same key as MarkEntryForm)
     useEffect(() => {
         if (selectedExamType === "Monthly Test" && selectedMonth) {
-            localStorage.setItem("results_last_month", selectedMonth);
+            localStorage.setItem("markentry_month", selectedMonth);
         }
     }, [selectedMonth, selectedExamType]);
     const [deleteStudentModal, setDeleteStudentModal] = useState({
@@ -73,6 +77,8 @@ function StudentList({
     });
     const [selectedRows, setSelectedRows] = useState([]);
     const [popupMsg, setPopupMsg] = useState("");
+    const [registryStudents, setRegistryStudents] = useState([]);
+    const [loadingRegistry, setLoadingRegistry] = useState(false);
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -84,30 +90,238 @@ function StudentList({
     useEffect(() => {
         if (!session) setSession(sessionOptions[0]);
     }, []);
+    // Create a function to fetch students that can be reused
+    const fetchStudents = async () => {
+        if (!session || !token || !selectedClass) {
+            console.log(
+                "StudentList: Skipping data fetch - missing required params:",
+                { session, token: !!token, selectedClass }
+            );
+            return;
+        }
+
+        console.log("StudentList: Fetching data with params:", {
+            session,
+            selectedClass,
+            selectedExamType,
+            localSubjectFilter,
+            selectedMonth,
+        });
+
+        try {
+            // Fetch actual marks data
+            const apiUrl = `${API_BASE}/api/students?session=${session}&class=${selectedClass}&examType=${selectedExamType}&subject=${localSubjectFilter}${
+                selectedExamType === "Monthly Test" && selectedMonth
+                    ? `&month=${selectedMonth}`
+                    : ""
+            }`;
+
+            console.log("StudentList: API URL:", apiUrl);
+
+            const response = await fetch(apiUrl, {
+                method: "GET", // Explicitly specify GET method
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const marksData = await response.json();
+            console.log("StudentList: Raw marks API response:", {
+                totalCount: marksData.length,
+                firstFewStudents: marksData.slice(0, 3).map((s) => ({
+                    rollNo: s.rollNo,
+                    name: s.name,
+                    subject: s.subject,
+                    theory: s.theory,
+                    practical: s.practical,
+                    total: s.total,
+                    isAbsent: s.isAbsent,
+                })),
+            });
+
+            // Validate marks data structure
+            const validMarksData = Array.isArray(marksData)
+                ? marksData.filter(
+                      (student) =>
+                          student &&
+                          typeof student === "object" &&
+                          student.rollNo &&
+                          student.subject &&
+                          student.examType &&
+                          // Allow absent students (marks can be 0/null) OR students with valid marks
+                          (student.isAbsent ||
+                              (typeof student.theory === "number" &&
+                                  typeof student.practical === "number" &&
+                                  student.theory >= 0 &&
+                                  student.practical >= 0))
+                  )
+                : [];
+
+            // Create a combined student list that includes registry students even if they don't have marks
+            const combinedStudents = [];
+
+            // First, add all students who have marks
+            const studentsWithMarks = new Set();
+            validMarksData.forEach((student) => {
+                combinedStudents.push(student);
+                studentsWithMarks.add(student.rollNo.toLowerCase());
+            });
+
+            // Then, add registry students who don't have marks yet for this exam type
+            if (registryStudents && registryStudents.length > 0) {
+                console.log(
+                    "StudentList: Adding registry students without marks:",
+                    {
+                        totalRegistryStudents: registryStudents.length,
+                        studentsWithMarks: studentsWithMarks.size,
+                    }
+                );
+
+                registryStudents.forEach((registryStudent) => {
+                    const rollNoKey = registryStudent.rollNo.toLowerCase();
+
+                    // Only add if this student doesn't already have marks for ANY subject in this exam type
+                    if (!studentsWithMarks.has(rollNoKey)) {
+                        // Create placeholder records for each subject to show in summary
+                        const SUBJECTS = [
+                            "Mathematics",
+                            "Science",
+                            "English",
+                            "Hindi",
+                            "Social Science",
+                            "Sanskrit",
+                            "Computer Science",
+                            "Physical Education",
+                            "Art",
+                            "Music",
+                        ];
+
+                        // Only add if the subject filter allows it
+                        const subjectsToAdd =
+                            localSubjectFilter === "All"
+                                ? SUBJECTS
+                                : [localSubjectFilter];
+
+                        subjectsToAdd.forEach((subject) => {
+                            const placeholderStudent = {
+                                rollNo: registryStudent.rollNo,
+                                name: registryStudent.name,
+                                class: selectedClass,
+                                examType: selectedExamType,
+                                subject: subject,
+                                theory: null, // null indicates no marks entered yet
+                                practical: null,
+                                total: null,
+                                grade: null,
+                                session: session,
+                                isAbsent: false,
+                                isPlaceholder: true, // Flag to identify registry-only students
+                                ...(selectedExamType === "Monthly Test" &&
+                                selectedMonth
+                                    ? { month: selectedMonth }
+                                    : {}),
+                            };
+                            combinedStudents.push(placeholderStudent);
+                        });
+
+                        studentsWithMarks.add(rollNoKey); // Mark as processed
+                    }
+                });
+            }
+
+            console.log("StudentList: Combined student data:", {
+                totalCombined: combinedStudents.length,
+                withMarks: validMarksData.length,
+                placeholders: combinedStudents.filter((s) => s.isPlaceholder)
+                    .length,
+                absent: combinedStudents.filter((s) => s.isAbsent).length,
+            });
+
+            setStudents(combinedStudents);
+            setLastUpdated(new Date());
+        } catch (error) {
+            console.error("StudentList: Error fetching students:", error);
+            setStudents([]);
+        }
+    };
+
+    // Combined effect for fetching students when any dependency changes OR when dataRefreshTrigger changes
     useEffect(() => {
-        if (!session || !token || !selectedClass) return;
+        fetchStudents();
+    }, [
+        session,
+        token,
+        selectedClass,
+        selectedExamType,
+        localSubjectFilter, // Use local subject filter instead of global subject
+        selectedMonth,
+        dataRefreshTrigger, // Include dataRefreshTrigger in the main dependency array
+        registryStudents, // Include registryStudents to refetch when registry changes
+    ]);
+
+    // Fetch student registry when session or class changes
+    useEffect(() => {
+        if (!session || !selectedClass) {
+            setRegistryStudents([]);
+            return;
+        }
+        setLoadingRegistry(true);
+        const token = sessionStorage.getItem("token");
         fetch(
-            `${API_BASE}/api/students?session=${session}&class=${selectedClass}`,
+            `${API_BASE}/api/student-registry?session=${session}&class=${selectedClass}`,
             {
                 headers: { Authorization: `Bearer ${token}` },
             }
         )
             .then((res) => res.json())
             .then((data) => {
-                setStudents(data);
-                setLastUpdated(new Date());
+                setRegistryStudents(data && data.students ? data.students : []);
+                setLoadingRegistry(false);
+            })
+            .catch(() => {
+                setRegistryStudents([]);
+                setLoadingRegistry(false);
             });
-    }, [session, token, selectedClass]);
+    }, [session, selectedClass]);
 
-    const filtered = students.filter(
-        (s) =>
-            (selectedExamType === "All" || s.examType === selectedExamType) &&
-            (selectedExamType !== "Monthly Test" ||
-                !selectedMonth ||
-                s.month === selectedMonth) &&
-            (s.rollNo.toLowerCase().includes(search.toLowerCase()) ||
-                s.subject.toLowerCase().includes(search.toLowerCase()))
-    );
+    // Function to get student name from registry
+    function getStudentNameFromRegistry(rollNo) {
+        if (!registryStudents.length) return null;
+        const student = registryStudents.find(
+            (s) => s.rollNo.toLowerCase() === rollNo.toLowerCase()
+        );
+        return student ? student.name : null;
+    }
+
+    // No need for additional filtering since API handles it
+    // Just map to add registry names when available
+    const filtered = students.map((student) => ({
+        ...student,
+        // Use registry name if available, otherwise fall back to stored name
+        name:
+            getStudentNameFromRegistry(student.rollNo) ||
+            student.name ||
+            "Unknown",
+    }));
+
+    // Debug logging
+    console.log("StudentList Debug:", {
+        totalStudents: students.length,
+        apiFilteredStudents: filtered.length,
+        selectedExamType,
+        localSubjectFilter: localSubjectFilter,
+        selectedMonth,
+        filters: {
+            examType: selectedExamType,
+            subject: localSubjectFilter,
+            month: selectedMonth,
+        },
+        currentSession: session,
+        currentClass: selectedClass,
+        token: token ? "Present" : "Missing",
+    });
 
     const containerStyle = {
         width: "100%",
@@ -231,14 +445,42 @@ function StudentList({
                 maxTotal: 0,
             };
         }
-        studentsByRollNo[key].subjects[s.subject] = {
-            theory: s.theory,
-            practical: s.practical,
-            total: s.total,
-            grade: s.grade,
-        };
-        studentsByRollNo[key].total += s.total;
-        studentsByRollNo[key].maxTotal += 100; // Each subject max 100
+
+        // Handle different types of students
+        if (s.isPlaceholder) {
+            // Placeholder student (from registry, no marks yet)
+            studentsByRollNo[key].subjects[s.subject] = {
+                theory: null,
+                practical: null,
+                total: null,
+                grade: null,
+                isPlaceholder: true,
+            };
+            // Don't add to total for placeholder students
+        } else if (s.isAbsent) {
+            // Absent student
+            studentsByRollNo[key].subjects[s.subject] = {
+                theory: 0,
+                practical: 0,
+                total: 0,
+                grade: "AB",
+                isAbsent: true,
+            };
+            // Don't add to total for absent students, but count max possible
+            studentsByRollNo[key].maxTotal += 100;
+        } else {
+            // Regular student with marks
+            studentsByRollNo[key].subjects[s.subject] = {
+                theory: s.theory,
+                practical: s.practical,
+                total: s.total,
+                grade: s.grade,
+            };
+            if (s.total !== null && s.total !== undefined) {
+                studentsByRollNo[key].total += s.total;
+            }
+            studentsByRollNo[key].maxTotal += 100; // Each subject max 100
+        }
     });
     // Helper to get overall grade from percentage with subject failure rule
     function getOverallGrade(percentage, studentSubjects) {
@@ -344,289 +586,189 @@ function StudentList({
     // Add responsive styles via a <style> tag
     const responsiveStyleTag = (
         <style>{`
-            /* Large tablets and small desktops */
-            @media (max-width: 1024px) {
-                .results-container {
-                    max-width: 95vw !important;
-                    padding: 1.8rem 1.2rem !important;
-                    margin: 1.5rem auto !important;
-                }
-                .results-card {
-                    padding: 20px !important;
-                    margin-bottom: 24px !important;
-                    border-radius: 12px !important;
-                }
-                .results-table th, .results-table td {
-                    font-size: 14px !important;
-                    padding: 10px 8px !important;
-                }
-                .results-header-right {
+            /* Enhanced responsive styles for better layout */
+            @media (max-width: 992px) {
+                .results-header {
                     flex-direction: column !important;
-                    align-items: flex-end !important;
-                    gap: 12px !important;
-                    padding-right: 0 !important;
+                    align-items: center !important;
+                    gap: 16px !important;
+                    position: static !important;
+                }
+                .results-header-actions {
+                    position: static !important;
+                    width: 100% !important;
+                    justify-content: center !important;
+                    margin-left: 0 !important;
+                    flex-wrap: wrap !important;
                 }
                 .results-title {
-                    font-size: 24px !important;
-                    margin-bottom: 16px !important;
-                }
-                .results-summary-title {
-                    font-size: 20px !important;
-                    margin-bottom: 10px !important;
-                }
-                .results-filters {
-                    flex-wrap: wrap !important;
-                    gap: 12px !important;
-                }
-                .results-filter-item {
-                    min-width: 140px !important;
-                    flex: 1 !important;
-                }
-                .results-search {
-                    font-size: 15px !important;
-                    padding: 11px 10px !important;
+                    text-align: center !important;
                 }
             }
             
-            /* Tablets */
             @media (max-width: 768px) {
+                .results-header-actions {
+                    justify-content: center !important;
+                    gap: 8px !important;
+                }
+            }
+            
+            @media (max-width: 1200px) {
+                .results-container {
+                    max-width: 95vw !important;
+                    padding: 2rem 1.5rem !important;
+                }
+                .results-filters {
+                    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+                    gap: 14px !important;
+                }
+            }
+            
+            @media (max-width: 992px) {
                 .results-container {
                     max-width: 98vw !important;
+                    padding: 1.8rem 1.2rem !important;
+                }
+                .results-header {
+                    flex-direction: column !important;
+                    align-items: flex-start !important;
+                    gap: 16px !important;
+                }
+                .results-header-actions {
+                    width: 100% !important;
+                    justify-content: flex-end !important;
+                    margin-left: 0 !important;
+                    flex-wrap: wrap !important;
+                }
+                .results-filters {
+                    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+                    padding: 16px !important;
+                }
+                .summary-card {
+                    padding: 20px 16px !important;
+                }
+                .subject-card {
+                    padding: 20px 16px !important;
+                }
+            }
+            
+            @media (max-width: 768px) {
+                .results-container {
+                    max-width: 100vw !important;
                     padding: 1.5rem 1rem !important;
                     margin: 1rem auto !important;
                 }
-                .results-card {
+                .results-header {
+                    gap: 12px !important;
+                }
+                .results-title {
+                    font-size: 22px !important;
+                }
+                .results-filters {
+                    grid-template-columns: 1fr !important;
+                    gap: 12px !important;
                     padding: 16px !important;
-                    margin-bottom: 20px !important;
-                    border-radius: 10px !important;
+                }
+                .results-search {
+                    padding: 12px 14px !important;
+                    font-size: 14px !important;
                 }
                 .results-table th, .results-table td {
                     font-size: 13px !important;
                     padding: 8px 6px !important;
                 }
-                .results-header-right {
-                    flex-direction: column !important;
-                    align-items: flex-end !important;
-                    gap: 10px !important;
-                    padding-right: 0 !important;
+                .summary-card {
+                    padding: 16px 12px !important;
                 }
-                .results-title {
-                    font-size: 22px !important;
-                    margin-bottom: 14px !important;
+                .subject-card {
+                    padding: 16px 12px !important;
                 }
-                .results-summary-title {
-                    font-size: 18px !important;
-                    margin-bottom: 8px !important;
-                }
-                .results-filters {
-                    flex-direction: column !important;
-                    gap: 10px !important;
-                }
-                .results-filter-item {
-                    width: 100% !important;
-                    max-width: none !important;
-                }
-                .results-search {
-                    font-size: 14px !important;
-                    padding: 10px 8px !important;
-                }
-                .results-table-container {
-                    overflow-x: auto !important;
-                    border-radius: 8px !important;
+                .subject-cards-container {
+                    gap: 16px !important;
                 }
             }
             
-            /* Large phones */
             @media (max-width: 600px) {
                 .results-container {
-                    max-width: 100vw !important;
                     padding: 1.2rem 0.8rem !important;
                     margin: 0.5rem auto !important;
-                    border-radius: 12px !important;
                 }
-                .results-card {
+                .results-title {
+                    font-size: 20px !important;
+                }
+                .results-header-actions {
+                    gap: 8px !important;
+                }
+                .results-filters {
                     padding: 12px !important;
-                    margin-bottom: 16px !important;
-                    border-radius: 8px !important;
+                }
+                .results-search {
+                    padding: 10px 12px !important;
+                    font-size: 13px !important;
                 }
                 .results-table th, .results-table td {
                     font-size: 11px !important;
                     padding: 6px 4px !important;
                 }
-                .results-header-right {
-                    flex-direction: column !important;
-                    align-items: flex-end !important;
-                    gap: 8px !important;
-                    padding-right: 0 !important;
+                .summary-card, .subject-card {
+                    padding: 12px 8px !important;
+                    border-radius: 12px !important;
                 }
-                .results-title {
-                    font-size: 20px !important;
-                    margin-bottom: 12px !important;
-                    letter-spacing: 0.5px !important;
-                }
-                .results-summary-title {
-                    font-size: 16px !important;
-                    margin-bottom: 6px !important;
-                }
-                .results-filters {
-                    flex-direction: column !important;
-                    gap: 8px !important;
-                }
-                .results-filter-item {
-                    width: 100% !important;
-                    max-width: none !important;
-                }
-                .results-search {
-                    font-size: 13px !important;
-                    padding: 9px 7px !important;
-                    border-radius: 6px !important;
-                }
-                .results-table-container {
-                    overflow-x: auto !important;
-                    border-radius: 6px !important;
-                }
-                .results-export-btn {
-                    padding: 6px 12px !important;
-                    font-size: 13px !important;
+                .subject-cards-container {
+                    gap: 12px !important;
                 }
             }
             
-            /* Small phones */
             @media (max-width: 480px) {
                 .results-container {
                     padding: 1rem 0.6rem !important;
-                    margin: 0.3rem auto !important;
-                    border-radius: 10px !important;
                 }
-                .results-card {
-                    padding: 10px !important;
-                    margin-bottom: 12px !important;
-                    border-radius: 6px !important;
+                .results-title {
+                    font-size: 18px !important;
                 }
                 .results-table th, .results-table td {
                     font-size: 10px !important;
-                    padding: 5px 3px !important;
-                }
-                .results-title {
-                    font-size: 18px !important;
-                    margin-bottom: 10px !important;
-                }
-                .results-summary-title {
-                    font-size: 14px !important;
-                    margin-bottom: 4px !important;
-                }
-                .results-filters {
-                    gap: 6px !important;
-                }
-                .results-search {
-                    font-size: 12px !important;
-                    padding: 8px 6px !important;
-                    border-radius: 5px !important;
-                }
-                .results-export-btn {
-                    padding: 5px 10px !important;
-                    font-size: 12px !important;
-                }
-            }
-            
-            /* Extra small phones */
-            @media (max-width: 360px) {
-                .results-container {
-                    padding: 0.8rem 0.4rem !important;
-                    margin: 0.2rem auto !important;
-                }
-                .results-card {
-                    padding: 8px !important;
-                    margin-bottom: 10px !important;
-                }
-                .results-table th, .results-table td {
-                    font-size: 9px !important;
                     padding: 4px 2px !important;
                 }
-                .results-title {
-                    font-size: 16px !important;
-                    margin-bottom: 8px !important;
-                }
-                .results-summary-title {
-                    font-size: 13px !important;
-                    margin-bottom: 3px !important;
-                }
-                .results-search {
-                    font-size: 11px !important;
-                    padding: 7px 5px !important;
-                }
-                .results-export-btn {
-                    padding: 4px 8px !important;
-                    font-size: 11px !important;
-                }
-            }
-            
-            /* Landscape orientation on phones */
-            @media (max-height: 500px) and (orientation: landscape) {
-                .results-container {
-                    margin: 0.5rem auto !important;
-                    padding: 1rem 1.5rem !important;
-                }
-                .results-title {
-                    font-size: 18px !important;
-                    margin-bottom: 8px !important;
-                }
-                .results-card {
-                    margin-bottom: 12px !important;
-                    padding: 12px !important;
+                .summary-card, .subject-card {
+                    padding: 10px 6px !important;
                 }
             }
             
             /* Focus states for better accessibility */
-            .results-search:focus {
-                border-color: #e53935 !important;
-                box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.2) !important;
+            .results-search:focus, .results-filter-item select:focus {
                 outline: none !important;
             }
             
-            .results-filter-item select:focus {
-                border-color: #e53935 !important;
-                box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.2) !important;
-                outline: none !important;
-            }
-            
-            /* Hover effects for better interactivity */
-            .results-search:hover {
-                border-color: #b71c1c !important;
-            }
-            
-            .results-filter-item select:hover {
-                border-color: #b71c1c !important;
-            }
-            
-            /* Smooth transitions */
-            .results-container * {
+            /* Smooth transitions for better UX */
+            .results-container *, .subject-card, .summary-card {
                 transition: all 0.2s ease-in-out !important;
             }
             
-            /* Table responsiveness */
+            /* Table scroll styling */
             .results-table-container {
-                overflow-x: auto !important;
                 -webkit-overflow-scrolling: touch !important;
                 scrollbar-width: thin !important;
+                scrollbar-color: rgba(229, 57, 53, 0.3) transparent !important;
             }
             
             .results-table-container::-webkit-scrollbar {
                 height: 6px !important;
+                width: 6px !important;
             }
             
             .results-table-container::-webkit-scrollbar-track {
-                background: #f1f1f1 !important;
+                background: rgba(0,0,0,0.05) !important;
                 border-radius: 3px !important;
             }
             
             .results-table-container::-webkit-scrollbar-thumb {
-                background: #e53935 !important;
+                background: rgba(229, 57, 53, 0.4) !important;
                 border-radius: 3px !important;
             }
             
             .results-table-container::-webkit-scrollbar-thumb:hover {
-                background: #b71c1c !important;
+                background: rgba(229, 57, 53, 0.6) !important;
             }
         `}</style>
     );
@@ -642,7 +784,7 @@ function StudentList({
         const headerInfo = [
             `Session: ${session || "All Sessions"}`,
             `Class: ${selectedClass}`,
-            `Subject: ${subject}`,
+            `Subject: ${localSubjectFilter}`,
             `Exam Type: ${selectedExamType}`,
             ...(selectedExamType === "Monthly Test" && selectedMonth
                 ? [`Month: ${selectedMonth}`]
@@ -828,6 +970,87 @@ function StudentList({
         }
     }
 
+    // Function to mark selected students as absent
+    async function handleMarkAsAbsent() {
+        if (selectedRows.length === 0) {
+            alert("Please select students to mark as absent.");
+            return;
+        }
+
+        const confirmMsg = `Are you sure you want to mark ${
+            selectedRows.length
+        } student(s) as absent for ${selectedExamType}${
+            selectedExamType === "Monthly Test" && selectedMonth
+                ? ` (${selectedMonth})`
+                : ""
+        }?\n\nThis will create absent records for all subjects.`;
+
+        if (!window.confirm(confirmMsg)) {
+            return;
+        }
+
+        try {
+            // Get unique students from selected rows
+            const uniqueStudents = new Map();
+            selectedRows.forEach((rowKey) => {
+                const student = Object.values(studentsByRollNo).find(
+                    (s) => getStudentKey(s) === rowKey
+                );
+                if (student && !uniqueStudents.has(student.rollNo)) {
+                    uniqueStudents.set(student.rollNo, {
+                        rollNo: student.rollNo,
+                        name: student.name,
+                    });
+                }
+            });
+
+            const studentsArray = Array.from(uniqueStudents.values());
+
+            const requestBody = {
+                students: studentsArray,
+                examType: selectedExamType,
+                session: session,
+                class: selectedClass,
+                ...(selectedExamType === "Monthly Test" && selectedMonth
+                    ? { month: selectedMonth }
+                    : {}),
+            };
+
+            console.log("Marking students as absent:", requestBody);
+
+            const res = await fetch(`${API_BASE}/api/students/absent`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                alert(data.error || "Failed to mark students as absent.");
+                return;
+            }
+
+            const result = await res.json();
+            console.log("Students marked as absent:", result);
+
+            // Clear selections and refresh data
+            setSelectedRows([]);
+            fetchStudents();
+
+            // Show success message
+            setPopupMsg(
+                `Successfully marked ${studentsArray.length} students as absent for ${selectedExamType}`
+            );
+            setTimeout(() => setPopupMsg(""), 4000);
+        } catch (err) {
+            console.error("Error marking students as absent:", err);
+            alert("Failed to mark students as absent. Please try again.");
+        }
+    }
+
     async function confirmDeleteEntireStudent() {
         const { rollNo } = deleteStudentModal;
         try {
@@ -903,24 +1126,108 @@ function StudentList({
                     outline: none !important;
                 }
             `}</style>
-            <h2 className="results-title" style={gradientText}>
-                Student Results
-            </h2>
+            <div
+                className="results-header"
+                style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "flex-start",
+                    marginBottom: 24,
+                    gap: 20,
+                    flexWrap: "wrap",
+                    position: "relative",
+                }}
+            >
+                <h2
+                    className="results-title"
+                    style={{
+                        ...gradientText,
+                        fontSize: 34,
+                        margin: 0,
+                        textAlign: "center",
+                        flex: "1 1 auto",
+                    }}
+                >
+                    Student Results
+                </h2>
+                <div
+                    className="results-header-actions"
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
+                        flex: "0 0 auto",
+                        position: "absolute",
+                        right: 0,
+                        top: 0,
+                    }}
+                >
+                    {lastUpdated && (
+                        <span
+                            style={{
+                                ...lastUpdatedStyle,
+                                fontSize: 13,
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            Updated: {lastUpdated.toLocaleTimeString()}
+                        </span>
+                    )}
+                    {selectedRows.length > 0 && (
+                        <button
+                            onClick={handleMarkAsAbsent}
+                            className="mark-absent-btn"
+                            style={{
+                                background: "#ff9800",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: 8,
+                                padding: "10px 16px",
+                                fontWeight: 600,
+                                fontSize: 14,
+                                cursor: "pointer",
+                                boxShadow: "0 2px 4px rgba(255, 152, 0, 0.3)",
+                                transition: "all 0.2s ease",
+                                whiteSpace: "nowrap",
+                            }}
+                            title={`Mark selected ${selectedRows.length} student(s) as absent for ${selectedExamType}`}
+                        >
+                            Mark Absent ({selectedRows.length})
+                        </button>
+                    )}
+                    <button
+                        onClick={exportCSV}
+                        className={`${exportBtnClass} results-export-btn`}
+                        style={{
+                            ...exportBtnStyle,
+                            padding: "10px 16px",
+                            fontSize: 14,
+                            fontWeight: 600,
+                            borderRadius: 8,
+                            boxShadow: "0 2px 4px rgba(229, 57, 53, 0.3)",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        Export CSV
+                    </button>
+                </div>
+            </div>
+
             <div
                 className="results-filters"
                 style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: 18,
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                     gap: 16,
-                    flexWrap: "wrap",
+                    marginBottom: 24,
+                    padding: 20,
+                    background: theme.surface,
+                    borderRadius: 12,
+                    border: `1px solid ${theme.border}`,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                 }}
             >
-                <div
-                    className="results-filter-item"
-                    style={{ maxWidth: 320, flex: 1 }}
-                >
+                <div className="results-filter-item">
                     <label
                         style={{
                             fontWeight: 700,
@@ -955,10 +1262,7 @@ function StudentList({
                         ))}
                     </select>
                 </div>
-                <div
-                    className="results-filter-item"
-                    style={{ maxWidth: 180, flex: 1 }}
-                >
+                <div className="results-filter-item">
                     <label
                         style={{
                             fontWeight: 700,
@@ -990,10 +1294,7 @@ function StudentList({
                         <option value="10th">10th</option>
                     </select>
                 </div>
-                <div
-                    className="results-filter-item"
-                    style={{ maxWidth: 200, flex: 1 }}
-                >
+                <div className="results-filter-item">
                     <label
                         style={{
                             fontWeight: 700,
@@ -1031,10 +1332,7 @@ function StudentList({
                 </div>
                 {/* Month filter for Monthly Test */}
                 {selectedExamType === "Monthly Test" && (
-                    <div
-                        className="results-filter-item"
-                        style={{ maxWidth: 180, flex: 1 }}
-                    >
+                    <div className="results-filter-item">
                         <label
                             style={{
                                 fontWeight: 700,
@@ -1070,57 +1368,137 @@ function StudentList({
                         </select>
                     </div>
                 )}
-                <div className="results-header-right" style={rightSectionStyle}>
-                    {lastUpdated && (
-                        <span style={lastUpdatedStyle}>
-                            Last updated: {lastUpdated.toLocaleString()}
-                        </span>
-                    )}
-                    <button
-                        onClick={exportCSV}
-                        className={`${exportBtnClass} results-export-btn`}
-                        style={exportBtnStyle}
+                {/* Subject filter */}
+                <div className="results-filter-item">
+                    <label
+                        style={{
+                            fontWeight: 700,
+                            color: accentDark,
+                            marginBottom: 4,
+                            fontSize: 16,
+                        }}
                     >
-                        Export CSV
-                    </button>
+                        Subject
+                    </label>
+                    <select
+                        value={localSubjectFilter}
+                        onChange={(e) => setLocalSubjectFilter(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "10px 8px",
+                            borderRadius: 6,
+                            border: `1.5px solid ${accent}`,
+                            fontSize: 16,
+                            fontWeight: 600,
+                            color: accentDark,
+                            background: theme.inputBg,
+                            marginTop: 4,
+                            marginBottom: 0,
+                        }}
+                    >
+                        <option value="All">All Subjects</option>
+                        {SUBJECTS.map((subj) => (
+                            <option key={subj} value={subj}>
+                                {subj}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             </div>
-            <input
-                type="text"
-                className="results-search"
-                placeholder="Search by roll no or subject..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={searchStyle}
-            />
-            {/* Summary Table */}
+
             <div
-                className="results-card"
+                className="results-search-container"
                 style={{
-                    marginBottom: 36,
-                    background: theme.surface,
-                    borderRadius: 16,
-                    boxShadow: theme.shadow,
-                    padding: 24,
-                    color: theme.text,
+                    marginBottom: 24,
                 }}
             >
-                <h3
-                    className="results-summary-title"
+                <input
+                    type="text"
+                    className="results-search"
+                    placeholder="Search by roll no, name, or subject..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                     style={{
-                        ...gradientText,
-                        fontSize: 22,
-                        marginBottom: 12,
-                        textAlign: "left",
-                        letterSpacing: 0.5,
-                        ...headingBorderStyle,
+                        ...searchStyle,
+                        padding: "14px 16px",
+                        fontSize: 15,
+                        borderRadius: 10,
+                        border: `2px solid ${theme.border}`,
+                        background: theme.inputBg,
+                        transition: "all 0.2s ease",
+                        marginBottom: 0,
+                    }}
+                    onFocus={(e) => {
+                        e.target.style.borderColor = accent;
+                        e.target.style.boxShadow = `0 0 0 3px ${accent}20`;
+                    }}
+                    onBlur={(e) => {
+                        e.target.style.borderColor = theme.border;
+                        e.target.style.boxShadow = "none";
+                    }}
+                />
+            </div>
+            {/* Summary Table */}
+            <div
+                className="results-card summary-card"
+                style={{
+                    marginBottom: 32,
+                    background: theme.surface,
+                    borderRadius: 16,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                    padding: "28px 24px",
+                    color: theme.text,
+                    border: `1px solid ${theme.border}`,
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 20,
+                        flexWrap: "wrap",
+                        gap: 12,
                     }}
                 >
-                    All Subjects Summary
-                </h3>
+                    <h3
+                        className="results-summary-title"
+                        style={{
+                            ...gradientText,
+                            fontSize: 20,
+                            marginBottom: 0,
+                            textAlign: "left",
+                            letterSpacing: 0.5,
+                            flex: "1 1 auto",
+                        }}
+                    >
+                        All Subjects Summary
+                    </h3>
+                    {Object.values(studentsByRollNo).length > 0 && (
+                        <div
+                            style={{
+                                color: theme.textSecondary,
+                                fontSize: 14,
+                                fontWeight: 500,
+                                flex: "0 0 auto",
+                            }}
+                        >
+                            {Object.values(studentsByRollNo).length} student
+                            {Object.values(studentsByRollNo).length === 1
+                                ? ""
+                                : "s"}
+                        </div>
+                    )}
+                </div>
                 <div
                     className="results-table-container"
-                    style={{ overflowX: "auto" }}
+                    style={{
+                        overflowX: "auto",
+                        marginTop: 16,
+                        borderRadius: 12,
+                        border: `1px solid ${theme.border}`,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    }}
                 >
                     <table className="results-table" style={summaryTableStyle}>
                         <thead>
@@ -1301,36 +1679,84 @@ function StudentList({
                                                 <td style={summaryTdStyle}>
                                                     {stu.examType || "-"}
                                                 </td>
-                                                {SUBJECTS.map((subj) => [
-                                                    <td
-                                                        key={`${stu.rollNo}-${subj}-theory`}
-                                                        style={summaryTdStyle}
-                                                    >
-                                                        {stu.subjects[subj]
-                                                            ?.theory ?? "-"}
-                                                    </td>,
-                                                    <td
-                                                        key={`${stu.rollNo}-${subj}-practical`}
-                                                        style={summaryTdStyle}
-                                                    >
-                                                        {stu.subjects[subj]
-                                                            ?.practical ?? "-"}
-                                                    </td>,
-                                                    <td
-                                                        key={`${stu.rollNo}-${subj}-total`}
-                                                        style={summaryTdStyle}
-                                                    >
-                                                        {stu.subjects[subj]
-                                                            ?.total ?? "-"}
-                                                    </td>,
-                                                    <td
-                                                        key={`${stu.rollNo}-${subj}-grade`}
-                                                        style={summaryTdStyle}
-                                                    >
-                                                        {stu.subjects[subj]
-                                                            ?.grade ?? "-"}
-                                                    </td>,
-                                                ])}
+                                                {SUBJECTS.map((subj) => {
+                                                    const subjectData =
+                                                        stu.subjects[subj];
+                                                    const isPlaceholder =
+                                                        subjectData?.isPlaceholder;
+                                                    const isAbsent =
+                                                        subjectData?.isAbsent;
+
+                                                    // Different styling for different student types
+                                                    const cellStyle = {
+                                                        ...summaryTdStyle,
+                                                        ...(isPlaceholder
+                                                            ? {
+                                                                  background:
+                                                                      "#f5f5f5",
+                                                                  color: "#666",
+                                                                  fontStyle:
+                                                                      "italic",
+                                                              }
+                                                            : {}),
+                                                        ...(isAbsent
+                                                            ? {
+                                                                  background:
+                                                                      "#ffebee",
+                                                                  color: "#d32f2f",
+                                                                  fontWeight:
+                                                                      "bold",
+                                                              }
+                                                            : {}),
+                                                    };
+
+                                                    return [
+                                                        <td
+                                                            key={`${stu.rollNo}-${subj}-theory`}
+                                                            style={cellStyle}
+                                                        >
+                                                            {isPlaceholder
+                                                                ? "-"
+                                                                : isAbsent
+                                                                ? "AB"
+                                                                : subjectData?.theory ??
+                                                                  "-"}
+                                                        </td>,
+                                                        <td
+                                                            key={`${stu.rollNo}-${subj}-practical`}
+                                                            style={cellStyle}
+                                                        >
+                                                            {isPlaceholder
+                                                                ? "-"
+                                                                : isAbsent
+                                                                ? "AB"
+                                                                : subjectData?.practical ??
+                                                                  "-"}
+                                                        </td>,
+                                                        <td
+                                                            key={`${stu.rollNo}-${subj}-total`}
+                                                            style={cellStyle}
+                                                        >
+                                                            {isPlaceholder
+                                                                ? "-"
+                                                                : isAbsent
+                                                                ? "AB"
+                                                                : subjectData?.total ??
+                                                                  "-"}
+                                                        </td>,
+                                                        <td
+                                                            key={`${stu.rollNo}-${subj}-grade`}
+                                                            style={cellStyle}
+                                                        >
+                                                            {isPlaceholder
+                                                                ? "-"
+                                                                : isAbsent
+                                                                ? "AB"
+                                                                : subjectData?.grade ??
+                                                                  "-"}
+                                                        </td>,
+                                                    ];
+                                                })}
                                                 <td style={summaryTdStyle}>
                                                     {stu.total}
                                                 </td>
@@ -1409,154 +1835,230 @@ function StudentList({
                 </div>
             </div>
             {/* Per-subject tables/cards */}
-            {SUBJECTS.map((subj, idx) => (
-                <div
-                    key={subj}
-                    className="results-card"
-                    style={cardStyle}
-                    onMouseOver={(e) =>
-                        Object.assign(e.currentTarget.style, cardHover)
-                    }
-                    onMouseOut={(e) =>
-                        Object.assign(e.currentTarget.style, cardStyle)
-                    }
-                >
-                    <h3 style={{ ...subjectTitle, ...headingBorderStyle }}>
-                        {subj}
-                    </h3>
+            <div
+                className="subject-cards-container"
+                style={{
+                    display: "grid",
+                    gap: 24,
+                    marginTop: 32,
+                }}
+            >
+                {SUBJECTS.map((subj, idx) => (
                     <div
-                        className="results-table-container"
-                        style={{ overflowX: "auto" }}
+                        key={subj}
+                        className="results-card subject-card"
+                        style={{
+                            ...cardStyle,
+                            marginBottom: 0,
+                            padding: "24px 28px",
+                            background: theme.surface,
+                            border: `1px solid ${theme.border}`,
+                            borderRadius: 16,
+                            boxShadow: "0 3px 10px rgba(0,0,0,0.06)",
+                            transition: "all 0.2s ease",
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.transform =
+                                "translateY(-2px)";
+                            e.currentTarget.style.boxShadow =
+                                "0 6px 20px rgba(0,0,0,0.1)";
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow =
+                                "0 3px 10px rgba(0,0,0,0.06)";
+                        }}
                     >
-                        <table className="results-table" style={tableStyle}>
-                            <thead>
-                                <tr>
-                                    <th style={subjectThStyle}>Roll No</th>
-                                    <th
-                                        style={{
-                                            ...subjectThStyle,
-                                            minWidth: 120,
-                                            maxWidth: 300,
-                                            whiteSpace: "normal",
-                                            wordBreak: "break-word",
-                                        }}
-                                    >
-                                        Name
-                                    </th>
-                                    <th style={subjectThStyle}>Theory</th>
-                                    <th style={subjectThStyle}>Practical</th>
-                                    <th style={subjectThStyle}>Total</th>
-                                    <th style={subjectThStyle}>Grade</th>
-                                    <th style={subjectThStyle}>Delete</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {studentsBySubject[subj].length === 0 ? (
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 20,
+                                paddingBottom: 12,
+                                borderBottom: `2px solid ${theme.border}20`,
+                            }}
+                        >
+                            <h3
+                                style={{
+                                    ...subjectTitle,
+                                    fontSize: 18,
+                                    marginBottom: 0,
+                                    flex: "1 1 auto",
+                                }}
+                            >
+                                {subj}
+                            </h3>
+                            {studentsBySubject[subj].length > 0 && (
+                                <div
+                                    style={{
+                                        color: theme.textSecondary,
+                                        fontSize: 13,
+                                        fontWeight: 500,
+                                        flex: "0 0 auto",
+                                    }}
+                                >
+                                    {studentsBySubject[subj].length} student
+                                    {studentsBySubject[subj].length === 1
+                                        ? ""
+                                        : "s"}
+                                </div>
+                            )}
+                        </div>
+                        <div
+                            className="results-table-container"
+                            style={{
+                                overflowX: "auto",
+                                borderRadius: 10,
+                                border: `1px solid ${theme.border}`,
+                                boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                            }}
+                        >
+                            <table className="results-table" style={tableStyle}>
+                                <thead>
                                     <tr>
-                                        <td
-                                            colSpan={7}
+                                        <th style={subjectThStyle}>Roll No</th>
+                                        <th
                                             style={{
-                                                textAlign: "center",
-                                                padding: 16,
-                                                color: theme.textSecondary,
-                                                background: theme.surface,
-                                                fontSize: 16,
-                                                fontWeight: 500,
+                                                ...subjectThStyle,
+                                                minWidth: 120,
+                                                maxWidth: 300,
+                                                whiteSpace: "normal",
+                                                wordBreak: "break-word",
                                             }}
                                         >
-                                            No students found.
-                                        </td>
+                                            Name
+                                        </th>
+                                        <th style={subjectThStyle}>Theory</th>
+                                        <th style={subjectThStyle}>
+                                            Practical
+                                        </th>
+                                        <th style={subjectThStyle}>Total</th>
+                                        <th style={subjectThStyle}>Grade</th>
+                                        <th style={subjectThStyle}>Delete</th>
                                     </tr>
-                                ) : (
-                                    studentsBySubject[subj].map((s, idx2) => (
-                                        <tr
-                                            key={s.rollNo}
-                                            style={
-                                                idx2 % 2 === 1 ? trAltStyle : {}
-                                            }
-                                        >
-                                            <td style={subjectTdStyle}>
-                                                {s.rollNo}
-                                            </td>
+                                </thead>
+                                <tbody>
+                                    {studentsBySubject[subj].length === 0 ? (
+                                        <tr>
                                             <td
+                                                colSpan={7}
                                                 style={{
-                                                    ...subjectTdStyle,
-                                                    minWidth: 120,
-                                                    maxWidth: 300,
-                                                    whiteSpace: "normal",
-                                                    wordBreak: "break-word",
+                                                    textAlign: "center",
+                                                    padding: 16,
+                                                    color: theme.textSecondary,
+                                                    background: theme.surface,
+                                                    fontSize: 16,
+                                                    fontWeight: 500,
                                                 }}
                                             >
-                                                {s.name || "-"}
-                                            </td>
-                                            <td style={subjectTdStyle}>
-                                                {s.theory}
-                                            </td>
-                                            <td style={subjectTdStyle}>
-                                                {s.practical}
-                                            </td>
-                                            <td style={subjectTdStyle}>
-                                                {s.total}
-                                            </td>
-                                            <td style={subjectTdStyle}>
-                                                {s.grade}
-                                            </td>
-                                            <td style={subjectTdStyle}>
-                                                <button
-                                                    onClick={() =>
-                                                        handleDeleteStudent(
-                                                            s.rollNo,
-                                                            s.subject,
-                                                            s.session
-                                                        )
-                                                    }
-                                                    style={{
-                                                        background:
-                                                            "transparent",
-                                                        color:
-                                                            theme === "dark"
-                                                                ? "#ff6f60"
-                                                                : "#e53935",
-                                                        border: "none",
-                                                        borderRadius: 0,
-                                                        padding: "8px",
-                                                        fontWeight: 400,
-                                                        fontSize: 16,
-                                                        cursor: "pointer",
-                                                        boxShadow: "none",
-                                                        minWidth: "auto",
-                                                        minHeight: "auto",
-                                                        display: "inline-flex",
-                                                        alignItems: "center",
-                                                        justifyContent:
-                                                            "center",
-                                                        marginLeft: 4,
-                                                        letterSpacing: 0,
-                                                        transition:
-                                                            "color 0.2s",
-                                                        whiteSpace: "nowrap",
-                                                    }}
-                                                    aria-label={`Delete marks for ${s.subject} (Roll No: ${s.rollNo})`}
-                                                >
-                                                    <MdDelete
-                                                        size={22}
-                                                        color={
-                                                            theme === "dark"
-                                                                ? "#ff6f60"
-                                                                : "#e53935"
-                                                        }
-                                                    />
-                                                </button>
+                                                No students found.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        studentsBySubject[subj].map(
+                                            (s, idx2) => (
+                                                <tr
+                                                    key={s.rollNo}
+                                                    style={
+                                                        idx2 % 2 === 1
+                                                            ? trAltStyle
+                                                            : {}
+                                                    }
+                                                >
+                                                    <td style={subjectTdStyle}>
+                                                        {s.rollNo}
+                                                    </td>
+                                                    <td
+                                                        style={{
+                                                            ...subjectTdStyle,
+                                                            minWidth: 120,
+                                                            maxWidth: 300,
+                                                            whiteSpace:
+                                                                "normal",
+                                                            wordBreak:
+                                                                "break-word",
+                                                        }}
+                                                    >
+                                                        {s.name || "-"}
+                                                    </td>
+                                                    <td style={subjectTdStyle}>
+                                                        {s.theory}
+                                                    </td>
+                                                    <td style={subjectTdStyle}>
+                                                        {s.practical}
+                                                    </td>
+                                                    <td style={subjectTdStyle}>
+                                                        {s.total}
+                                                    </td>
+                                                    <td style={subjectTdStyle}>
+                                                        {s.grade}
+                                                    </td>
+                                                    <td style={subjectTdStyle}>
+                                                        <button
+                                                            onClick={() =>
+                                                                handleDeleteStudent(
+                                                                    s.rollNo,
+                                                                    s.subject,
+                                                                    s.session
+                                                                )
+                                                            }
+                                                            style={{
+                                                                background:
+                                                                    "transparent",
+                                                                color:
+                                                                    theme ===
+                                                                    "dark"
+                                                                        ? "#ff6f60"
+                                                                        : "#e53935",
+                                                                border: "none",
+                                                                borderRadius: 0,
+                                                                padding: "8px",
+                                                                fontWeight: 400,
+                                                                fontSize: 16,
+                                                                cursor: "pointer",
+                                                                boxShadow:
+                                                                    "none",
+                                                                minWidth:
+                                                                    "auto",
+                                                                minHeight:
+                                                                    "auto",
+                                                                display:
+                                                                    "inline-flex",
+                                                                alignItems:
+                                                                    "center",
+                                                                justifyContent:
+                                                                    "center",
+                                                                marginLeft: 4,
+                                                                letterSpacing: 0,
+                                                                transition:
+                                                                    "color 0.2s",
+                                                                whiteSpace:
+                                                                    "nowrap",
+                                                            }}
+                                                            aria-label={`Delete marks for ${s.subject} (Roll No: ${s.rollNo})`}
+                                                        >
+                                                            <MdDelete
+                                                                size={22}
+                                                                color={
+                                                                    theme ===
+                                                                    "dark"
+                                                                        ? "#ff6f60"
+                                                                        : "#e53935"
+                                                                }
+                                                            />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    {idx !== SUBJECTS.length - 1 && <hr style={divider} />}
-                </div>
-            ))}
+                ))}
+            </div>
             {/* Individual Subject Delete Modal */}
             {deleteModal.open && (
                 <div

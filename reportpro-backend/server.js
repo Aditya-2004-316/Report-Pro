@@ -63,8 +63,8 @@ const studentSchema = new mongoose.Schema(
             required: true,
         },
         subject: { type: String, required: true },
-        theory: { type: Number, required: true, min: 0, max: 75 },
-        practical: { type: Number, required: true, min: 0, max: 25 },
+        theory: { type: Number, min: 0, max: 75 },
+        practical: { type: Number, min: 0, max: 25 },
         total: { type: Number },
         grade: { type: String },
         session: { type: String, required: true },
@@ -74,6 +74,7 @@ const studentSchema = new mongoose.Schema(
             required: true,
         },
         month: { type: String }, // <-- add month field
+        isAbsent: { type: Boolean, default: false }, // <-- add absent status
     },
     {
         timestamps: true,
@@ -98,6 +99,34 @@ const userSchema = new mongoose.Schema({
     resetCodeExpires: { type: Date },
 });
 const User = mongoose.model("User", userSchema);
+
+// Student Registry Schema
+const studentRegistrySchema = new mongoose.Schema(
+    {
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+        },
+        session: { type: String, required: true },
+        class: { type: String, required: true },
+        students: [
+            {
+                rollNo: { type: String, required: true },
+                name: { type: String, required: true },
+            },
+        ],
+    },
+    { timestamps: true }
+);
+studentRegistrySchema.index(
+    { user: 1, session: 1, class: 1 },
+    { unique: true }
+);
+const StudentRegistry = mongoose.model(
+    "StudentRegistry",
+    studentRegistrySchema
+);
 
 // Helper: Calculate grade based on total marks with theory failure rule
 function calculateGrade(total, theory) {
@@ -173,7 +202,8 @@ app.post("/api/students", requireAuth, async (req, res) => {
             theory,
             practical,
             session,
-            month, // <-- get month from body
+            month,
+            isAbsent = false, // Add isAbsent field
         } = req.body;
         if (!name || typeof name !== "string" || !name.trim()) {
             name = "Unknown";
@@ -213,19 +243,77 @@ app.post("/api/students", requireAuth, async (req, res) => {
         ];
         if (examType === "Monthly Test") {
             if (!month || !MONTHS.includes(month)) {
-                return res
-                    .status(400)
-                    .json({
-                        error: "Month is required and must be valid for Monthly Test.",
-                    });
+                return res.status(400).json({
+                    error: "Month is required and must be valid for Monthly Test.",
+                });
             }
         } else {
             month = undefined; // Only store month for Monthly Test
         }
-        const theoryNum = Number(theory);
-        const practicalNum = Number(practical);
 
-        // Specific validation for each field
+        // For absent students, set default values
+        if (isAbsent) {
+            theory = 0;
+            practical = 0;
+        } else {
+            // Validate marks only for non-absent students
+            const theoryNum = Number(theory);
+            const practicalNum = Number(practical);
+
+            // Specific validation for each field
+            if (
+                examType !== "Monthly Test" &&
+                (!rollNo || typeof rollNo !== "string" || !rollNo.trim())
+            ) {
+                return res.status(400).json({
+                    error: "Roll number is required for all exam types except Monthly Test.",
+                });
+            }
+            // For Monthly Test, if rollNo is empty, set it to "N/A"
+            if (examType === "Monthly Test" && (!rollNo || !rollNo.trim())) {
+                rollNo = "N/A";
+            }
+            if (!subject || typeof subject !== "string" || !subject.trim()) {
+                return res.status(400).json({ error: "Subject is required." });
+            }
+            if (!session || typeof session !== "string" || !session.trim()) {
+                return res.status(400).json({ error: "Session is required." });
+            }
+            if (
+                theory === undefined ||
+                theory === null ||
+                theory === "" ||
+                isNaN(theoryNum)
+            ) {
+                return res.status(400).json({
+                    error: "Theory marks must be a number between 0 and 75.",
+                });
+            }
+            if (theoryNum < 0 || theoryNum > 75) {
+                return res
+                    .status(400)
+                    .json({ error: "Theory marks must be between 0 and 75." });
+            }
+            if (
+                practical === undefined ||
+                practical === null ||
+                practical === "" ||
+                isNaN(practicalNum)
+            ) {
+                return res.status(400).json({
+                    error: "Practical marks must be a number between 0 and 25.",
+                });
+            }
+            if (practicalNum < 0 || practicalNum > 25) {
+                return res
+                    .status(400)
+                    .json({
+                        error: "Practical marks must be between 0 and 25.",
+                    });
+            }
+        }
+
+        // Basic validation for all students
         if (
             examType !== "Monthly Test" &&
             (!rollNo || typeof rollNo !== "string" || !rollNo.trim())
@@ -244,43 +332,50 @@ app.post("/api/students", requireAuth, async (req, res) => {
         if (!session || typeof session !== "string" || !session.trim()) {
             return res.status(400).json({ error: "Session is required." });
         }
-        if (
-            theory === undefined ||
-            theory === null ||
-            theory === "" ||
-            isNaN(theoryNum)
-        ) {
-            return res.status(400).json({
-                error: "Theory marks must be a number between 0 and 75.",
-            });
-        }
-        if (theoryNum < 0 || theoryNum > 75) {
-            return res
-                .status(400)
-                .json({ error: "Theory marks must be between 0 and 75." });
-        }
-        if (
-            practical === undefined ||
-            practical === null ||
-            practical === "" ||
-            isNaN(practicalNum)
-        ) {
-            return res.status(400).json({
-                error: "Practical marks must be a number between 0 and 25.",
-            });
-        }
-        if (practicalNum < 0 || practicalNum > 25) {
-            return res
-                .status(400)
-                .json({ error: "Practical marks must be between 0 and 25." });
+
+        const theoryNum = Number(theory);
+        const practicalNum = Number(practical);
+        const total = theoryNum + practicalNum;
+        const grade = isAbsent ? "AB" : calculateGrade(total, theoryNum);
+
+        // Auto-fetch student name from registry if roll number is provided
+        if (rollNo && rollNo.trim() !== "N/A" && rollNo.trim() !== "") {
+            try {
+                const registry = await StudentRegistry.findOne({
+                    user: req.userId,
+                    session: session.trim(),
+                    class: studentClass,
+                });
+
+                if (registry && registry.students) {
+                    const registryStudent = registry.students.find(
+                        (s) =>
+                            s.rollNo.toLowerCase() ===
+                            rollNo.trim().toLowerCase()
+                    );
+
+                    if (registryStudent) {
+                        // Use the name from registry instead of submitted name
+                        name = registryStudent.name;
+                    }
+                }
+            } catch (registryError) {
+                // If registry lookup fails, continue with submitted name
+                console.log(
+                    "Registry lookup failed, using submitted name:",
+                    registryError.message
+                );
+            }
         }
 
-        const total = theoryNum + practicalNum;
-        const grade = calculateGrade(total, theoryNum);
+        if (!name || typeof name !== "string" || !name.trim()) {
+            name = "Unknown";
+        }
+
         // When creating/updating, include month if present
         const update = {
             rollNo: rollNo.trim(),
-            name: name.trim(),
+            name: name.trim(), // This will now be the registry name if available
             class: studentClass,
             examType,
             subject: subject.trim(),
@@ -290,6 +385,7 @@ app.post("/api/students", requireAuth, async (req, res) => {
             grade,
             session: session.trim(),
             user: req.userId,
+            isAbsent: isAbsent || false,
         };
         if (examType === "Monthly Test") update.month = month;
         const student = await Student.findOneAndUpdate(
@@ -330,9 +426,12 @@ app.get("/api/students", requireAuth, async (req, res) => {
         if (session) query.session = session;
         if (studentClass) query.class = studentClass;
         if (examType) query.examType = examType;
-        if (subject) query.subject = subject;
+        if (subject && subject !== "All") query.subject = subject;
         if (examType === "Monthly Test" && month) query.month = month;
+
+        console.log("Students API - Filter applied:", query);
         const students = await Student.find(query);
+        console.log("Students API - Students found:", students.length);
         res.json(students);
     } catch (error) {
         console.error("Error fetching students:", error);
@@ -365,11 +464,16 @@ app.get("/api/students/:rollNo", requireAuth, async (req, res) => {
 // Get school statistics
 app.get("/api/statistics", requireAuth, async (req, res) => {
     try {
+        const { class: studentClass, examType, subject, month } = req.query;
         const filter = { user: req.userId };
-        if (req.query.class) {
-            filter.class = req.query.class;
-        }
+        if (studentClass) filter.class = studentClass;
+        if (examType && examType !== "All") filter.examType = examType;
+        if (subject && subject !== "All") filter.subject = subject;
+        if (examType === "Monthly Test" && month) filter.month = month;
+
+        console.log("Statistics API - Filter applied:", filter);
         const students = await Student.find(filter);
+        console.log("Statistics API - Students found:", students.length);
 
         if (!students.length) {
             return res.json({
@@ -377,43 +481,82 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
                 classAverage: 0,
                 gradeDist: {},
                 passFail: { pass: 0, fail: 0 },
+                totalStudents: 0,
+                totalSubjectRecords: 0,
             });
         }
 
-        // Group by rollNo
+        // Group by rollNo to get unique students
         const studentsByRollNo = {};
         students.forEach((s) => {
-            if (!studentsByRollNo[s.rollNo]) studentsByRollNo[s.rollNo] = [];
-            studentsByRollNo[s.rollNo].push(s);
+            const key = `${s.rollNo}_${s.examType}_${s.session}_${s.class}`;
+            if (!studentsByRollNo[key]) {
+                studentsByRollNo[key] = {
+                    rollNo: s.rollNo,
+                    name: s.name,
+                    class: s.class,
+                    examType: s.examType,
+                    session: s.session,
+                    subjects: [],
+                    totalMarks: 0,
+                    subjectCount: 0,
+                };
+            }
+            studentsByRollNo[key].subjects.push(s);
+            studentsByRollNo[key].totalMarks += s.total;
+            studentsByRollNo[key].subjectCount++;
         });
 
+        const uniqueStudents = Object.values(studentsByRollNo);
+        console.log("Statistics API - Unique students:", uniqueStudents.length);
+
+        // Calculate pass/fail based on unique students
         let pass = 0,
             fail = 0;
-        Object.values(studentsByRollNo).forEach((subjects) => {
-            // If any subject is E1 or E2, student fails
-            const hasFail = subjects.some(
+        uniqueStudents.forEach((student) => {
+            // A student fails if they have any E1 or E2 grade in any subject
+            const hasFail = student.subjects.some(
                 (s) => s.grade === "E1" || s.grade === "E2"
             );
-            if (hasFail) fail++;
-            else pass++;
+            if (hasFail) {
+                fail++;
+            } else {
+                pass++;
+            }
         });
 
+        // Find top scorer from all subject records
         let topScorer = students[0];
         let totalMarks = 0;
         let gradeDist = {};
+
         students.forEach((s) => {
             totalMarks += s.total;
             gradeDist[s.grade] = (gradeDist[s.grade] || 0) + 1;
             if (s.total > topScorer.total) topScorer = s;
         });
-        const classAverage = totalMarks / students.length;
 
-        res.json({
+        const classAverage =
+            students.length > 0 ? totalMarks / students.length : 0;
+
+        const result = {
             topScorer,
-            classAverage,
+            classAverage: Math.round(classAverage * 100) / 100, // Round to 2 decimal places
             gradeDist,
             passFail: { pass, fail },
+            totalStudents: uniqueStudents.length,
+            totalSubjectRecords: students.length,
+        };
+
+        console.log("Statistics API - Result:", {
+            pass,
+            fail,
+            totalStudents: uniqueStudents.length,
+            totalRecords: students.length,
+            classAverage: result.classAverage,
         });
+
+        res.json(result);
     } catch (error) {
         console.error("Error fetching statistics:", error);
         res.status(500).json({
@@ -688,6 +831,203 @@ app.delete("/api/students/all", requireAuth, async (req, res) => {
         }
         res.json({ success: true, deletedCount: result.deletedCount });
     } catch (error) {
+        res.status(500).json({ error: "Server error", details: error.message });
+    }
+});
+
+// Get student registry for a session/class
+app.get("/api/student-registry", requireAuth, async (req, res) => {
+    try {
+        const { session, class: className } = req.query;
+        if (!session || !className) {
+            return res
+                .status(400)
+                .json({ error: "Session and class are required." });
+        }
+        const registry = await StudentRegistry.findOne({
+            user: req.userId,
+            session,
+            class: className,
+        });
+        res.json(registry || { students: [] });
+    } catch (error) {
+        res.status(500).json({ error: "Server error", details: error.message });
+    }
+});
+
+// Add or update student registry for a session/class
+app.post("/api/student-registry", requireAuth, async (req, res) => {
+    try {
+        const { session, class: className, students } = req.body;
+        if (!session || !className || !Array.isArray(students)) {
+            return res.status(400).json({
+                error: "Session, class, and students array are required.",
+            });
+        }
+        // Validate students array
+        for (const s of students) {
+            if (!s.rollNo || !s.name) {
+                return res
+                    .status(400)
+                    .json({ error: "Each student must have rollNo and name." });
+            }
+        }
+        const registry = await StudentRegistry.findOneAndUpdate(
+            { user: req.userId, session, class: className },
+            { students },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
+        res.json(registry);
+    } catch (error) {
+        res.status(500).json({ error: "Server error", details: error.message });
+    }
+});
+
+// Delete student registry for a session/class
+app.delete("/api/student-registry", requireAuth, async (req, res) => {
+    try {
+        const { session, class: className } = req.body;
+        if (!session || !className) {
+            return res
+                .status(400)
+                .json({ error: "Session and class are required." });
+        }
+        const result = await StudentRegistry.findOneAndDelete({
+            user: req.userId,
+            session,
+            class: className,
+        });
+        if (!result) {
+            return res
+                .status(404)
+                .json({ error: "Student registry not found." });
+        }
+        res.json({
+            success: true,
+            message: "Student registry removed successfully.",
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Server error", details: error.message });
+    }
+});
+
+// Mark students as absent for a specific exam type
+app.post("/api/students/absent", requireAuth, async (req, res) => {
+    try {
+        const {
+            students,
+            examType,
+            session,
+            class: studentClass,
+            month,
+        } = req.body;
+
+        if (!students || !Array.isArray(students) || students.length === 0) {
+            return res
+                .status(400)
+                .json({ error: "Students array is required." });
+        }
+
+        if (!examType || !session || !studentClass) {
+            return res
+                .status(400)
+                .json({ error: "examType, session, and class are required." });
+        }
+
+        const VALID_EXAM_TYPES = [
+            "Monthly Test",
+            "Quarterly Exam",
+            "Half Monthly Exam",
+            "Annual Exam",
+        ];
+
+        if (!VALID_EXAM_TYPES.includes(examType)) {
+            return res.status(400).json({ error: "Invalid exam type." });
+        }
+
+        // Validate month for Monthly Test
+        if (examType === "Monthly Test" && !month) {
+            return res
+                .status(400)
+                .json({ error: "Month is required for Monthly Test." });
+        }
+
+        const SUBJECTS = [
+            "Mathematics",
+            "Science",
+            "English",
+            "Hindi",
+            "Social Science",
+            "Sanskrit",
+            "Computer Science",
+            "Physical Education",
+            "Art",
+            "Music",
+        ];
+
+        const results = [];
+
+        // Mark each student as absent for all subjects
+        for (const studentInfo of students) {
+            const { rollNo, name } = studentInfo;
+
+            if (!rollNo || !name) {
+                continue; // Skip invalid student entries
+            }
+
+            // Create absent records for each subject
+            for (const subject of SUBJECTS) {
+                const absentRecord = {
+                    rollNo: rollNo.trim(),
+                    name: name.trim(),
+                    class: studentClass,
+                    examType,
+                    subject: subject.trim(),
+                    theory: 0,
+                    practical: 0,
+                    total: 0,
+                    grade: "AB", // AB for Absent
+                    session: session.trim(),
+                    user: req.userId,
+                    isAbsent: true,
+                };
+
+                if (examType === "Monthly Test") {
+                    absentRecord.month = month;
+                }
+
+                try {
+                    // Use upsert to update existing record or create new one
+                    const result = await Student.findOneAndUpdate(
+                        {
+                            rollNo: rollNo.trim(),
+                            subject: subject.trim(),
+                            examType,
+                            session: session.trim(),
+                            user: req.userId,
+                            ...(examType === "Monthly Test" ? { month } : {}),
+                        },
+                        absentRecord,
+                        { upsert: true, new: true, setDefaultsOnInsert: true }
+                    );
+
+                    results.push(result);
+                } catch (error) {
+                    console.error(
+                        `Error marking student ${rollNo} absent for ${subject}:`,
+                        error
+                    );
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Marked ${students.length} students as absent for ${examType}`,
+            recordsCreated: results.length,
+        });
+    } catch (error) {
+        console.error("Error marking students as absent:", error);
         res.status(500).json({ error: "Server error", details: error.message });
     }
 });

@@ -14,14 +14,20 @@ function MarkEntryForm({
 }) {
     const [rollNo, setRollNo] = useState("");
     const [name, setName] = useState("");
-    const [examType, setExamType] = useState("Monthly Test");
+    const [examType, setExamType] = useState(() => {
+        return localStorage.getItem("markentry_examType") || "Monthly Test";
+    });
     const [theory, setTheory] = useState("");
     const [practical, setPractical] = useState("");
     const [validationError, setValidationError] = useState("");
     const [confirmModal, setConfirmModal] = useState(false);
     const [pendingData, setPendingData] = useState(null);
-    const [studentClass, setStudentClass] = useState("9th");
-    const [month, setMonth] = useState("");
+    const [studentClass, setStudentClass] = useState(() => {
+        return localStorage.getItem("markentry_class") || "9th";
+    });
+    const [month, setMonth] = useState(() => {
+        return localStorage.getItem("markentry_month") || "";
+    });
     const MONTHS = [
         "January",
         "February",
@@ -36,6 +42,19 @@ function MarkEntryForm({
         "November",
         "December",
     ];
+    const [studentRegistryModal, setStudentRegistryModal] = useState(false);
+    const [registryStudents, setRegistryStudents] = useState([]);
+    const [loadingRegistry, setLoadingRegistry] = useState(false);
+    const [registryError, setRegistryError] = useState("");
+    const [editingStudent, setEditingStudent] = useState(null); // {rollNo, name, idx}
+    const [newStudent, setNewStudent] = useState({ rollNo: "", name: "" });
+    const [savingRegistry, setSavingRegistry] = useState(false);
+    // Add state for auto-add to registry feature:
+    const [autoAddToRegistry, setAutoAddToRegistry] = useState(true);
+
+    // Responsive: update isMobile and isTablet on window resize (same pattern as DashboardLayout)
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
+    const [isTablet, setIsTablet] = useState(window.innerWidth < 1024);
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -48,15 +67,127 @@ function MarkEntryForm({
     useEffect(() => {
         if (!session) setSession(sessionOptions[0]);
     }, []);
+
+    // Save form field values to localStorage when they change
+    useEffect(() => {
+        localStorage.setItem("markentry_examType", examType);
+    }, [examType]);
+
+    useEffect(() => {
+        localStorage.setItem("markentry_class", studentClass);
+    }, [studentClass]);
+
+    useEffect(() => {
+        localStorage.setItem("markentry_month", month);
+    }, [month]);
+
     // Reset month when exam type changes
     useEffect(() => {
-        setMonth("");
+        if (examType !== "Monthly Test") {
+            setMonth("");
+        }
     }, [examType]);
+
+    // Update the useEffect to fetch registry when session or class changes:
+    useEffect(() => {
+        if (!session || !studentClass) {
+            setRegistryStudents([]);
+            return;
+        }
+        setLoadingRegistry(true);
+        setRegistryError("");
+        const token = sessionStorage.getItem("token");
+        fetch(
+            `${API_BASE}/api/student-registry?session=${session}&class=${studentClass}`,
+            {
+                headers: { Authorization: `Bearer ${token}` },
+            }
+        )
+            .then((res) => res.json())
+            .then((data) => {
+                setRegistryStudents(data && data.students ? data.students : []);
+                setLoadingRegistry(false);
+            })
+            .catch((err) => {
+                setRegistryError("Failed to fetch student list");
+                setLoadingRegistry(false);
+            });
+    }, [session, studentClass]);
+
+    // Add useEffect for responsive behavior (same pattern as DashboardLayout)
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 600);
+            setIsTablet(window.innerWidth < 1024);
+        };
+
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    // Autocomplete for name/rollNo
+    function handleSelectRegistryStudent(s) {
+        setRollNo(s.rollNo);
+        setName(s.name);
+    }
+
+    // Add/edit/delete in modal
+    function handleAddStudent() {
+        if (!newStudent.rollNo.trim() || !newStudent.name.trim()) return;
+        setRegistryStudents([...registryStudents, { ...newStudent }]);
+        setNewStudent({ rollNo: "", name: "" });
+    }
+    function handleEditStudent(idx) {
+        setEditingStudent({ ...registryStudents[idx], idx });
+    }
+    function handleSaveEditStudent() {
+        if (!editingStudent.rollNo.trim() || !editingStudent.name.trim())
+            return;
+        const updated = [...registryStudents];
+        updated[editingStudent.idx] = {
+            rollNo: editingStudent.rollNo,
+            name: editingStudent.name,
+        };
+        setRegistryStudents(updated);
+        setEditingStudent(null);
+    }
+    function handleDeleteStudent(idx) {
+        setRegistryStudents(registryStudents.filter((_, i) => i !== idx));
+    }
+    function handleSaveRegistry() {
+        setSavingRegistry(true);
+        setRegistryError("");
+        const token = sessionStorage.getItem("token");
+        fetch(`${API_BASE}/api/student-registry`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                session,
+                class: studentClass,
+                students: registryStudents,
+            }),
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                setSavingRegistry(false);
+                setStudentRegistryModal(false);
+            })
+            .catch((err) => {
+                setRegistryError("Failed to save student list");
+                setSavingRegistry(false);
+            });
+    }
 
     const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+    // Update the handleSubmit function to auto-add new students to registry:
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Step 1: Basic form validation
         if (
             (examType !== "Monthly Test" && !rollNo) ||
             !name ||
@@ -83,30 +214,8 @@ function MarkEntryForm({
             return;
         }
         setValidationError("");
-        // Fetch students for the session from backend
-        let exists = false;
-        try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(
-                `${API_BASE}/api/students?session=${session}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-            const studentsList = await res.json();
-            exists = studentsList.some(
-                (s) =>
-                    (examType === "Monthly Test" ||
-                        String(s.rollNo).trim().toLowerCase() ===
-                            String(rollNo).trim().toLowerCase()) &&
-                    String(s.subject).trim() === String(subject).trim() &&
-                    String(s.examType).trim() === String(examType).trim() &&
-                    String(s.session).trim() === String(session).trim()
-            );
-        } catch (err) {
-            // fallback: allow submit if backend check fails
-            exists = false;
-        }
+
+        // Step 2: Prepare data object early
         const data = {
             rollNo:
                 examType === "Monthly Test"
@@ -121,34 +230,231 @@ function MarkEntryForm({
             practical: Number(practical),
             ...(examType === "Monthly Test" ? { month } : {}),
         };
+
+        // Step 3: Check for existing marks ONLY (no side effects)
+        let exists = false;
+        try {
+            const token = sessionStorage.getItem("token");
+            if (!token) {
+                console.warn("No authentication token found");
+                exists = false;
+            } else {
+                // Construct API URL with proper filters including class and month
+                let apiUrl = `${API_BASE}/api/students?session=${session}&class=${studentClass}&subject=${subject}&examType=${examType}`;
+                if (examType === "Monthly Test" && month) {
+                    apiUrl += `&month=${month}`;
+                }
+
+                const res = await fetch(apiUrl, {
+                    method: "GET", // Explicitly specify GET to ensure read-only operation
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (res.status === 401) {
+                    console.warn("Authentication failed, token may be expired");
+                    exists = false;
+                } else if (res.ok) {
+                    const studentsList = await res.json();
+
+                    // Check if marks already exist for this specific student with actual scores
+                    exists = studentsList.some((s) => {
+                        // Must match on all key identifiers
+                        const rollNoMatch =
+                            String(s.rollNo).trim().toLowerCase() ===
+                            String(data.rollNo).trim().toLowerCase();
+                        const subjectMatch =
+                            String(s.subject).trim() ===
+                            String(data.subject).trim();
+                        const examTypeMatch =
+                            String(s.examType).trim() ===
+                            String(data.examType).trim();
+                        const sessionMatch =
+                            String(s.session).trim() ===
+                            String(data.session).trim();
+                        const classMatch =
+                            String(s.class).trim() ===
+                            String(data.class).trim();
+
+                        // For Monthly Test, also check month if both have month values
+                        let monthMatch = true;
+                        if (examType === "Monthly Test" && month && s.month) {
+                            monthMatch =
+                                String(s.month).trim() === String(month).trim();
+                        }
+
+                        // Only consider it a duplicate if it has actual numerical marks
+                        const hasActualMarks =
+                            typeof s.theory === "number" &&
+                            s.theory >= 0 &&
+                            typeof s.practical === "number" &&
+                            s.practical >= 0;
+
+                        return (
+                            rollNoMatch &&
+                            subjectMatch &&
+                            examTypeMatch &&
+                            sessionMatch &&
+                            classMatch &&
+                            monthMatch &&
+                            hasActualMarks
+                        );
+                    });
+                } else {
+                    console.warn("Failed to fetch students:", res.status);
+                    exists = false;
+                }
+            }
+        } catch (err) {
+            console.warn("Error checking for existing students:", err);
+            // fallback: allow submit if backend check fails
+            exists = false;
+        }
+
+        // Step 4: Handle duplicate confirmation
         if (exists) {
             setPendingData(data);
             setConfirmModal(true);
-            // Do NOT reset the form here
+            // Do NOT reset the form here and DO NOT perform any data operations
             return;
         }
-        if (onSubmit) {
-            onSubmit(data);
+
+        // Step 5: Submit data only if no duplicates found
+        await submitStudentData(data);
+    };
+
+    // Separate function to handle actual data submission
+    const submitStudentData = async (data) => {
+        if (!onSubmit) {
+            console.warn("No onSubmit handler provided");
+            return;
+        }
+
+        try {
+            // Submit the marks data and wait for result
+            const result = await onSubmit(data);
+            
+            // Only proceed with registry addition if marks submission was successful
+            if (!result || !result.success) {
+                console.warn("Marks submission failed, not adding to registry:", result?.error || "Unknown error");
+                // Don't reset form on submission failure so user can retry
+                return;
+            }
+            
+            console.log("Marks submitted successfully, proceeding with registry addition if needed");
+
+            // ONLY after confirmed successful marks submission, handle auto-add to registry
+            if (
+                autoAddToRegistry &&
+                data.rollNo.trim() &&
+                data.rollNo.trim() !== "N/A" &&
+                data.name.trim() &&
+                session &&
+                studentClass
+            ) {
+                const existingStudent = registryStudents.find(
+                    (s) =>
+                        s.rollNo.toLowerCase() ===
+                        data.rollNo.trim().toLowerCase()
+                );
+
+                if (!existingStudent) {
+                    console.log("Adding new student to registry:", { rollNo: data.rollNo.trim(), name: data.name.trim() });
+                    try {
+                        const token = sessionStorage.getItem("token");
+                        const newRegistryStudents = [
+                            ...registryStudents,
+                            {
+                                rollNo: data.rollNo.trim(),
+                                name: data.name.trim(),
+                            },
+                        ];
+
+                        const registryResponse = await fetch(
+                            `${API_BASE}/api/student-registry`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${token}`,
+                                },
+                                body: JSON.stringify({
+                                    session,
+                                    class: studentClass,
+                                    students: newRegistryStudents,
+                                }),
+                            }
+                        );
+
+                        if (registryResponse.ok) {
+                            // Update local registry state only if API call succeeded
+                            setRegistryStudents(newRegistryStudents);
+                            console.log("Student successfully added to registry");
+                        } else {
+                            console.warn("Failed to add student to registry - API call failed:", registryResponse.status);
+                        }
+                    } catch (error) {
+                        console.warn(
+                            "Failed to add student to registry - network error:",
+                            error
+                        );
+                        // Silently fail, registry will refresh on next session/class change
+                    }
+                } else {
+                    console.log("Student already exists in registry, skipping addition");
+                }
+            } else {
+                if (!autoAddToRegistry) {
+                    console.log("Auto-add to registry is disabled");
+                } else {
+                    console.log("Skipping registry addition - missing required data:", {
+                        autoAddToRegistry,
+                        hasRollNo: !!data.rollNo.trim(),
+                        isNotNA: data.rollNo.trim() !== "N/A",
+                        hasName: !!data.name.trim(),
+                        hasSession: !!session,
+                        hasStudentClass: !!studentClass
+                    });
+                }
+            }
+
+            // Reset only the data entry fields, not the form configuration fields
             setRollNo("");
             setName("");
-            setStudentClass("9th");
-            setExamType("Monthly Test");
             setTheory("");
             setPractical("");
-            // session and subject remain sticky
-            setMonth("");
+
+            // Refresh registry data to ensure consistency
+            if (session && studentClass) {
+                const token = sessionStorage.getItem("token");
+                try {
+                    const response = await fetch(
+                        `${API_BASE}/api/student-registry?session=${session}&class=${studentClass}`,
+                        {
+                            headers: { Authorization: `Bearer ${token}` },
+                        }
+                    );
+                    if (response.ok) {
+                        const refreshedData = await response.json();
+                        setRegistryStudents(
+                            refreshedData && refreshedData.students ? refreshedData.students : []
+                        );
+                        console.log("Registry data refreshed successfully");
+                    }
+                } catch (error) {
+                    console.warn("Failed to refresh registry data:", error);
+                    // Silently fail, registry will refresh on next session/class change
+                }
+            }
+        } catch (error) {
+            console.error("Error during data submission:", error);
+            // Don't reset form on error so user can retry
         }
     };
 
     function handleConfirmReplace() {
-        if (onSubmit && pendingData) {
-            onSubmit(pendingData);
-            setRollNo("");
-            setName("");
-            setStudentClass("9th");
-            setExamType("Monthly Test");
-            setTheory("");
-            setPractical("");
+        if (pendingData) {
+            // Use the same submission logic as normal submit
+            submitStudentData(pendingData);
         }
         setConfirmModal(false);
         setPendingData(null);
@@ -157,6 +463,64 @@ function MarkEntryForm({
         setConfirmModal(false);
         setPendingData(null);
         // Do NOT reset the form here
+    }
+
+    // Add function to auto-populate name when roll number is entered:
+    function handleRollNoChange(value) {
+        setRollNo(value);
+        // Auto-populate name if roll number exists in registry
+        if (value.trim() && registryStudents.length > 0) {
+            const student = registryStudents.find(
+                (s) => s.rollNo.toLowerCase() === value.trim().toLowerCase()
+            );
+            if (student) {
+                setName(student.name);
+            }
+        }
+    }
+
+    // Add function to handle name selection from registry:
+    function handleNameChange(value) {
+        setName(value);
+        // Auto-populate roll number if name exists in registry
+        if (value.trim() && registryStudents.length > 0) {
+            const student = registryStudents.find(
+                (s) => s.name.toLowerCase() === value.trim().toLowerCase()
+            );
+            if (student) {
+                setRollNo(student.rollNo);
+            }
+        }
+    }
+
+    // Add a function to suggest adding new students to registry:
+    function suggestAddToRegistry() {
+        if (
+            rollNo.trim() &&
+            name.trim() &&
+            !registryStudents.find(
+                (s) => s.rollNo.toLowerCase() === rollNo.trim().toLowerCase()
+            )
+        ) {
+            // Show a subtle suggestion to add to registry
+            return (
+                <div
+                    style={{
+                        fontSize: 14,
+                        color: theme.accent,
+                        marginTop: 4,
+                        fontStyle: "italic",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                    }}
+                >
+                    💡 New student? Consider adding to the registry for future
+                    use
+                </div>
+            );
+        }
+        return null;
     }
 
     // Card style for the form with gradient
@@ -542,6 +906,512 @@ function MarkEntryForm({
                     </div>
                 </div>
             )}
+            {studentRegistryModal && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100vw",
+                        height: "100vh",
+                        background: "rgba(0,0,0,0.25)",
+                        zIndex: 3000,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    <div
+                        className="markentry-modal"
+                        style={{
+                            position: "relative",
+                            background: theme.surface,
+                            borderRadius: 14,
+                            boxShadow: theme.shadow,
+                            padding: "2rem 2.5rem",
+                            minWidth: 520,
+                            maxWidth: "98vw",
+                            color: theme.text,
+                            textAlign: "center",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 18,
+                        }}
+                    >
+                        {/* 4. Close button in top right */}
+                        <button
+                            onClick={() => setStudentRegistryModal(false)}
+                            style={{
+                                position: "absolute",
+                                top: 12,
+                                right: 16,
+                                background: "transparent",
+                                border: "none",
+                                fontSize: 28,
+                                color: accentDark,
+                                cursor: "pointer",
+                                fontWeight: 700,
+                                zIndex: 10,
+                                outline: "none",
+                            }}
+                            aria-label="Close"
+                            onFocus={(e) => (e.target.style.border = "none")}
+                            onBlur={(e) => (e.target.style.border = "none")}
+                            onMouseDown={(e) =>
+                                (e.target.style.border = "none")
+                            }
+                            onMouseUp={(e) => (e.target.style.border = "none")}
+                            onMouseOver={(e) =>
+                                (e.target.style.border = "none")
+                            }
+                        >
+                            ×
+                        </button>
+                        <h3
+                            style={{
+                                color: accentDark,
+                                fontWeight: 800,
+                                fontSize: 20,
+                                marginBottom: 8,
+                            }}
+                        >
+                            Manage Student List
+                        </h3>
+                        {loadingRegistry ? (
+                            <div>Loading...</div>
+                        ) : (
+                            <>
+                                <div
+                                    style={{
+                                        maxHeight: 220,
+                                        overflowY: "auto",
+                                        width: "100%",
+                                        marginBottom: 12,
+                                    }}
+                                >
+                                    {registryStudents.length === 0 && (
+                                        <div
+                                            style={{
+                                                color: theme.text,
+                                                opacity: 0.7,
+                                            }}
+                                        >
+                                            No students added yet.
+                                        </div>
+                                    )}
+                                    {registryStudents.map((s, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                                gap: 8,
+                                                padding: "4px 0",
+                                            }}
+                                        >
+                                            {editingStudent &&
+                                            editingStudent.idx === idx ? (
+                                                <>
+                                                    <input
+                                                        value={
+                                                            editingStudent.rollNo
+                                                        }
+                                                        onChange={(e) =>
+                                                            setEditingStudent({
+                                                                ...editingStudent,
+                                                                rollNo: e.target
+                                                                    .value,
+                                                            })
+                                                        }
+                                                        style={{
+                                                            width: 120,
+                                                            marginRight: 10,
+                                                            fontSize: 16,
+                                                            padding: "7px 10px",
+                                                            background:
+                                                                theme.inputBg,
+                                                            color: theme.text,
+                                                            border: `1.5px solid ${theme.inputBorder}`,
+                                                            borderRadius: 6,
+                                                        }}
+                                                    />
+                                                    <input
+                                                        value={
+                                                            editingStudent.name
+                                                        }
+                                                        onChange={(e) =>
+                                                            setEditingStudent({
+                                                                ...editingStudent,
+                                                                name: e.target
+                                                                    .value,
+                                                            })
+                                                        }
+                                                        style={{
+                                                            flex: 1,
+                                                            minWidth: 180,
+                                                            fontSize: 16,
+                                                            padding: "7px 10px",
+                                                            background:
+                                                                theme.inputBg,
+                                                            color: theme.text,
+                                                            border: `1.5px solid ${theme.inputBorder}`,
+                                                            borderRadius: 6,
+                                                        }}
+                                                    />
+                                                    <button
+                                                        onClick={
+                                                            handleSaveEditStudent
+                                                        }
+                                                        style={{
+                                                            marginLeft: 6,
+                                                            background: accent,
+                                                            color: "#fff",
+                                                            border: "none",
+                                                            borderRadius: 6,
+                                                            padding: "6px 12px",
+                                                            fontWeight: 700,
+                                                            fontSize: 14,
+                                                            cursor: "pointer",
+                                                            outline: "none",
+                                                        }}
+                                                        onMouseOver={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                        onFocus={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                        onBlur={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                        onMouseDown={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                        onMouseUp={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                    >
+                                                        Save
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            setEditingStudent(
+                                                                null
+                                                            )
+                                                        }
+                                                        style={{
+                                                            marginLeft: 2,
+                                                            background:
+                                                                theme.surface,
+                                                            color: accentDark,
+                                                            border: `2px solid ${accent}`,
+                                                            borderRadius: 6,
+                                                            padding: "6px 12px",
+                                                            fontWeight: 700,
+                                                            fontSize: 14,
+                                                            cursor: "pointer",
+                                                            outline: "none",
+                                                        }}
+                                                        onMouseOver={(e) =>
+                                                            (e.target.style.border = `2px solid ${accent}`)
+                                                        }
+                                                        onFocus={(e) =>
+                                                            (e.target.style.border = `2px solid ${accent}`)
+                                                        }
+                                                        onBlur={(e) =>
+                                                            (e.target.style.border = `2px solid ${accent}`)
+                                                        }
+                                                        onMouseDown={(e) =>
+                                                            (e.target.style.border = `2px solid ${accent}`)
+                                                        }
+                                                        onMouseUp={(e) =>
+                                                            (e.target.style.border = `2px solid ${accent}`)
+                                                        }
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span
+                                                        style={{
+                                                            width: 120,
+                                                            marginRight: 10,
+                                                        }}
+                                                    >
+                                                        {s.rollNo}
+                                                    </span>
+                                                    <span
+                                                        style={{
+                                                            flex: 1,
+                                                            minWidth: 180,
+                                                        }}
+                                                    >
+                                                        {s.name}
+                                                    </span>
+                                                    <button
+                                                        onClick={() =>
+                                                            handleEditStudent(
+                                                                idx
+                                                            )
+                                                        }
+                                                        style={{
+                                                            marginLeft: 6,
+                                                            background: accent,
+                                                            color: "#fff",
+                                                            border: "none",
+                                                            borderRadius: 6,
+                                                            padding: "6px 12px",
+                                                            fontWeight: 700,
+                                                            fontSize: 14,
+                                                            cursor: "pointer",
+                                                            outline: "none",
+                                                        }}
+                                                        onMouseOver={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                        onFocus={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                        onBlur={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                        onMouseDown={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                        onMouseUp={(e) =>
+                                                            (e.target.style.border =
+                                                                "none")
+                                                        }
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            handleDeleteStudent(
+                                                                idx
+                                                            )
+                                                        }
+                                                        style={{
+                                                            marginLeft: 2,
+                                                            background:
+                                                                theme.surface,
+                                                            color: "#e53935",
+                                                            border: `2px solid #e53935`,
+                                                            borderRadius: 6,
+                                                            padding: "6px 12px",
+                                                            fontWeight: 700,
+                                                            fontSize: 14,
+                                                            cursor: "pointer",
+                                                            outline: "none",
+                                                        }}
+                                                        onMouseOver={(e) =>
+                                                            (e.target.style.border = `2px solid #e53935`)
+                                                        }
+                                                        onFocus={(e) =>
+                                                            (e.target.style.border = `2px solid #e53935`)
+                                                        }
+                                                        onBlur={(e) =>
+                                                            (e.target.style.border = `2px solid #e53935`)
+                                                        }
+                                                        onMouseDown={(e) =>
+                                                            (e.target.style.border = `2px solid #e53935`)
+                                                        }
+                                                        onMouseUp={(e) =>
+                                                            (e.target.style.border = `2px solid #e53935`)
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 8,
+                                        width: "100%",
+                                        marginBottom: 8,
+                                    }}
+                                >
+                                    <input
+                                        value={newStudent.rollNo}
+                                        onChange={(e) =>
+                                            setNewStudent({
+                                                ...newStudent,
+                                                rollNo: e.target.value,
+                                            })
+                                        }
+                                        placeholder="Roll No"
+                                        style={{
+                                            width: 120,
+                                            marginRight: 10,
+                                            fontSize: 16,
+                                            padding: "7px 10px",
+                                            background: theme.inputBg,
+                                            color: theme.text,
+                                            border: `1.5px solid ${theme.inputBorder}`,
+                                            borderRadius: 6,
+                                        }}
+                                    />
+                                    <input
+                                        value={newStudent.name}
+                                        onChange={(e) =>
+                                            setNewStudent({
+                                                ...newStudent,
+                                                name: e.target.value,
+                                            })
+                                        }
+                                        placeholder="Name"
+                                        style={{
+                                            flex: 1,
+                                            minWidth: 180,
+                                            fontSize: 16,
+                                            padding: "7px 10px",
+                                            background: theme.inputBg,
+                                            color: theme.text,
+                                            border: `1.5px solid ${theme.inputBorder}`,
+                                            borderRadius: 6,
+                                        }}
+                                    />
+                                    <button
+                                        onClick={handleAddStudent}
+                                        style={{
+                                            marginLeft: 6,
+                                            background: accent,
+                                            color: "#fff",
+                                            border: "none",
+                                            borderRadius: 6,
+                                            fontWeight: 700,
+                                            fontSize: 15,
+                                            cursor: "pointer",
+                                            boxShadow: theme.shadow,
+                                            padding: "6px 12px",
+                                            outline: "none",
+                                        }}
+                                        onMouseOver={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                        onFocus={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                        onBlur={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                        onMouseDown={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                        onMouseUp={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                                {registryError && (
+                                    <div
+                                        style={{
+                                            color: "#e53935",
+                                            marginBottom: 8,
+                                        }}
+                                    >
+                                        {registryError}
+                                    </div>
+                                )}
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 12,
+                                        marginTop: 8,
+                                    }}
+                                >
+                                    <button
+                                        onClick={handleSaveRegistry}
+                                        disabled={savingRegistry}
+                                        style={{
+                                            background: accent,
+                                            color: "#fff",
+                                            border: "none",
+                                            borderRadius: 6,
+                                            padding: "8px 22px",
+                                            fontWeight: 700,
+                                            fontSize: 16,
+                                            cursor: "pointer",
+                                            boxShadow: theme.shadow,
+                                            outline: "none",
+                                        }}
+                                        onMouseOver={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                        onFocus={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                        onBlur={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                        onMouseDown={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                        onMouseUp={(e) =>
+                                            (e.target.style.border = "none")
+                                        }
+                                    >
+                                        {savingRegistry
+                                            ? "Saving..."
+                                            : "Save List"}
+                                    </button>
+                                    <button
+                                        onClick={() =>
+                                            setStudentRegistryModal(false)
+                                        }
+                                        style={{
+                                            background: theme.surface,
+                                            color: accentDark,
+                                            border: `2px solid ${accent}`,
+                                            borderRadius: 6,
+                                            padding: "8px 22px",
+                                            fontWeight: 700,
+                                            fontSize: 16,
+                                            cursor: "pointer",
+                                            boxShadow: theme.shadow,
+                                            outline: "none",
+                                        }}
+                                        onMouseOver={(e) =>
+                                            (e.target.style.border = `2px solid ${accent}`)
+                                        }
+                                        onFocus={(e) =>
+                                            (e.target.style.border = `2px solid ${accent}`)
+                                        }
+                                        onBlur={(e) =>
+                                            (e.target.style.border = `2px solid ${accent}`)
+                                        }
+                                        onMouseDown={(e) =>
+                                            (e.target.style.border = `2px solid ${accent}`)
+                                        }
+                                        onMouseUp={(e) =>
+                                            (e.target.style.border = `2px solid ${accent}`)
+                                        }
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
             <div
                 style={{
                     background: theme.surface,
@@ -569,39 +1439,124 @@ function MarkEntryForm({
                     <h2 className="markentry-title" style={gradientText}>
                         Enter Student Marks
                     </h2>
-                    <div>
-                        <label className="markentry-label" style={labelStyle}>
-                            Session
-                        </label>
-                        <select
-                            value={session}
-                            onChange={(e) => setSession(e.target.value)}
-                            className="markentry-input"
-                            style={selectStyle}
-                            required
-                        >
-                            {sessionOptions.map((sess) => (
-                                <option key={sess} value={sess}>
-                                    {sess}
-                                </option>
-                            ))}
-                        </select>
+                    {/* Update the form layout to be responsive for the Manage Student List button: */}
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection:
+                                isMobile || isTablet ? "column" : "row",
+                            gap: isMobile || isTablet ? 16 : 12,
+                            alignItems:
+                                isMobile || isTablet ? "stretch" : "center",
+                            marginBottom: 8,
+                        }}
+                    >
+                        <div style={{ flex: 1 }}>
+                            <label
+                                className="markentry-label"
+                                style={labelStyle}
+                            >
+                                Session
+                            </label>
+                            <select
+                                value={session}
+                                onChange={(e) => setSession(e.target.value)}
+                                className="markentry-input"
+                                style={selectStyle}
+                                required
+                            >
+                                {sessionOptions.map((sess) => (
+                                    <option key={sess} value={sess}>
+                                        {sess}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label
+                                className="markentry-label"
+                                style={labelStyle}
+                            >
+                                Class
+                            </label>
+                            <select
+                                value={studentClass}
+                                onChange={(e) =>
+                                    setStudentClass(e.target.value)
+                                }
+                                className="markentry-input"
+                                style={selectStyle}
+                                required
+                            >
+                                <option value="9th">9th</option>
+                                <option value="10th">10th</option>
+                            </select>
+                        </div>
+                        {!(isMobile || isTablet) && (
+                            <button
+                                type="button"
+                                onClick={() => setStudentRegistryModal(true)}
+                                style={{
+                                    background: accent,
+                                    color: "#fff",
+                                    border: "none",
+                                    borderRadius: 6,
+                                    padding: "8px 14px",
+                                    fontWeight: 700,
+                                    fontSize: 14,
+                                    cursor: "pointer",
+                                    boxShadow: theme.shadow,
+                                    marginTop: 6,
+                                    height: 40,
+                                    outline: "none",
+                                    whiteSpace: "nowrap",
+                                }}
+                                onFocus={(e) =>
+                                    (e.target.style.border = "none")
+                                }
+                                onBlur={(e) => (e.target.style.border = "none")}
+                                onMouseDown={(e) =>
+                                    (e.target.style.border = "none")
+                                }
+                                onMouseUp={(e) =>
+                                    (e.target.style.border = "none")
+                                }
+                            >
+                                Manage Student List
+                            </button>
+                        )}
                     </div>
-                    <div>
-                        <label className="markentry-label" style={labelStyle}>
-                            Class
-                        </label>
-                        <select
-                            value={studentClass}
-                            onChange={(e) => setStudentClass(e.target.value)}
-                            className="markentry-input"
-                            style={selectStyle}
-                            required
+
+                    {/* Mobile and Tablet Manage Student List button */}
+                    {(isMobile || isTablet) && (
+                        <button
+                            type="button"
+                            onClick={() => setStudentRegistryModal(true)}
+                            style={{
+                                background: accent,
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: 6,
+                                padding: "12px 16px",
+                                fontWeight: 700,
+                                fontSize: 16,
+                                cursor: "pointer",
+                                boxShadow: theme.shadow,
+                                outline: "none",
+                                width: "100%",
+                                marginBottom: 16,
+                            }}
+                            onFocus={(e) => (e.target.style.border = "none")}
+                            onBlur={(e) => (e.target.style.border = "none")}
+                            onMouseDown={(e) =>
+                                (e.target.style.border = "none")
+                            }
+                            onMouseUp={(e) => (e.target.style.border = "none")}
                         >
-                            <option value="9th">9th</option>
-                            <option value="10th">10th</option>
-                        </select>
-                    </div>
+                            Manage Student List
+                        </button>
+                    )}
+
                     <div>
                         <label className="markentry-label" style={labelStyle}>
                             Exam Type
@@ -669,20 +1624,15 @@ function MarkEntryForm({
                     </div>
                     <div>
                         <label className="markentry-label" style={labelStyle}>
-                            Roll No{" "}
-                            {examType === "Monthly Test" && "(Optional)"}
+                            Roll No
                         </label>
                         <input
                             value={rollNo}
-                            onChange={(e) => setRollNo(e.target.value)}
-                            required={examType !== "Monthly Test"}
+                            onChange={(e) => handleRollNoChange(e.target.value)}
+                            required
                             className="markentry-input"
                             style={inputStyle}
-                            placeholder={
-                                examType === "Monthly Test"
-                                    ? "Optional for Monthly Test"
-                                    : "Enter roll number"
-                            }
+                            // placeholder="Enter roll number to find student from registry"
                         />
                     </div>
                     <div>
@@ -693,7 +1643,7 @@ function MarkEntryForm({
                             id="student-name"
                             type="text"
                             value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            onChange={(e) => handleNameChange(e.target.value)}
                             required
                             className="markentry-input"
                             style={inputStyle}
@@ -752,6 +1702,62 @@ function MarkEntryForm({
                             {validationError}
                         </div>
                     )}
+
+                    {/* Auto-add to registry checkbox */}
+                    <div
+                        style={{
+                            marginBottom: 20,
+                            padding: "16px 20px",
+                            background: theme.surface,
+                            border: `2px solid ${theme.border}`,
+                            borderRadius: 12,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            boxShadow: theme.shadow,
+                        }}
+                    >
+                        <input
+                            type="checkbox"
+                            id="auto-add-registry"
+                            checked={autoAddToRegistry}
+                            onChange={(e) =>
+                                setAutoAddToRegistry(e.target.checked)
+                            }
+                            style={{
+                                width: 18,
+                                height: 18,
+                                cursor: "pointer",
+                                accentColor: accent,
+                                transform: "scale(1.1)",
+                            }}
+                        />
+                        <label
+                            htmlFor="auto-add-registry"
+                            style={{
+                                fontSize: 15,
+                                color: theme.text,
+                                cursor: "pointer",
+                                fontWeight: 600,
+                                userSelect: "none",
+                            }}
+                        >
+                            Automatically add new students to registry
+                        </label>
+                        <div
+                            style={{
+                                fontSize: 13,
+                                color: theme.text,
+                                opacity: 0.7,
+                                marginLeft: "auto",
+                                fontStyle: "italic",
+                            }}
+                        >
+                            💡 New students will be automatically saved to your
+                            class registry
+                        </div>
+                    </div>
+
                     <button
                         type="submit"
                         className="markentry-submit"

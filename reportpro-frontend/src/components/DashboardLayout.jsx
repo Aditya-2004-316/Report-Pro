@@ -353,7 +353,7 @@ function DashboardLayout({ theme, user, setTheme, onLogout, onProfileUpdate }) {
                                 Statistics
                             </button>
                         </div>
-                        <div className="nav-btn-wrap" style={navBtnWrapStyle}>
+                        {/* <div className="nav-btn-wrap" style={navBtnWrapStyle}>
                             <button
                                 className="nav-btn"
                                 onClick={() => navigate("/dashboard/admission")}
@@ -363,6 +363,15 @@ function DashboardLayout({ theme, user, setTheme, onLogout, onProfileUpdate }) {
                                     <MdSchool />
                                 </span>
                                 Admission Details
+                            </button>
+                        </div> */}
+                        <div className="nav-btn-wrap" style={navBtnWrapStyle}>
+                            <button
+                                className="nav-btn"
+                                onClick={() => navigate("/dashboard/registry")}
+                                style={navBtn("/dashboard/registry")}
+                            >
+                                <MdSchool /> Student Registry
                             </button>
                         </div>
                     </div>
