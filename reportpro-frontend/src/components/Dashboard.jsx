@@ -1,6 +1,15 @@
 import React, { useEffect, useState, useRef } from "react";
 import { SUBJECTS } from "./subjects";
 import {
+    calculateStats,
+    isPassingGrade,
+    GRADE_COLORS,
+    safeDivision,
+    validateStudentData,
+    getGradeColor,
+    filterStudents,
+} from "./gradeUtils";
+import {
     PieChart,
     Pie,
     Cell,
@@ -145,16 +154,9 @@ function Dashboard({
                     data.length,
                     "students"
                 );
-                // Validate data structure
+                // Validate data structure with comprehensive checks
                 if (Array.isArray(data)) {
-                    const validStudents = data.filter(
-                        (student) =>
-                            student &&
-                            typeof student === "object" &&
-                            student.rollNo &&
-                            student.subject &&
-                            student.examType
-                    );
+                    const validStudents = data.filter(validateStudentData);
                     console.log(
                         "Dashboard: Valid students:",
                         validStudents.length,
@@ -163,14 +165,17 @@ function Dashboard({
                     );
                     if (validStudents.length !== data.length) {
                         console.warn(
-                            "Dashboard: Some students were filtered out due to missing fields"
+                            "Dashboard: Some students were filtered out due to missing/invalid fields"
                         );
-                        console.log(
-                            "Dashboard: Sample invalid student:",
-                            data.find(
-                                (s) => !s.rollNo || !s.subject || !s.examType
-                            )
+                        const invalidStudent = data.find(
+                            (s) => !validateStudentData(s)
                         );
+                        if (invalidStudent) {
+                            console.log(
+                                "Dashboard: Sample invalid student:",
+                                invalidStudent
+                            );
+                        }
                     }
                     setStudents(validStudents);
                 } else {
@@ -221,14 +226,49 @@ function Dashboard({
             }
 
             const data = await response.json();
-            console.log("Dashboard: Statistics received:", data);
-            setStats(data);
+
+            // Validate API response structure
+            const validatedStats = {
+                topScorer: data.topScorer || null,
+                classAverage:
+                    typeof data.classAverage === "number"
+                        ? data.classAverage
+                        : 0,
+                gradeDist:
+                    data.gradeDist && typeof data.gradeDist === "object"
+                        ? data.gradeDist
+                        : {},
+                passFail: {
+                    pass:
+                        typeof data.passFail?.pass === "number"
+                            ? data.passFail.pass
+                            : 0,
+                    fail:
+                        typeof data.passFail?.fail === "number"
+                            ? data.passFail.fail
+                            : 0,
+                },
+                totalStudents:
+                    typeof data.totalStudents === "number"
+                        ? data.totalStudents
+                        : 0,
+                totalSubjectRecords:
+                    typeof data.totalSubjectRecords === "number"
+                        ? data.totalSubjectRecords
+                        : 0,
+            };
+
+            console.log(
+                "Dashboard: Validated statistics received:",
+                validatedStats
+            );
+            setStats(validatedStats);
         } catch (error) {
             console.error(
                 "Dashboard: Error fetching filtered statistics:",
                 error
             );
-            // Set empty stats on error
+            // Set empty stats on error with proper structure
             setStats({
                 topScorer: null,
                 classAverage: 0,
@@ -297,15 +337,22 @@ function Dashboard({
         return student ? student.name : null;
     }
 
-    // Update the filtered students to use registry names when available (for display purposes only)
-    const filteredStudents = students.map((student) => ({
-        ...student,
-        // Use registry name if available, otherwise fall back to stored name
-        name:
-            getStudentNameFromRegistry(student.rollNo) ||
-            student.name ||
-            "Unknown",
-    }));
+    // Update the filtered students to use registry names when available and apply current filters
+    const filteredStudents = filterStudents(
+        students.map((student) => ({
+            ...student,
+            // Use registry name if available, otherwise fall back to stored name
+            name:
+                getStudentNameFromRegistry(student.rollNo) ||
+                student.name ||
+                "Unknown",
+        })),
+        {
+            examType: selectedExamType,
+            subject: selectedSubject,
+            month: selectedMonth,
+        }
+    );
 
     // Debug logging
     console.log("Dashboard Debug:", {
@@ -327,14 +374,13 @@ function Dashboard({
 
     if (loading) return <div>Loading...</div>;
 
-    // Use statistics from API instead of local calculations
+    // Use statistics from API instead of local calculations with safe division
     const totalStudents = stats.totalStudents || 0;
     const passCount = stats.passFail?.pass || 0;
     const failCount = stats.passFail?.fail || 0;
     const classAverage = stats.classAverage || 0;
     const overallAvg = classAverage; // Use classAverage as the overall average
-    const overallPassRate =
-        totalStudents > 0 ? (passCount / totalStudents) * 100 : 0;
+    const overallPassRate = safeDivision(passCount, totalStudents, 0) * 100;
 
     // Grade distribution from API
     const gradeDist = stats.gradeDist || {};
@@ -347,20 +393,13 @@ function Dashboard({
         { name: "Pass", value: passCount },
         { name: "Fail", value: failCount },
     ];
-    // Use only grades present in the data for color mapping and legend
+    // Use centralized grade colors
+    const passFailColors = ["#43ea7b", accent];
+
+    // Use only grades present in the data for legend
     const gradesInData = Array.from(
         new Set(gradeDistData.map((g) => (g.name || "").trim().toUpperCase()))
     );
-    const gradeColors = {
-        "A+": "#43ea7b", // green
-        A: "#4fc3f7", // sky blue
-        B: "#ffd600", // yellow
-        C: "#ff7043", // orange
-        D: "#ba68c8", // purple
-        E1: "#e57373", // light red
-        E2: "#b71c1c", // dark red
-    };
-    const passFailColors = ["#43ea7b", accent];
 
     // --- STYLES ---
     const containerStyle = {
@@ -429,9 +468,10 @@ function Dashboard({
     };
     const subjectGrid = {
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(370px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
         gap: 32,
         marginTop: 18,
+        alignItems: "stretch", // Ensure all cards have consistent height
     };
     const statCardStyle = {
         marginBottom: 36,
@@ -584,17 +624,6 @@ function Dashboard({
     });
     const passBadge = badge("#43ea7b", "#222");
     const failBadge = badge("#e53935");
-    const gradeBadgeColors = {
-        A1: "#43ea7b",
-        A2: "#8bc34a",
-        B1: "#ffeb3b",
-        B2: "#ffc107",
-        C1: "#ff9800",
-        C2: "#ff5722",
-        D: "#e57373",
-        E1: "#b71c1c",
-        E2: "#880000",
-    };
     // Responsive tweaks
     const responsive = {
         "@media (max-width: 600px)": {
@@ -603,45 +632,18 @@ function Dashboard({
         },
     };
 
-    // Helper to calculate stats for a subject
-    function getStats(students) {
-        if (!students.length)
-            return {
-                topScorer: null,
-                classAverage: 0,
-                gradeDist: {},
-                passFail: { pass: 0, fail: 0 },
-            };
-        let topScorer = students[0];
-        let totalMarks = 0;
-        let gradeDist = {};
-        let pass = 0,
-            fail = 0;
-        students.forEach((s) => {
-            totalMarks += s.total;
-            gradeDist[s.grade] = (gradeDist[s.grade] || 0) + 1;
-            if (s.grade !== "E2" && s.grade !== "E1") pass++;
-            else fail++;
-            if (s.total > topScorer.total) topScorer = s;
-        });
-        const classAverage = totalMarks / students.length;
-        return {
-            topScorer,
-            classAverage,
-            gradeDist,
-            passFail: { pass, fail },
-        };
-    }
-
     // Group students by subject
     const studentsBySubject = SUBJECTS.reduce((acc, subj) => {
         acc[subj] = filteredStudents.filter((s) => s.subject === subj);
         return acc;
     }, {});
 
-    // Find max grade count for bar scaling
-    const maxGradeCount = (gradeDist) =>
-        Math.max(1, ...Object.values(gradeDist));
+    // Find max grade count for bar scaling with null check
+    const maxGradeCount = (gradeDist) => {
+        if (!gradeDist || typeof gradeDist !== "object") return 1;
+        const values = Object.values(gradeDist);
+        return values.length > 0 ? Math.max(1, ...values) : 1;
+    };
 
     // Comprehensive responsive styles
     const responsiveStyleTag = (
@@ -746,7 +748,7 @@ function Dashboard({
                 }
                 
                 .subject-grid {
-                    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
                     gap: 36px;
                 }
                 
@@ -788,6 +790,10 @@ function Dashboard({
                     padding: 1.3rem 1rem;
                 }
                 
+                .subject-card {
+                    min-height: 400px !important;
+                }
+                
                 .summary-icon {
                     font-size: 38px;
                 }
@@ -806,8 +812,9 @@ function Dashboard({
                 }
                 
                 .subject-grid {
-                    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
                     gap: 32px;
+                    align-items: stretch;
                 }
                 
                 .filters-container {
@@ -849,6 +856,10 @@ function Dashboard({
                     padding: 1.2rem 0.9rem;
                 }
                 
+                .subject-card {
+                    min-height: 380px !important;
+                }
+                
                 .summary-icon {
                     font-size: 34px;
                 }
@@ -867,8 +878,9 @@ function Dashboard({
                 }
                 
                 .subject-grid {
-                    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
                     gap: 28px;
+                    align-items: stretch;
                 }
                 
                 .filters-container {
@@ -918,6 +930,10 @@ function Dashboard({
                     padding: 1rem 0.8rem;
                 }
                 
+                .subject-card {
+                    min-height: 360px !important;
+                }
+                
                 .summary-icon {
                     font-size: 30px;
                 }
@@ -938,6 +954,7 @@ function Dashboard({
                 .subject-grid {
                     grid-template-columns: 1fr;
                     gap: 24px;
+                    align-items: stretch;
                 }
                 
                 .filters-container {
@@ -1210,10 +1227,33 @@ function Dashboard({
                 }
             }
             
-            /* Responsive chart heights */
+            /* Responsive chart heights and subject card improvements */
             @media (max-width: 767px) {
                 .chart-container {
                     height: 160px !important;
+                }
+                
+                .subject-card {
+                    min-width: 320px !important;
+                    padding: 20px !important;
+                }
+                
+                .subject-grid {
+                    grid-template-columns: 1fr !important;
+                    gap: 20px !important;
+                }
+            }
+            
+            @media (min-width: 768px) and (max-width: 1023px) {
+                .subject-card {
+                    min-width: 360px !important;
+                    padding: 22px !important;
+                }
+            }
+            
+            @media (min-width: 1024px) {
+                .subject-card {
+                    min-width: 400px !important;
                 }
             }
             
@@ -1249,6 +1289,23 @@ function Dashboard({
                 .subject-card {
                     transition: none !important;
                 }
+            }
+            
+            /* Responsive bar chart improvements for larger datasets */
+            @media (min-width: 1200px) {
+                .subject-card .recharts-bar-rectangle {
+                    transition: opacity 0.2s ease;
+                }
+                
+                .subject-card .recharts-bar-rectangle:hover {
+                    opacity: 0.8;
+                }
+            }
+            
+            /* Ensure bar charts scale properly with data */
+            .subject-card .recharts-responsive-container {
+                min-height: 120px !important;
+                max-height: 350px !important;
             }
         `}</style>
     );
@@ -1532,7 +1589,7 @@ function Dashboard({
                             Half Monthly Exam
                         </option>
                         <option value="Annual Exam">Annual Exam</option>
-                        <option value="All">All Exam Types</option>
+                        {/* <option value="All">All Exam Types</option> */}
                     </select>
                 </div>
                 {/* Subject filter */}
@@ -1706,13 +1763,7 @@ function Dashboard({
                                 {gradeDistData.map((entry) => (
                                     <Cell
                                         key={`cell-${entry.name}`}
-                                        fill={
-                                            gradeColors[
-                                                (entry.name || "")
-                                                    .trim()
-                                                    .toUpperCase()
-                                            ] || "#bdbdbd"
-                                        }
+                                        fill={getGradeColor(entry.name)}
                                     />
                                 ))}
                             </Pie>
@@ -1745,8 +1796,7 @@ function Dashboard({
                                     style={{
                                         width: 16,
                                         height: 16,
-                                        background:
-                                            gradeColors[grade] || "#bdbdbd",
+                                        background: getGradeColor(grade),
                                         borderRadius: 8,
                                         display: "inline-block",
                                         marginRight: 4,
@@ -1800,361 +1850,470 @@ function Dashboard({
                 </div>
             </div>
             <div className="subject-grid" style={subjectGrid}>
-                {SUBJECTS.map((subj, idx) => {
-                    const stats = getStats(studentsBySubject[subj]);
-                    const maxCount = maxGradeCount(stats.gradeDist);
-                    const gradeDistData = Object.entries(stats.gradeDist).map(
-                        ([grade, count]) => ({ name: grade, value: count })
-                    );
-                    const classAvg = stats.classAverage;
-                    const pass = passCount;
-                    const fail = failCount;
-                    const topScorer = stats.topScorer;
-                    // Grouped bar chart data: for each grade, count pass/fail
-                    const gradePassFailData = gradeDistData.map(({ name }) => {
-                        const grade = (name || "").trim().toUpperCase();
-                        const studentsForGrade = studentsBySubject[subj].filter(
-                            (s) =>
-                                (s.grade || "").trim().toUpperCase() === grade
-                        );
-                        const passCount = studentsForGrade.filter(
-                            (s) => grade !== "E1" && grade !== "E2"
-                        ).length;
-                        const failCount = studentsForGrade.filter(
-                            (s) => grade === "E1" || grade === "E2"
-                        ).length;
-                        return {
+                {/* Show only the selected subject if a specific subject is chosen, otherwise show all */}
+                {(selectedSubject === "All" ? SUBJECTS : [selectedSubject]).map(
+                    (subj, idx) => {
+                        const subjectStudents = studentsBySubject[subj] || [];
+                        const stats = calculateStats(subjectStudents); // Use centralized function
+                        const maxCount = maxGradeCount(stats.gradeDist);
+                        const gradeDistData = Object.entries(
+                            stats.gradeDist
+                        ).map(([grade, count]) => ({
                             name: grade,
-                            Pass: passCount,
-                            Fail: failCount,
-                        };
-                    });
-                    return (
-                        <div
-                            className="dashboard-card subject-card"
-                            style={{ ...statCardStyle, minWidth: 320 }}
-                            key={subj}
-                        >
+                            value: count,
+                        }));
+                        const classAvg = stats.classAverage || 0;
+                        const pass = stats.passFail.pass || 0;
+                        const fail = stats.passFail.fail || 0;
+                        const topScorer = stats.topScorer;
+
+                        // Handle edge case: no students for this subject
+                        const hasStudents = subjectStudents.length > 0;
+
+                        // Grouped bar chart data: for each grade, count pass/fail with null checks
+                        const gradePassFailData = gradeDistData.map(
+                            ({ name }) => {
+                                const grade = (name || "").trim().toUpperCase();
+                                const studentsForGrade = subjectStudents.filter(
+                                    (s) =>
+                                        (s.grade || "").trim().toUpperCase() ===
+                                        grade
+                                );
+                                const passCount = studentsForGrade.filter(
+                                    (s) => isPassingGrade(s.grade) // Use centralized function
+                                ).length;
+                                const failCount = studentsForGrade.filter(
+                                    (s) => !isPassingGrade(s.grade) // Use centralized function
+                                ).length;
+                                return {
+                                    name: grade,
+                                    Pass: passCount,
+                                    Fail: failCount,
+                                };
+                            }
+                        );
+                        return (
                             <div
+                                className="dashboard-card subject-card"
                                 style={{
+                                    ...statCardStyle,
+                                    minWidth: 380,
+                                    maxWidth: "100%",
+                                    height: "auto",
+                                    minHeight: 420, // Set consistent minimum height for all cards
+                                    padding: "24px 28px 28px 28px",
                                     display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    marginBottom: 8,
+                                    flexDirection: "column",
                                 }}
+                                key={subj}
                             >
-                                <MdGrade
-                                    style={{ color: accentDark, fontSize: 28 }}
-                                    title="Subject"
-                                />
-                                <span
+                                <div
                                     style={{
-                                        ...subjectTitle,
-                                        fontSize: 22,
-                                        margin: 0,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 10,
+                                        marginBottom: 8,
                                     }}
                                 >
-                                    {subj}
-                                </span>
-                            </div>
-                            <div
-                                className="subject-stats-container"
-                                style={{
-                                    display: "flex",
-                                    flexWrap: "wrap",
-                                    gap: 18,
-                                    alignItems: "center",
-                                    marginBottom: 10,
-                                }}
-                            >
-                                <div
-                                    style={{ flex: "1 1 120px", minWidth: 120 }}
-                                >
+                                    <MdGrade
+                                        style={{
+                                            color: accentDark,
+                                            fontSize: 28,
+                                        }}
+                                        title="Subject"
+                                    />
                                     <span
                                         style={{
-                                            fontWeight: 600,
-                                            color: accentDark,
+                                            ...subjectTitle,
+                                            fontSize: 22,
+                                            margin: 0,
                                         }}
                                     >
-                                        Class Avg
+                                        {subj}
                                     </span>
-                                    <ResponsiveContainer
-                                        width="100%"
-                                        height={60}
-                                    >
-                                        <PieChart>
-                                            <Pie
-                                                data={[
-                                                    {
-                                                        name: "Avg",
-                                                        value: classAvg,
-                                                    },
-                                                    {
-                                                        name: "Rest",
-                                                        value: 100 - classAvg,
-                                                    },
-                                                ]}
-                                                dataKey="value"
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={18}
-                                                outerRadius={28}
-                                                startAngle={90}
-                                                endAngle={-270}
-                                            >
-                                                <Cell
-                                                    key={`cell-bar-pass-${subj}`}
-                                                    fill={
-                                                        gradeColors[subj] ||
-                                                        "#43ea7b"
-                                                    }
-                                                />
-                                                <Cell
-                                                    key={`cell-bar-fail-${subj}`}
-                                                    fill="#bdbdbd"
-                                                />
-                                            </Pie>
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                    <div
-                                        style={{
-                                            fontWeight: 700,
-                                            color: accentDark,
-                                            fontSize: 18,
-                                            textAlign: "center",
-                                        }}
-                                    >
-                                        {classAvg.toFixed(2)}%
-                                    </div>
                                 </div>
                                 <div
-                                    style={{ flex: "1 1 120px", minWidth: 120 }}
-                                >
-                                    <span
-                                        style={{
-                                            fontWeight: 600,
-                                            color: accentDark,
-                                        }}
-                                    >
-                                        Top Scorer
-                                    </span>
-                                    <div
-                                        style={{
-                                            fontWeight: 700,
-                                            color: accent,
-                                            fontSize: 16,
-                                            marginBottom: 2,
-                                        }}
-                                    >
-                                        {topScorer ? (
-                                            <span>
-                                                <MdEmojiEvents
-                                                    style={{
-                                                        color: "#ffd700",
-                                                        fontSize: 18,
-                                                        verticalAlign: "middle",
-                                                    }}
-                                                    title="Top Scorer"
-                                                />{" "}
-                                                {topScorer.rollNo} (
-                                                {topScorer.total})
-                                            </span>
-                                        ) : (
-                                            "N/A"
-                                        )}
-                                    </div>
-                                </div>
-                                <div
-                                    style={{ flex: "1 1 120px", minWidth: 120 }}
+                                    className="subject-stats-container"
+                                    style={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 18,
+                                        alignItems: "center",
+                                        marginBottom: 10,
+                                    }}
                                 >
                                     <div
-                                        className="pass-fail-display"
                                         style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 18,
-                                            margin: "10px 0 10px 0",
+                                            flex: "1 1 120px",
+                                            minWidth: 120,
                                         }}
                                     >
                                         <span
                                             style={{
                                                 fontWeight: 600,
                                                 color: accentDark,
-                                                fontSize: 15,
                                             }}
                                         >
-                                            Pass:
+                                            Class Avg
                                         </span>
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={60}
+                                        >
+                                            <PieChart>
+                                                <Pie
+                                                    data={[
+                                                        {
+                                                            name: "Avg",
+                                                            value: classAvg,
+                                                        },
+                                                        {
+                                                            name: "Rest",
+                                                            value:
+                                                                100 - classAvg,
+                                                        },
+                                                    ]}
+                                                    dataKey="value"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={18}
+                                                    outerRadius={28}
+                                                    startAngle={90}
+                                                    endAngle={-270}
+                                                >
+                                                    <Cell
+                                                        key={`cell-bar-pass-${subj}`}
+                                                        fill="#43ea7b"
+                                                    />
+                                                    <Cell
+                                                        key={`cell-bar-fail-${subj}`}
+                                                        fill="#bdbdbd"
+                                                    />
+                                                </Pie>
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                        <div
+                                            style={{
+                                                fontWeight: 700,
+                                                color: accentDark,
+                                                fontSize: 18,
+                                                textAlign: "center",
+                                            }}
+                                        >
+                                            {classAvg.toFixed(2)}%
+                                        </div>
+                                    </div>
+                                    <div
+                                        style={{
+                                            flex: "1 1 120px",
+                                            minWidth: 120,
+                                        }}
+                                    >
                                         <span
                                             style={{
-                                                color: "#43ea7b",
-                                                fontWeight: 700,
-                                                fontSize: 16,
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 4,
-                                                marginLeft: "-1rem",
+                                                fontWeight: 600,
+                                                color: accentDark,
                                             }}
                                         >
-                                            <MdCheckCircle
+                                            Top Scorer
+                                        </span>
+                                        <div
+                                            style={{
+                                                fontWeight: 700,
+                                                color: accent,
+                                                fontSize: 16,
+                                                marginBottom: 2,
+                                            }}
+                                        >
+                                            {topScorer ? (
+                                                <span>
+                                                    <MdEmojiEvents
+                                                        style={{
+                                                            color: "#ffd700",
+                                                            fontSize: 18,
+                                                            verticalAlign:
+                                                                "middle",
+                                                        }}
+                                                        title="Top Scorer"
+                                                    />{" "}
+                                                    {topScorer.rollNo} (
+                                                    {topScorer.total})
+                                                </span>
+                                            ) : (
+                                                "N/A"
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div
+                                        style={{
+                                            flex: "1 1 120px",
+                                            minWidth: 120,
+                                        }}
+                                    >
+                                        <div
+                                            className="pass-fail-display"
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 18,
+                                                margin: "10px 0 10px 0",
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    fontWeight: 600,
+                                                    color: accentDark,
+                                                    fontSize: 15,
+                                                }}
+                                            >
+                                                Pass:
+                                            </span>
+                                            <span
                                                 style={{
                                                     color: "#43ea7b",
-                                                    verticalAlign: "middle",
+                                                    fontWeight: 700,
+                                                    fontSize: 16,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 4,
+                                                    marginLeft: "-1rem",
                                                 }}
-                                            />{" "}
-                                            {pass}
-                                        </span>
-                                        <span
-                                            style={{
-                                                fontWeight: 600,
-                                                color: accentDark,
-                                                fontSize: 15,
-                                                marginLeft: 20,
-                                            }}
-                                        >
-                                            Fail:
-                                        </span>
-                                        <span
-                                            style={{
-                                                color: accent,
-                                                fontWeight: 700,
-                                                fontSize: 16,
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 4,
-                                                marginLeft: "-1rem",
-                                            }}
-                                        >
-                                            <MdCancel
+                                            >
+                                                <MdCheckCircle
+                                                    style={{
+                                                        color: "#43ea7b",
+                                                        verticalAlign: "middle",
+                                                    }}
+                                                />{" "}
+                                                {pass}
+                                            </span>
+                                            <span
+                                                style={{
+                                                    fontWeight: 600,
+                                                    color: accentDark,
+                                                    fontSize: 15,
+                                                    marginLeft: 20,
+                                                }}
+                                            >
+                                                Fail:
+                                            </span>
+                                            <span
                                                 style={{
                                                     color: accent,
-                                                    verticalAlign: "middle",
+                                                    fontWeight: 700,
+                                                    fontSize: 16,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 4,
+                                                    marginLeft: "-1rem",
                                                 }}
-                                            />{" "}
-                                            {fail}
-                                        </span>
+                                            >
+                                                <MdCancel
+                                                    style={{
+                                                        color: accent,
+                                                        verticalAlign: "middle",
+                                                    }}
+                                                />{" "}
+                                                {fail}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div style={{ marginTop: 8 }}>
-                                <span
-                                    style={{
-                                        fontWeight: 600,
-                                        color: accentDark,
-                                    }}
-                                >
-                                    Grade Distribution
-                                </span>
-                                <ResponsiveContainer width="100%" height={120}>
-                                    <BarChart
-                                        data={gradePassFailData}
-                                        margin={{
-                                            top: 10,
-                                            right: 10,
-                                            left: 0,
-                                            bottom: 0,
-                                        }}
-                                        barGap={4}
-                                    >
-                                        <XAxis
-                                            dataKey="name"
-                                            stroke={accentDark}
-                                            fontSize={13}
-                                        />
-                                        <YAxis
-                                            allowDecimals={false}
-                                            fontSize={13}
-                                        />
-                                        <Bar
-                                            dataKey="Pass"
-                                            stackId="a"
-                                            shape={<CustomBar />}
-                                            activeBar={<CustomActiveBar />}
-                                        >
-                                            {gradePassFailData.map((entry) => (
-                                                <Cell
-                                                    key={`cell-bar-pass-${entry.name}`}
-                                                    fill={
-                                                        gradeColors[
-                                                            entry.name
-                                                        ] || "#bdbdbd"
-                                                    }
-                                                />
-                                            ))}
-                                        </Bar>
-                                        <Bar
-                                            dataKey="Fail"
-                                            stackId="a"
-                                            shape={<CustomBar />}
-                                            activeBar={<CustomActiveBar />}
-                                        >
-                                            {gradePassFailData.map((entry) => (
-                                                <Cell
-                                                    key={`cell-bar-fail-${entry.name}`}
-                                                    fill="#bdbdbd"
-                                                />
-                                            ))}
-                                        </Bar>
-                                        {/* <RechartsTooltip /> */}
-                                    </BarChart>
-                                    <div
-                                        className="bar-chart-legend"
+                                <div style={{ marginTop: 8 }}>
+                                    <span
                                         style={{
-                                            display: "flex",
-                                            gap: 10,
-                                            marginTop: 6,
-                                            fontSize: 13,
-                                            alignItems: "center",
+                                            fontWeight: 600,
+                                            color: accentDark,
                                         }}
                                     >
-                                        <span
+                                        Grade Distribution
+                                    </span>
+                                    {hasStudents ? (
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height={Math.max(
+                                                120,
+                                                Math.min(
+                                                    300,
+                                                    gradePassFailData.length *
+                                                        40 +
+                                                        60
+                                                )
+                                            )}
+                                        >
+                                            <BarChart
+                                                data={gradePassFailData}
+                                                margin={{
+                                                    top: 15,
+                                                    right: 15,
+                                                    left: 10,
+                                                    bottom: 5,
+                                                }}
+                                                barGap={6}
+                                                maxBarSize={60}
+                                            >
+                                                <XAxis
+                                                    dataKey="name"
+                                                    stroke={accentDark}
+                                                    fontSize={13}
+                                                />
+                                                <YAxis
+                                                    allowDecimals={false}
+                                                    fontSize={13}
+                                                />
+                                                <Bar
+                                                    dataKey="Pass"
+                                                    stackId="a"
+                                                    shape={<CustomBar />}
+                                                    activeBar={
+                                                        <CustomActiveBar />
+                                                    }
+                                                >
+                                                    {gradePassFailData.map(
+                                                        (entry) => (
+                                                            <Cell
+                                                                key={`cell-bar-pass-${entry.name}`}
+                                                                fill={getGradeColor(
+                                                                    entry.name
+                                                                )}
+                                                            />
+                                                        )
+                                                    )}
+                                                </Bar>
+                                                <Bar
+                                                    dataKey="Fail"
+                                                    stackId="a"
+                                                    shape={<CustomBar />}
+                                                    activeBar={
+                                                        <CustomActiveBar />
+                                                    }
+                                                >
+                                                    {gradePassFailData.map(
+                                                        (entry) => (
+                                                            <Cell
+                                                                key={`cell-bar-fail-${entry.name}`}
+                                                                fill="#bdbdbd"
+                                                            />
+                                                        )
+                                                    )}
+                                                </Bar>
+                                                {/* <RechartsTooltip /> */}
+                                            </BarChart>
+                                            <div
+                                                className="bar-chart-legend"
+                                                style={{
+                                                    display: "flex",
+                                                    gap: 12,
+                                                    marginTop: -16,
+                                                    fontSize: 13,
+                                                    alignItems: "center",
+                                                    padding: "0 8px",
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 6,
+                                                        fontSize: 13,
+                                                        fontWeight: 500,
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            width: 14,
+                                                            height: 14,
+                                                            background:
+                                                                getGradeColor(
+                                                                    "A+"
+                                                                ),
+                                                            borderRadius: 7,
+                                                            display:
+                                                                "inline-block",
+                                                            marginRight: 4,
+                                                            border: "1px solid #eee",
+                                                            flexShrink: 0,
+                                                        }}
+                                                    ></span>
+                                                    Pass
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 6,
+                                                        fontSize: 13,
+                                                        fontWeight: 500,
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            width: 14,
+                                                            height: 14,
+                                                            background:
+                                                                "#bdbdbd",
+                                                            borderRadius: 7,
+                                                            display:
+                                                                "inline-block",
+                                                            marginRight: 4,
+                                                            border: "1px solid #eee",
+                                                            flexShrink: 0,
+                                                        }}
+                                                    ></span>
+                                                    Fail
+                                                </span>
+                                            </div>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        // No data message with filter information
+                                        <div
                                             style={{
+                                                height: 180, // Fixed height to match chart area
                                                 display: "flex",
+                                                flexDirection: "column",
                                                 alignItems: "center",
-                                                gap: 4,
+                                                justifyContent: "center",
+                                                background: theme.surface,
+                                                border: `1px solid ${theme.border}`,
+                                                borderRadius: 8,
+                                                marginTop: 8,
+                                                color:
+                                                    theme.textSecondary ||
+                                                    "#666",
+                                                fontStyle: "italic",
+                                                padding: "16px",
+                                                textAlign: "center",
+                                                flex: "1", // Allow it to expand to fill remaining space
                                             }}
                                         >
-                                            <span
+                                            <div
                                                 style={{
-                                                    width: 14,
-                                                    height: 14,
-                                                    background:
-                                                        gradeColors["A"] ||
-                                                        "#43ea7b",
-                                                    borderRadius: 7,
-                                                    display: "inline-block",
-                                                    marginRight: 4,
-                                                    border: "1px solid #eee",
+                                                    fontSize: 14,
+                                                    fontWeight: 600,
+                                                    marginBottom: 4,
                                                 }}
-                                            ></span>
-                                            Pass
-                                        </span>
-                                        <span
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 4,
-                                            }}
-                                        >
-                                            <span
+                                            >
+                                                No student data available
+                                            </div>
+                                            <div
                                                 style={{
-                                                    width: 14,
-                                                    height: 14,
-                                                    background: "#bdbdbd",
-                                                    borderRadius: 7,
-                                                    display: "inline-block",
-                                                    marginRight: 4,
-                                                    border: "1px solid #eee",
+                                                    fontSize: 12,
+                                                    opacity: 0.8,
                                                 }}
-                                            ></span>
-                                            Fail
-                                        </span>
-                                    </div>
-                                </ResponsiveContainer>
+                                            >
+                                                {selectedExamType ===
+                                                    "Monthly Test" &&
+                                                selectedMonth
+                                                    ? `${selectedExamType} - ${selectedMonth}`
+                                                    : selectedExamType}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    }
+                )}
             </div>
         </div>
     );

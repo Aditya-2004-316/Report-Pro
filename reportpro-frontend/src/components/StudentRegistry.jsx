@@ -142,12 +142,12 @@ function StudentRegistry({ theme }) {
     return (
         <div
             style={{
-                maxWidth: 700,
+                maxWidth: 900,
                 margin: "2rem auto",
                 background: theme?.surface || "#fff",
                 borderRadius: 16,
                 boxShadow: theme?.shadow || "0 2px 12px #0001",
-                padding: "2rem 2.5rem",
+                padding: "2rem",
                 color: theme?.text || "#222",
             }}
         >
@@ -155,84 +155,260 @@ function StudentRegistry({ theme }) {
                 style={{
                     color: ACCENT_DARK,
                     fontWeight: 800,
-                    fontSize: 26,
-                    marginBottom: 18,
+                    fontSize: 28,
+                    marginBottom: 24,
                     textAlign: "center",
+                    paddingBottom: 16,
+                    borderBottom: `2px solid ${ACCENT}`,
                 }}
             >
-                Student Registry
+                Student Registry Management
             </h2>
-            <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
-                <div style={{ flex: 1 }}>
-                    <label
+
+            {/* Configuration Section */}
+            <div
+                style={{
+                    background: "#fff8f8",
+                    borderRadius: 12,
+                    padding: "20px",
+                    marginBottom: 24,
+                    border: `1px solid #ffe0e0`,
+                }}
+            >
+                <h3
+                    style={{
+                        color: ACCENT_DARK,
+                        fontWeight: 700,
+                        fontSize: 20,
+                        marginBottom: 16,
+                        display: "flex",
+                        alignItems: "center",
+                    }}
+                >
+                    <span
                         style={{
-                            fontWeight: 700,
-                            color: ACCENT,
-                            marginBottom: 4,
-                            fontSize: 16,
+                            background: ACCENT,
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "white",
+                            fontSize: 14,
+                            marginRight: 10,
                         }}
                     >
-                        Session
-                    </label>
-                    <select
-                        value={session}
-                        onChange={(e) => setSession(e.target.value)}
-                        style={{
-                            width: "100%",
-                            padding: "10px 8px",
-                            borderRadius: 6,
-                            border: `1.5px solid ${
-                                theme?.inputBorder || "#ccc"
-                            }`,
-                            fontSize: 16,
-                            marginBottom: 0,
-                            background: theme?.inputBg || "#fff",
-                            color: theme?.text || "#222",
-                        }}
-                    >
-                        {sessionOptions.map((sess) => (
-                            <option key={sess} value={sess}>
-                                {sess}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                    <label
-                        style={{
-                            fontWeight: 700,
-                            color: ACCENT,
-                            marginBottom: 4,
-                            fontSize: 16,
-                        }}
-                    >
-                        Class
-                    </label>
-                    <select
-                        value={studentClass}
-                        onChange={(e) => setStudentClass(e.target.value)}
-                        style={{
-                            width: "100%",
-                            padding: "10px 8px",
-                            borderRadius: 6,
-                            border: `1.5px solid ${
-                                theme?.inputBorder || "#ccc"
-                            }`,
-                            fontSize: 16,
-                            marginBottom: 0,
-                            background: theme?.inputBg || "#fff",
-                            color: theme?.text || "#222",
-                        }}
-                    >
-                        <option value="9th">9th</option>
-                        <option value="10th">10th</option>
-                    </select>
+                        1
+                    </span>
+                    Configuration
+                </h3>
+                <div style={{ display: "flex", gap: 20, marginBottom: 10 }}>
+                    <div style={{ flex: 1 }}>
+                        <label
+                            style={{
+                                fontWeight: 600,
+                                color: ACCENT_DARK,
+                                marginBottom: 6,
+                                fontSize: 16,
+                                display: "block",
+                            }}
+                        >
+                            Session
+                        </label>
+                        <select
+                            value={session}
+                            onChange={(e) => setSession(e.target.value)}
+                            style={{
+                                width: "100%",
+                                padding: "12px 10px",
+                                borderRadius: 8,
+                                border: `2px solid ${ACCENT}`,
+                                fontSize: 16,
+                                background: theme?.inputBg || "#fff",
+                                color: theme?.text || "#222",
+                                fontWeight: 500,
+                            }}
+                        >
+                            {sessionOptions.map((sess) => (
+                                <option key={sess} value={sess}>
+                                    {sess}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <label
+                            style={{
+                                fontWeight: 600,
+                                color: ACCENT_DARK,
+                                marginBottom: 6,
+                                fontSize: 16,
+                                display: "block",
+                            }}
+                        >
+                            Class
+                        </label>
+                        <select
+                            value={studentClass}
+                            onChange={(e) => setStudentClass(e.target.value)}
+                            style={{
+                                width: "100%",
+                                padding: "12px 10px",
+                                borderRadius: 8,
+                                border: `2px solid ${ACCENT}`,
+                                fontSize: 16,
+                                background: theme?.inputBg || "#fff",
+                                color: theme?.text || "#222",
+                                fontWeight: 500,
+                            }}
+                        >
+                            <option value="9th">9th</option>
+                            <option value="10th">10th</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+
+            {/* Add Student Section */}
+            <div
+                style={{
+                    background: "#f0f9ff",
+                    borderRadius: 12,
+                    padding: "20px",
+                    marginBottom: 24,
+                    border: `1px solid #cce6ff`,
+                }}
+            >
+                <h3
+                    style={{
+                        color: "#1976d2",
+                        fontWeight: 700,
+                        fontSize: 20,
+                        marginBottom: 16,
+                        display: "flex",
+                        alignItems: "center",
+                    }}
+                >
+                    <span
+                        style={{
+                            background: "#1976d2",
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "white",
+                            fontSize: 14,
+                            marginRight: 10,
+                        }}
+                    >
+                        2
+                    </span>
+                    Add New Student
+                </h3>
+                <div style={{ display: "flex", gap: 12, alignItems: "end" }}>
+                    <div style={{ flex: 1 }}>
+                        <label
+                            style={{
+                                fontWeight: 600,
+                                color: "#1976d2",
+                                marginBottom: 6,
+                                fontSize: 16,
+                                display: "block",
+                            }}
+                        >
+                            Roll No
+                        </label>
+                        <input
+                            value={newStudent.rollNo}
+                            onChange={(e) =>
+                                setNewStudent({
+                                    ...newStudent,
+                                    rollNo: e.target.value,
+                                })
+                            }
+                            placeholder="Enter roll number"
+                            style={{
+                                width: "100%",
+                                fontSize: 16,
+                                padding: "12px 10px",
+                                borderRadius: 8,
+                                border: `2px solid #1976d2`,
+                                background: theme?.inputBg || "#fff",
+                                color: theme?.text || "#222",
+                                fontWeight: 500,
+                            }}
+                        />
+                    </div>
+                    <div style={{ flex: 2 }}>
+                        <label
+                            style={{
+                                fontWeight: 600,
+                                color: "#1976d2",
+                                marginBottom: 6,
+                                fontSize: 16,
+                                display: "block",
+                            }}
+                        >
+                            Full Name
+                        </label>
+                        <input
+                            value={newStudent.name}
+                            onChange={(e) =>
+                                setNewStudent({
+                                    ...newStudent,
+                                    name: e.target.value,
+                                })
+                            }
+                            placeholder="Enter student name"
+                            style={{
+                                width: "100%",
+                                fontSize: 16,
+                                padding: "12px 10px",
+                                borderRadius: 8,
+                                border: `2px solid #1976d2`,
+                                background: theme?.inputBg || "#fff",
+                                color: theme?.text || "#222",
+                                fontWeight: 500,
+                            }}
+                        />
+                    </div>
+                    <div>
+                        <button
+                            onClick={handleAddStudent}
+                            style={{
+                                background: "#1976d2",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: 8,
+                                padding: "12px 20px",
+                                fontWeight: 700,
+                                fontSize: 16,
+                                cursor: "pointer",
+                                boxShadow: theme?.shadow,
+                                outline: "none",
+                                height: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                            }}
+                            onMouseOver={(e) =>
+                                (e.target.style.opacity = "0.9")
+                            }
+                            onMouseOut={(e) => (e.target.style.opacity = "1")}
+                        >
+                            Add Student
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Action Buttons */}
             <div
                 style={{
                     display: "flex",
-                    gap: 12,
+                    gap: 16,
                     marginBottom: 24,
                     justifyContent: "flex-end",
                 }}
@@ -244,21 +420,38 @@ function StudentRegistry({ theme }) {
                         background: ACCENT,
                         color: "#fff",
                         border: "none",
-                        borderRadius: 6,
-                        padding: "10px 18px",
+                        borderRadius: 8,
+                        padding: "12px 24px",
                         fontWeight: 700,
                         fontSize: 16,
                         cursor: "pointer",
                         boxShadow: theme?.shadow,
                         outline: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
                     }}
-                    onMouseOver={(e) => (e.target.style.border = "none")}
-                    onFocus={(e) => (e.target.style.border = "none")}
-                    onBlur={(e) => (e.target.style.border = "none")}
-                    onMouseDown={(e) => (e.target.style.border = "none")}
-                    onMouseUp={(e) => (e.target.style.border = "none")}
+                    onMouseOver={(e) => (e.target.style.opacity = "0.9")}
+                    onMouseOut={(e) => (e.target.style.opacity = "1")}
                 >
-                    {saving ? "Saving..." : "Save List"}
+                    {saving ? (
+                        <>
+                            <span
+                                className="spinner"
+                                style={{
+                                    border: "2px solid #fff",
+                                    borderTop: "2px solid transparent",
+                                    borderRadius: "50%",
+                                    width: 16,
+                                    height: 16,
+                                    animation: "spin 1s linear infinite",
+                                }}
+                            ></span>
+                            Saving...
+                        </>
+                    ) : (
+                        "Save Registry"
+                    )}
                 </button>
                 <button
                     onClick={() => setShowRemoveConfirm(true)}
@@ -266,13 +459,13 @@ function StudentRegistry({ theme }) {
                         students.length === 0 || !session || !studentClass
                     }
                     style={{
-                        background: "#e53935",
+                        background: "#f44336",
                         color: "#fff",
                         border: "none",
-                        borderRadius: 6,
-                        padding: "8px 16px",
+                        borderRadius: 8,
+                        padding: "12px 24px",
                         fontWeight: 700,
-                        fontSize: 14,
+                        fontSize: 16,
                         cursor:
                             students.length === 0 || !session || !studentClass
                                 ? "not-allowed"
@@ -283,379 +476,425 @@ function StudentRegistry({ theme }) {
                                 ? 0.5
                                 : 1,
                         outline: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
                     }}
-                    onMouseOver={(e) => (e.target.style.border = "none")}
-                    onFocus={(e) => (e.target.style.border = "none")}
-                    onBlur={(e) => (e.target.style.border = "none")}
-                    onMouseDown={(e) => (e.target.style.border = "none")}
-                    onMouseUp={(e) => (e.target.style.border = "none")}
+                    onMouseOver={(e) =>
+                        (e.target.style.opacity =
+                            students.length === 0 || !session || !studentClass
+                                ? "0.5"
+                                : "0.9")
+                    }
+                    onMouseOut={(e) =>
+                        (e.target.style.opacity =
+                            students.length === 0 || !session || !studentClass
+                                ? "0.5"
+                                : "1")
+                    }
                 >
                     Remove Registry
                 </button>
             </div>
+
             {error && (
-                <div style={{ color: ACCENT, marginBottom: 12 }}>{error}</div>
-            )}
-            {loading ? (
-                <div>Loading...</div>
-            ) : (
-                <table
+                <div
                     style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                        marginBottom: 18,
+                        color: "#f44336",
+                        marginBottom: 16,
+                        padding: "12px",
+                        background: "#ffebee",
+                        borderRadius: 8,
+                        border: "1px solid #ffcdd2",
                     }}
                 >
-                    <thead>
-                        <tr style={{ background: theme?.inputBg || "#f7f7f7" }}>
-                            <th
-                                style={{
-                                    padding: "8px 6px",
-                                    fontWeight: 700,
-                                    color: ACCENT_DARK,
-                                    fontSize: 15,
-                                    borderBottom: `2px solid ${ACCENT}`,
-                                }}
-                            >
-                                Roll No
-                            </th>
-                            <th
-                                style={{
-                                    padding: "8px 6px",
-                                    fontWeight: 700,
-                                    color: ACCENT_DARK,
-                                    fontSize: 15,
-                                    borderBottom: `2px solid ${ACCENT}`,
-                                }}
-                            >
-                                Name
-                            </th>
-                            <th
-                                style={{
-                                    padding: "8px 6px",
-                                    fontWeight: 700,
-                                    color: ACCENT_DARK,
-                                    fontSize: 15,
-                                    borderBottom: `2px solid ${ACCENT}`,
-                                }}
-                            >
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {students.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan={3}
-                                    style={{
-                                        textAlign: "center",
-                                        color: theme?.text,
-                                        opacity: 0.7,
-                                        padding: 16,
-                                    }}
-                                >
-                                    No students added yet.
-                                </td>
-                            </tr>
-                        )}
-                        {students.map((s, idx) => (
-                            <tr key={idx}>
-                                <td style={{ padding: "8px 6px" }}>
-                                    {editingIdx === idx ? (
-                                        <input
-                                            value={editingStudent.rollNo}
-                                            onChange={(e) =>
-                                                setEditingStudent({
-                                                    ...editingStudent,
-                                                    rollNo: e.target.value,
-                                                })
-                                            }
-                                            style={{
-                                                width: 100,
-                                                fontSize: 15,
-                                                padding: "6px 8px",
-                                                borderRadius: 5,
-                                                border: `1.5px solid ${
-                                                    theme?.inputBorder || "#ccc"
-                                                }`,
-                                                background:
-                                                    theme?.inputBg || "#fff",
-                                                color: theme?.text || "#222",
-                                            }}
-                                        />
-                                    ) : (
-                                        s.rollNo
-                                    )}
-                                </td>
-                                <td style={{ padding: "8px 6px" }}>
-                                    {editingIdx === idx ? (
-                                        <input
-                                            value={editingStudent.name}
-                                            onChange={(e) =>
-                                                setEditingStudent({
-                                                    ...editingStudent,
-                                                    name: e.target.value,
-                                                })
-                                            }
-                                            style={{
-                                                width: 180,
-                                                fontSize: 15,
-                                                padding: "6px 8px",
-                                                borderRadius: 5,
-                                                border: `1.5px solid ${
-                                                    theme?.inputBorder || "#ccc"
-                                                }`,
-                                                background:
-                                                    theme?.inputBg || "#fff",
-                                                color: theme?.text || "#222",
-                                            }}
-                                        />
-                                    ) : (
-                                        s.name
-                                    )}
-                                </td>
-                                <td style={{ padding: "8px 6px" }}>
-                                    {editingIdx === idx ? (
-                                        <>
-                                            <button
-                                                onClick={handleSaveEditStudent}
-                                                style={{
-                                                    marginRight: 6,
-                                                    background: ACCENT,
-                                                    color: "#fff",
-                                                    border: "none",
-                                                    borderRadius: 5,
-                                                    padding: "6px 14px",
-                                                    fontWeight: 700,
-                                                    fontSize: 14,
-                                                    cursor: "pointer",
-                                                    outline: "none",
-                                                }}
-                                                onMouseOver={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                                onFocus={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                                onBlur={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                                onMouseDown={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                                onMouseUp={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                            >
-                                                Save
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    setEditingIdx(null)
-                                                }
-                                                style={{
-                                                    background:
-                                                        theme?.surface ||
-                                                        "#fff",
-                                                    color: ACCENT_DARK,
-                                                    border: `2px solid ${ACCENT}`,
-                                                    borderRadius: 5,
-                                                    padding: "6px 14px",
-                                                    fontWeight: 700,
-                                                    fontSize: 14,
-                                                    cursor: "pointer",
-                                                    outline: "none",
-                                                }}
-                                                onMouseOver={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                                onFocus={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                                onBlur={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                                onMouseDown={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                                onMouseUp={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                            >
-                                                Cancel
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button
-                                                onClick={() =>
-                                                    handleEditStudent(idx)
-                                                }
-                                                style={{
-                                                    marginRight: 6,
-                                                    background: ACCENT,
-                                                    color: "#fff",
-                                                    border: "none",
-                                                    borderRadius: 5,
-                                                    padding: "6px 14px",
-                                                    fontWeight: 700,
-                                                    fontSize: 14,
-                                                    cursor: "pointer",
-                                                    outline: "none",
-                                                }}
-                                                onMouseOver={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                                onFocus={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                                onBlur={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                                onMouseDown={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                                onMouseUp={(e) =>
-                                                    (e.target.style.border =
-                                                        "none")
-                                                }
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    handleDeleteStudent(idx)
-                                                }
-                                                style={{
-                                                    background:
-                                                        theme?.surface ||
-                                                        "#fff",
-                                                    color: ACCENT_DARK,
-                                                    border: `2px solid ${ACCENT}`,
-                                                    borderRadius: 5,
-                                                    padding: "6px 14px",
-                                                    fontWeight: 700,
-                                                    fontSize: 14,
-                                                    cursor: "pointer",
-                                                    outline: "none",
-                                                }}
-                                                onMouseOver={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                                onFocus={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                                onBlur={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                                onMouseDown={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                                onMouseUp={(e) =>
-                                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                                }
-                                            >
-                                                Delete
-                                            </button>
-                                        </>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                        <tr>
-                            <td style={{ padding: "8px 6px" }}>
-                                <input
-                                    value={newStudent.rollNo}
-                                    onChange={(e) =>
-                                        setNewStudent({
-                                            ...newStudent,
-                                            rollNo: e.target.value,
-                                        })
-                                    }
-                                    placeholder="Roll No"
-                                    style={{
-                                        width: 100,
-                                        fontSize: 15,
-                                        padding: "6px 8px",
-                                        borderRadius: 5,
-                                        border: `1.5px solid ${
-                                            theme?.inputBorder || "#ccc"
-                                        }`,
-                                        background: theme?.inputBg || "#fff",
-                                        color: theme?.text || "#222",
-                                    }}
-                                />
-                            </td>
-                            <td style={{ padding: "8px 6px" }}>
-                                <input
-                                    value={newStudent.name}
-                                    onChange={(e) =>
-                                        setNewStudent({
-                                            ...newStudent,
-                                            name: e.target.value,
-                                        })
-                                    }
-                                    placeholder="Name"
-                                    style={{
-                                        width: 180,
-                                        fontSize: 15,
-                                        padding: "6px 8px",
-                                        borderRadius: 5,
-                                        border: `1.5px solid ${
-                                            theme?.inputBorder || "#ccc"
-                                        }`,
-                                        background: theme?.inputBg || "#fff",
-                                        color: theme?.text || "#222",
-                                    }}
-                                />
-                            </td>
-                            <td style={{ padding: "8px 6px" }}>
-                                <button
-                                    onClick={handleAddStudent}
-                                    style={{
-                                        background: ACCENT,
-                                        color: "#fff",
-                                        border: "none",
-                                        borderRadius: 5,
-                                        padding: "6px 14px",
-                                        fontWeight: 700,
-                                        fontSize: 14,
-                                        cursor: "pointer",
-                                        outline: "none",
-                                    }}
-                                    onMouseOver={(e) =>
-                                        (e.target.style.border = "none")
-                                    }
-                                    onFocus={(e) =>
-                                        (e.target.style.border = "none")
-                                    }
-                                    onBlur={(e) =>
-                                        (e.target.style.border = "none")
-                                    }
-                                    onMouseDown={(e) =>
-                                        (e.target.style.border = "none")
-                                    }
-                                    onMouseUp={(e) =>
-                                        (e.target.style.border = "none")
-                                    }
-                                >
-                                    Add
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                    {error}
+                </div>
             )}
+
+            {/* Student List Section */}
+            <div
+                style={{
+                    background: "#fafafa",
+                    borderRadius: 12,
+                    padding: "20px",
+                    border: `1px solid #e0e0e0`,
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 16,
+                    }}
+                >
+                    <h3
+                        style={{
+                            color: "#388e3c",
+                            fontWeight: 700,
+                            fontSize: 20,
+                            margin: 0,
+                            display: "flex",
+                            alignItems: "center",
+                        }}
+                    >
+                        <span
+                            style={{
+                                background: "#388e3c",
+                                width: 24,
+                                height: 24,
+                                borderRadius: "50%",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "white",
+                                fontSize: 14,
+                                marginRight: 10,
+                            }}
+                        >
+                            3
+                        </span>
+                        Student List
+                    </h3>
+                    <div
+                        style={{
+                            fontSize: 16,
+                            fontWeight: 600,
+                            color: ACCENT_DARK,
+                        }}
+                    >
+                        Total Students: {students.length}
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div style={{ textAlign: "center", padding: "30px" }}>
+                        <div
+                            className="spinner"
+                            style={{
+                                border: "4px solid #f3f3f3",
+                                borderTop: `4px solid ${ACCENT}`,
+                                borderRadius: "50%",
+                                width: 40,
+                                height: 40,
+                                animation: "spin 1s linear infinite",
+                                margin: "0 auto 15px",
+                            }}
+                        ></div>
+                        <p>Loading students...</p>
+                    </div>
+                ) : (
+                    <div style={{ overflowX: "auto" }}>
+                        <table
+                            style={{
+                                width: "100%",
+                                borderCollapse: "collapse",
+                                marginBottom: 0,
+                                minWidth: 600,
+                            }}
+                        >
+                            <thead>
+                                <tr style={{ background: "#e8f5e9" }}>
+                                    <th
+                                        style={{
+                                            padding: "14px 10px",
+                                            fontWeight: 700,
+                                            color: "#388e3c",
+                                            fontSize: 15,
+                                            borderBottom: `2px solid #388e3c`,
+                                            textAlign: "left",
+                                        }}
+                                    >
+                                        Roll No
+                                    </th>
+                                    <th
+                                        style={{
+                                            padding: "14px 10px",
+                                            fontWeight: 700,
+                                            color: "#388e3c",
+                                            fontSize: 15,
+                                            borderBottom: `2px solid #388e3c`,
+                                            textAlign: "left",
+                                        }}
+                                    >
+                                        Name
+                                    </th>
+                                    <th
+                                        style={{
+                                            padding: "14px 10px",
+                                            fontWeight: 700,
+                                            color: "#388e3c",
+                                            fontSize: 15,
+                                            borderBottom: `2px solid #388e3c`,
+                                            textAlign: "center",
+                                        }}
+                                    >
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {students.length === 0 && (
+                                    <tr>
+                                        <td
+                                            colSpan={3}
+                                            style={{
+                                                textAlign: "center",
+                                                color: theme?.text,
+                                                padding: "30px 16px",
+                                                fontStyle: "italic",
+                                            }}
+                                        >
+                                            No students found. Add students
+                                            using the form above.
+                                        </td>
+                                    </tr>
+                                )}
+                                {students.map((s, idx) => (
+                                    <tr
+                                        key={idx}
+                                        style={{
+                                            background:
+                                                idx % 2 === 0
+                                                    ? "#ffffff"
+                                                    : "#f9f9f9",
+                                            transition: "background 0.2s",
+                                        }}
+                                        onMouseOver={(e) =>
+                                            (e.target.closest(
+                                                "tr"
+                                            ).style.background = "#fff3e0")
+                                        }
+                                        onMouseOut={(e) =>
+                                            (e.target.closest(
+                                                "tr"
+                                            ).style.background =
+                                                idx % 2 === 0
+                                                    ? "#ffffff"
+                                                    : "#f9f9f9")
+                                        }
+                                    >
+                                        <td
+                                            style={{
+                                                padding: "12px 10px",
+                                                fontWeight: 500,
+                                                border: "1px solid #eee",
+                                            }}
+                                        >
+                                            {editingIdx === idx ? (
+                                                <input
+                                                    value={
+                                                        editingStudent.rollNo
+                                                    }
+                                                    onChange={(e) =>
+                                                        setEditingStudent({
+                                                            ...editingStudent,
+                                                            rollNo: e.target
+                                                                .value,
+                                                        })
+                                                    }
+                                                    style={{
+                                                        width: 100,
+                                                        fontSize: 15,
+                                                        padding: "8px 10px",
+                                                        borderRadius: 5,
+                                                        border: `1.5px solid #1976d2`,
+                                                        background:
+                                                            theme?.inputBg ||
+                                                            "#fff",
+                                                        color:
+                                                            theme?.text ||
+                                                            "#222",
+                                                    }}
+                                                />
+                                            ) : (
+                                                s.rollNo
+                                            )}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: "12px 10px",
+                                                border: "1px solid #eee",
+                                            }}
+                                        >
+                                            {editingIdx === idx ? (
+                                                <input
+                                                    value={editingStudent.name}
+                                                    onChange={(e) =>
+                                                        setEditingStudent({
+                                                            ...editingStudent,
+                                                            name: e.target
+                                                                .value,
+                                                        })
+                                                    }
+                                                    style={{
+                                                        width: "100%",
+                                                        fontSize: 15,
+                                                        padding: "8px 10px",
+                                                        borderRadius: 5,
+                                                        border: `1.5px solid #1976d2`,
+                                                        background:
+                                                            theme?.inputBg ||
+                                                            "#fff",
+                                                        color:
+                                                            theme?.text ||
+                                                            "#222",
+                                                    }}
+                                                />
+                                            ) : (
+                                                s.name
+                                            )}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: "12px 10px",
+                                                textAlign: "center",
+                                                border: "1px solid #eee",
+                                            }}
+                                        >
+                                            {editingIdx === idx ? (
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: 8,
+                                                        justifyContent:
+                                                            "center",
+                                                    }}
+                                                >
+                                                    <button
+                                                        onClick={
+                                                            handleSaveEditStudent
+                                                        }
+                                                        style={{
+                                                            background:
+                                                                "#388e3c",
+                                                            color: "#fff",
+                                                            border: "none",
+                                                            borderRadius: 5,
+                                                            padding: "8px 16px",
+                                                            fontWeight: 600,
+                                                            fontSize: 14,
+                                                            cursor: "pointer",
+                                                            outline: "none",
+                                                        }}
+                                                        onMouseOver={(e) =>
+                                                            (e.target.style.opacity =
+                                                                "0.9")
+                                                        }
+                                                        onMouseOut={(e) =>
+                                                            (e.target.style.opacity =
+                                                                "1")
+                                                        }
+                                                    >
+                                                        Save
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            setEditingIdx(null)
+                                                        }
+                                                        style={{
+                                                            background:
+                                                                "#f5f5f5",
+                                                            color: "#666",
+                                                            border: `1px solid #ddd`,
+                                                            borderRadius: 5,
+                                                            padding: "8px 16px",
+                                                            fontWeight: 600,
+                                                            fontSize: 14,
+                                                            cursor: "pointer",
+                                                            outline: "none",
+                                                        }}
+                                                        onMouseOver={(e) =>
+                                                            (e.target.style.background =
+                                                                "#e0e0e0")
+                                                        }
+                                                        onMouseOut={(e) =>
+                                                            (e.target.style.background =
+                                                                "#f5f5f5")
+                                                        }
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: 8,
+                                                        justifyContent:
+                                                            "center",
+                                                    }}
+                                                >
+                                                    <button
+                                                        onClick={() =>
+                                                            handleEditStudent(
+                                                                idx
+                                                            )
+                                                        }
+                                                        style={{
+                                                            background:
+                                                                "#1976d2",
+                                                            color: "#fff",
+                                                            border: "none",
+                                                            borderRadius: 5,
+                                                            padding: "8px 16px",
+                                                            fontWeight: 600,
+                                                            fontSize: 14,
+                                                            cursor: "pointer",
+                                                            outline: "none",
+                                                        }}
+                                                        onMouseOver={(e) =>
+                                                            (e.target.style.opacity =
+                                                                "0.9")
+                                                        }
+                                                        onMouseOut={(e) =>
+                                                            (e.target.style.opacity =
+                                                                "1")
+                                                        }
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            handleDeleteStudent(
+                                                                idx
+                                                            )
+                                                        }
+                                                        style={{
+                                                            background:
+                                                                "#f44336",
+                                                            color: "#fff",
+                                                            border: "none",
+                                                            borderRadius: 5,
+                                                            padding: "8px 16px",
+                                                            fontWeight: 600,
+                                                            fontSize: 14,
+                                                            cursor: "pointer",
+                                                            outline: "none",
+                                                        }}
+                                                        onMouseOver={(e) =>
+                                                            (e.target.style.opacity =
+                                                                "0.9")
+                                                        }
+                                                        onMouseOut={(e) =>
+                                                            (e.target.style.opacity =
+                                                                "1")
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
             {showRemoveConfirm && (
                 <div
                     style={{
@@ -664,7 +903,7 @@ function StudentRegistry({ theme }) {
                         left: 0,
                         width: "100vw",
                         height: "100vh",
-                        background: "rgba(0,0,0,0.25)",
+                        background: "rgba(0,0,0,0.5)",
                         zIndex: 3000,
                         display: "flex",
                         alignItems: "center",
@@ -674,84 +913,103 @@ function StudentRegistry({ theme }) {
                     <div
                         style={{
                             background: theme?.surface || "#fff",
-                            borderRadius: 14,
-                            boxShadow: theme?.shadow || "0 2px 12px #0001",
-                            padding: "2rem 2.5rem",
-                            minWidth: 400,
-                            maxWidth: "90vw",
+                            borderRadius: 16,
+                            boxShadow: theme?.shadow || "0 4px 20px #0003",
+                            padding: "2rem",
+                            maxWidth: 500,
+                            width: "90%",
                             color: theme?.text || "#222",
                             textAlign: "center",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 18,
                         }}
                     >
                         <h3
                             style={{
-                                color: "#e53935",
+                                color: "#f44336",
                                 fontWeight: 800,
-                                fontSize: 20,
-                                marginBottom: 8,
+                                fontSize: 24,
+                                marginBottom: 16,
                             }}
                         >
-                            Remove Student Registry
+                            Confirm Removal
                         </h3>
                         <div
                             style={{
-                                fontSize: 16,
-                                marginBottom: 20,
-                                lineHeight: 1.5,
+                                fontSize: 17,
+                                marginBottom: 24,
+                                lineHeight: 1.6,
                             }}
                         >
-                            Are you sure you want to remove the student list for{" "}
-                            <strong>{studentClass}</strong> class,{" "}
+                            Are you sure you want to remove the student registry
+                            for <strong>{studentClass}</strong> class,{" "}
                             <strong>{session}</strong> session?
                             <br />
-                            This action cannot be undone and will permanently
-                            delete all {students.length} student(s) from this
-                            registry.
+                            <span style={{ color: "#f44336", fontWeight: 600 }}>
+                                This action cannot be undone and will
+                                permanently delete all {students.length}{" "}
+                                student(s).
+                            </span>
                         </div>
-                        <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 16,
+                                justifyContent: "center",
+                            }}
+                        >
                             <button
                                 onClick={handleRemoveRegistry}
                                 disabled={removing}
                                 style={{
-                                    background: "#e53935",
+                                    background: "#f44336",
                                     color: "#fff",
                                     border: "none",
-                                    borderRadius: 6,
-                                    padding: "8px 22px",
+                                    borderRadius: 8,
+                                    padding: "12px 24px",
                                     fontWeight: 700,
                                     fontSize: 16,
                                     cursor: "pointer",
                                     boxShadow: theme?.shadow,
                                     outline: "none",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
                                 }}
                                 onMouseOver={(e) =>
-                                    (e.target.style.border = "none")
+                                    (e.target.style.opacity = "0.9")
                                 }
-                                onFocus={(e) =>
-                                    (e.target.style.border = "none")
-                                }
-                                onBlur={(e) => (e.target.style.border = "none")}
-                                onMouseDown={(e) =>
-                                    (e.target.style.border = "none")
-                                }
-                                onMouseUp={(e) =>
-                                    (e.target.style.border = "none")
+                                onMouseOut={(e) =>
+                                    (e.target.style.opacity = "1")
                                 }
                             >
-                                {removing ? "Removing..." : "Remove Registry"}
+                                {removing ? (
+                                    <>
+                                        <span
+                                            className="spinner"
+                                            style={{
+                                                border: "2px solid #fff",
+                                                borderTop:
+                                                    "2px solid transparent",
+                                                borderRadius: "50%",
+                                                width: 16,
+                                                height: 16,
+                                                animation:
+                                                    "spin 1s linear infinite",
+                                            }}
+                                        ></span>
+                                        Removing...
+                                    </>
+                                ) : (
+                                    "Remove Registry"
+                                )}
                             </button>
                             <button
                                 onClick={() => setShowRemoveConfirm(false)}
                                 style={{
-                                    background: theme?.surface || "#fff",
-                                    color: ACCENT_DARK,
-                                    border: `2px solid ${ACCENT}`,
-                                    borderRadius: 6,
-                                    padding: "8px 22px",
+                                    background: "#f5f5f5",
+                                    color: "#666",
+                                    border: `1px solid #ddd`,
+                                    borderRadius: 8,
+                                    padding: "12px 24px",
                                     fontWeight: 700,
                                     fontSize: 16,
                                     cursor: "pointer",
@@ -759,19 +1017,10 @@ function StudentRegistry({ theme }) {
                                     outline: "none",
                                 }}
                                 onMouseOver={(e) =>
-                                    (e.target.style.border = `2px solid ${ACCENT}`)
+                                    (e.target.style.background = "#e0e0e0")
                                 }
-                                onFocus={(e) =>
-                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                }
-                                onBlur={(e) =>
-                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                }
-                                onMouseDown={(e) =>
-                                    (e.target.style.border = `2px solid ${ACCENT}`)
-                                }
-                                onMouseUp={(e) =>
-                                    (e.target.style.border = `2px solid ${ACCENT}`)
+                                onMouseOut={(e) =>
+                                    (e.target.style.background = "#f5f5f5")
                                 }
                             >
                                 Cancel
@@ -780,6 +1029,16 @@ function StudentRegistry({ theme }) {
                     </div>
                 </div>
             )}
+
+            <style>{`
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                .spinner {
+                    display: inline-block;
+                }
+            `}</style>
         </div>
     );
 }

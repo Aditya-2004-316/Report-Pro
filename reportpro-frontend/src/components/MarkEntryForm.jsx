@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { SUBJECTS } from "./subjects";
+import { safeDivision, validateStudentData, GRADE_COLORS } from "./gradeUtils";
 
 function MarkEntryForm({
     onSubmit,
@@ -49,8 +50,44 @@ function MarkEntryForm({
     const [editingStudent, setEditingStudent] = useState(null); // {rollNo, name, idx}
     const [newStudent, setNewStudent] = useState({ rollNo: "", name: "" });
     const [savingRegistry, setSavingRegistry] = useState(false);
-    // Add state for auto-add to registry feature:
-    const [autoAddToRegistry, setAutoAddToRegistry] = useState(true);
+    const [autoAddToRegistry, setAutoAddToRegistry] = useState(
+        () => localStorage.getItem("markentry_autoAddToRegistry") === "true"
+    );
+    // Add function to calculate total and grade
+    const calculateTotalAndGrade = (theoryMarks, practicalMarks) => {
+        // Validate input values
+        const theory =
+            typeof theoryMarks === "number" ? theoryMarks : Number(theoryMarks);
+        const practical =
+            typeof practicalMarks === "number"
+                ? practicalMarks
+                : Number(practicalMarks);
+
+        // Check for valid numbers
+        if (isNaN(theory) || isNaN(practical)) {
+            return { total: 0, grade: "E2" };
+        }
+
+        // Calculate total
+        const total = theory + practical;
+
+        // Calculate grade based on percentage (total out of 100)
+        const percentage = safeDivision(total, 100, 0) * 100;
+
+        // Grade assignment logic matching StudentList component
+        let grade;
+        if (percentage >= 91) grade = "A+";
+        else if (percentage >= 81) grade = "A";
+        else if (percentage >= 71) grade = "B+";
+        else if (percentage >= 61) grade = "B";
+        else if (percentage >= 51) grade = "C+";
+        else if (percentage >= 41) grade = "C";
+        else if (percentage >= 33) grade = "D";
+        else if (percentage >= 21) grade = "E1";
+        else grade = "E2";
+
+        return { total: Math.round(total), grade };
+    };
 
     // Responsive: update isMobile and isTablet on window resize (same pattern as DashboardLayout)
     const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
@@ -80,6 +117,13 @@ function MarkEntryForm({
     useEffect(() => {
         localStorage.setItem("markentry_month", month);
     }, [month]);
+
+    useEffect(() => {
+        localStorage.setItem(
+            "markentry_autoAddToRegistry",
+            autoAddToRegistry.toString()
+        );
+    }, [autoAddToRegistry]);
 
     // Reset month when exam type changes
     useEffect(() => {
@@ -332,15 +376,20 @@ function MarkEntryForm({
         try {
             // Submit the marks data and wait for result
             const result = await onSubmit(data);
-            
+
             // Only proceed with registry addition if marks submission was successful
             if (!result || !result.success) {
-                console.warn("Marks submission failed, not adding to registry:", result?.error || "Unknown error");
+                console.warn(
+                    "Marks submission failed, not adding to registry:",
+                    result?.error || "Unknown error"
+                );
                 // Don't reset form on submission failure so user can retry
                 return;
             }
-            
-            console.log("Marks submitted successfully, proceeding with registry addition if needed");
+
+            console.log(
+                "Marks submitted successfully, proceeding with registry addition if needed"
+            );
 
             // ONLY after confirmed successful marks submission, handle auto-add to registry
             if (
@@ -358,7 +407,10 @@ function MarkEntryForm({
                 );
 
                 if (!existingStudent) {
-                    console.log("Adding new student to registry:", { rollNo: data.rollNo.trim(), name: data.name.trim() });
+                    console.log("Adding new student to registry:", {
+                        rollNo: data.rollNo.trim(),
+                        name: data.name.trim(),
+                    });
                     try {
                         const token = sessionStorage.getItem("token");
                         const newRegistryStudents = [
@@ -388,9 +440,14 @@ function MarkEntryForm({
                         if (registryResponse.ok) {
                             // Update local registry state only if API call succeeded
                             setRegistryStudents(newRegistryStudents);
-                            console.log("Student successfully added to registry");
+                            console.log(
+                                "Student successfully added to registry"
+                            );
                         } else {
-                            console.warn("Failed to add student to registry - API call failed:", registryResponse.status);
+                            console.warn(
+                                "Failed to add student to registry - API call failed:",
+                                registryResponse.status
+                            );
                         }
                     } catch (error) {
                         console.warn(
@@ -400,20 +457,25 @@ function MarkEntryForm({
                         // Silently fail, registry will refresh on next session/class change
                     }
                 } else {
-                    console.log("Student already exists in registry, skipping addition");
+                    console.log(
+                        "Student already exists in registry, skipping addition"
+                    );
                 }
             } else {
                 if (!autoAddToRegistry) {
                     console.log("Auto-add to registry is disabled");
                 } else {
-                    console.log("Skipping registry addition - missing required data:", {
-                        autoAddToRegistry,
-                        hasRollNo: !!data.rollNo.trim(),
-                        isNotNA: data.rollNo.trim() !== "N/A",
-                        hasName: !!data.name.trim(),
-                        hasSession: !!session,
-                        hasStudentClass: !!studentClass
-                    });
+                    console.log(
+                        "Skipping registry addition - missing required data:",
+                        {
+                            autoAddToRegistry,
+                            hasRollNo: !!data.rollNo.trim(),
+                            isNotNA: data.rollNo.trim() !== "N/A",
+                            hasName: !!data.name.trim(),
+                            hasSession: !!session,
+                            hasStudentClass: !!studentClass,
+                        }
+                    );
                 }
             }
 
@@ -436,7 +498,9 @@ function MarkEntryForm({
                     if (response.ok) {
                         const refreshedData = await response.json();
                         setRegistryStudents(
-                            refreshedData && refreshedData.students ? refreshedData.students : []
+                            refreshedData && refreshedData.students
+                                ? refreshedData.students
+                                : []
                         );
                         console.log("Registry data refreshed successfully");
                     }
