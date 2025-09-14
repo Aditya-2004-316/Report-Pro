@@ -644,7 +644,63 @@ function StudentList({
         setMarkingAbsent(false);
     }
 
-    return (
+    // Get theme-aware colors for row headings
+    const getRowHeadingColors = () => {
+        if (theme.name === "dark") {
+            return {
+                background: "#3a3d42",
+                color: "#ffffff",
+                border: "#4a4d52",
+            };
+        } else {
+            return {
+                background: "#fce4ec",
+                color: "#000000",
+                border: "#ef9a9a",
+            };
+        }
+    };
+
+// NEW: Helper function for consistent table cell styling
+const getTableCellStyle = (idx, isPlaceholder = false, isAbsent = false) => {
+    // Enforce a single background color for all rows/cells
+    const baseStyle = {
+        padding: 12,
+        textAlign: "center",
+        fontSize: 15,
+        color: theme.text,
+        background: theme.surface,
+        border: theme.name === "dark" ? "1px solid #4a4d52" : "1px solid #ef9a9a",
+    };
+
+    // Optional textual hints without changing the background color
+    if (isAbsent) {
+        baseStyle.color = theme.name === "dark" ? "#ff6f60" : "#d32f2f";
+        baseStyle.fontWeight = "bold";
+    } else if (isPlaceholder) {
+        baseStyle.color = theme.textSecondary || (theme.name === "dark" ? "#bbbbbb" : "#666");
+        baseStyle.fontStyle = "italic";
+    }
+
+    return baseStyle;
+};
+
+const rowHeadingColors = getRowHeadingColors();
+
+return (
+    <div
+        style={{
+            width: "100%",
+            maxWidth: 1400,
+            margin: "2rem auto",
+            background: theme.background,
+            borderRadius: 16,
+            boxShadow: theme.shadow,
+            padding: "2rem 1.5rem",
+            boxSizing: "border-box",
+            color: theme.text,
+        }}
+    >
         <div
             style={{
                 width: "100%",
@@ -1073,7 +1129,7 @@ function StudentList({
                                 marginTop: 8,
                                 boxShadow: theme.shadow,
                                 color: theme.text,
-                                border: "1px solid #f5c6cb",
+                                border: theme.name === "dark" ? "1px solid #4a4d52" : "1px solid #f5c6cb",
                                 minWidth: 900,
                             }}
                         >
@@ -1084,10 +1140,10 @@ function StudentList({
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: "#fce4ec",
-                                            color: "#000000",
+                                            background: rowHeadingColors.background,
+                                            color: rowHeadingColors.color,
                                             fontWeight: 700,
-                                            border: "1px solid #ef9a9a",
+                                            border: `1px solid ${rowHeadingColors.border}`,
                                             fontSize: 15,
                                             letterSpacing: 0.5,
                                         }}
@@ -1099,10 +1155,10 @@ function StudentList({
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: "#fce4ec",
-                                            color: "#000000",
+                                            background: rowHeadingColors.background,
+                                            color: rowHeadingColors.color,
                                             fontWeight: 700,
-                                            border: "1px solid #ef9a9a",
+                                            border: `1px solid ${rowHeadingColors.border}`,
                                             fontSize: 15,
                                             letterSpacing: 0.5,
                                         }}
@@ -1114,10 +1170,10 @@ function StudentList({
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: "#fce4ec",
-                                            color: "#000000",
+                                            background: rowHeadingColors.background,
+                                            color: rowHeadingColors.color,
                                             fontWeight: 700,
-                                            border: "1px solid #ef9a9a",
+                                            border: `1px solid ${rowHeadingColors.border}`,
                                             fontSize: 15,
                                             letterSpacing: 0.5,
                                         }}
@@ -1129,10 +1185,10 @@ function StudentList({
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: "#fce4ec",
-                                            color: "#000000",
+                                            background: rowHeadingColors.background,
+                                            color: rowHeadingColors.color,
                                             fontWeight: 700,
-                                            border: "1px solid #ef9a9a",
+                                            border: `1px solid ${rowHeadingColors.border}`,
                                             fontSize: 15,
                                             letterSpacing: 0.5,
                                         }}
@@ -1146,10 +1202,10 @@ function StudentList({
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: "#fce4ec",
-                                                color: "#000000",
+                                                background: rowHeadingColors.background,
+                                                color: rowHeadingColors.color,
                                                 fontWeight: 700,
-                                                border: "1px solid #ef9a9a",
+                                                border: `1px solid ${rowHeadingColors.border}`,
                                                 fontSize: 15,
                                                 letterSpacing: 0.5,
                                             }}
@@ -1162,10 +1218,10 @@ function StudentList({
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: "#fce4ec",
-                                            color: "#000000",
+                                            background: rowHeadingColors.background,
+                                            color: rowHeadingColors.color,
                                             fontWeight: 700,
-                                            border: "1px solid #ef9a9a",
+                                            border: `1px solid ${rowHeadingColors.border}`,
                                             fontSize: 15,
                                             letterSpacing: 0.5,
                                         }}
@@ -1177,10 +1233,10 @@ function StudentList({
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: "#fce4ec",
-                                            color: "#000000",
+                                            background: rowHeadingColors.background,
+                                            color: rowHeadingColors.color,
                                             fontWeight: 700,
-                                            border: "1px solid #ef9a9a",
+                                            border: `1px solid ${rowHeadingColors.border}`,
                                             fontSize: 15,
                                             letterSpacing: 0.5,
                                         }}
@@ -1192,10 +1248,10 @@ function StudentList({
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: "#fce4ec",
-                                            color: "#000000",
+                                            background: rowHeadingColors.background,
+                                            color: rowHeadingColors.color,
                                             fontWeight: 700,
-                                            border: "1px solid #ef9a9a",
+                                            border: `1px solid ${rowHeadingColors.border}`,
                                             fontSize: 15,
                                             letterSpacing: 0.5,
                                         }}
@@ -1207,10 +1263,10 @@ function StudentList({
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: "#fce4ec",
-                                            color: "#000000",
+                                            background: rowHeadingColors.background,
+                                            color: rowHeadingColors.color,
                                             fontWeight: 700,
-                                            border: "1px solid #ef9a9a",
+                                            border: `1px solid ${rowHeadingColors.border}`,
                                             fontSize: 15,
                                             letterSpacing: 0.5,
                                         }}
@@ -1225,10 +1281,10 @@ function StudentList({
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: "#fce4ec",
-                                                color: "#000000",
+                                                background: rowHeadingColors.background,
+                                                color: rowHeadingColors.color,
                                                 fontWeight: 700,
-                                                border: "1px solid #ef9a9a",
+                                                border: `1px solid ${rowHeadingColors.border}`,
                                                 fontSize: 15,
                                                 letterSpacing: 0.5,
                                             }}
@@ -1240,10 +1296,10 @@ function StudentList({
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: "#fce4ec",
-                                                color: "#000000",
+                                                background: rowHeadingColors.background,
+                                                color: rowHeadingColors.color,
                                                 fontWeight: 700,
-                                                border: "1px solid #ef9a9a",
+                                                border: `1px solid ${rowHeadingColors.border}`,
                                                 fontSize: 15,
                                                 letterSpacing: 0.5,
                                             }}
@@ -1255,10 +1311,10 @@ function StudentList({
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: "#fce4ec",
-                                                color: "#000000",
+                                                background: rowHeadingColors.background,
+                                                color: rowHeadingColors.color,
                                                 fontWeight: 700,
-                                                border: "1px solid #ef9a9a",
+                                                border: `1px solid ${rowHeadingColors.border}`,
                                                 fontSize: 15,
                                                 letterSpacing: 0.5,
                                             }}
@@ -1270,10 +1326,10 @@ function StudentList({
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: "#fce4ec",
-                                                color: "#000000",
+                                                background: rowHeadingColors.background,
+                                                color: rowHeadingColors.color,
                                                 fontWeight: 700,
-                                                border: "1px solid #ef9a9a",
+                                                border: `1px solid ${rowHeadingColors.border}`,
                                                 fontSize: 15,
                                                 letterSpacing: 0.5,
                                             }}
@@ -1284,8 +1340,7 @@ function StudentList({
                                 </tr>
                             </thead>
                             <tbody>
-                                {Object.values(studentsByRollNo).length ===
-                                0 ? (
+                                {Object.values(studentsByRollNo).length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={SUBJECTS.length * 4 + 6}
@@ -1302,317 +1357,105 @@ function StudentList({
                                 ) : (
                                     Object.values(studentsByRollNo)
                                         .sort((a, b) => {
-                                            const rollA =
-                                                parseInt(a.rollNo) || 0;
-                                            const rollB =
-                                                parseInt(b.rollNo) || 0;
+                                            const rollA = parseInt(a.rollNo) || 0;
+                                            const rollB = parseInt(b.rollNo) || 0;
                                             return rollA - rollB;
                                         })
                                         .map((stu, idx) => {
-                                            const percentage =
-                                                ((stu.total || 0) /
-                                                    (stu.maxTotal || 1)) *
-                                                100;
+                                            const percentage = ((stu.total || 0) / (stu.maxTotal || 1)) * 100;
                                             const key = getStudentKey(stu);
                                             return (
-                                                <tr
-                                                    key={key}
-                                                    style={
-                                                        idx % 2 === 1
-                                                            ? {
-                                                                  background:
-                                                                      theme.background,
-                                                              }
-                                                            : {}
-                                                    }
-                                                >
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: "1px solid #ef9a9a",
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
+                                                <tr key={key}>
+                                                    <td style={getTableCellStyle(idx)}>
                                                         <input
                                                             type="checkbox"
-                                                            checked={selectedRows.includes(
-                                                                key
-                                                            )}
+                                                            checked={selectedRows.includes(key)}
                                                             onChange={(e) => {
-                                                                if (
-                                                                    e.target
-                                                                        .checked
-                                                                ) {
-                                                                    setSelectedRows(
-                                                                        (
-                                                                            prev
-                                                                        ) => [
-                                                                            ...prev,
-                                                                            key,
-                                                                        ]
-                                                                    );
+                                                                if (e.target.checked) {
+                                                                    setSelectedRows((prev) => [...prev, key]);
                                                                 } else {
-                                                                    setSelectedRows(
-                                                                        (
-                                                                            prev
-                                                                        ) =>
-                                                                            prev.filter(
-                                                                                (
-                                                                                    k
-                                                                                ) =>
-                                                                                    k !==
-                                                                                    key
-                                                                            )
+                                                                    setSelectedRows((prev) =>
+                                                                        prev.filter((k) => k !== key)
                                                                     );
                                                                 }
                                                             }}
                                                             aria-label={`Select student ${stu.rollNo}`}
                                                         />
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: "1px solid #ef9a9a",
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
-                                                        {stu.rollNo}
-                                                    </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: "1px solid #ef9a9a",
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                            minWidth: 120,
-                                                            maxWidth: 300,
-                                                            whiteSpace:
-                                                                "normal",
-                                                            wordBreak:
-                                                                "break-word",
-                                                        }}
-                                                    >
+                                                    <td style={getTableCellStyle(idx)}>{stu.rollNo}</td>
+                                                    <td style={{
+                                                        ...getTableCellStyle(idx),
+                                                        minWidth: 120,
+                                                        maxWidth: 300,
+                                                        whiteSpace: "normal",
+                                                        wordBreak: "break-word",
+                                                    }}>
                                                         {stu.name || "-"}
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: "1px solid #ef9a9a",
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
-                                                        {stu.examType || "-"}
-                                                    </td>
+                                                    <td style={getTableCellStyle(idx)}>{stu.examType || "-"}</td>
                                                     {SUBJECTS.map((subj) => {
-                                                        const subjectData =
-                                                            stu.subjects[subj];
-                                                        const isPlaceholder =
-                                                            subjectData?.isPlaceholder;
-                                                        const isAbsent =
-                                                            subjectData?.isAbsent;
-                                                        const cellStyle = {
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: "1px solid #ef9a9a",
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                            ...(isPlaceholder
-                                                                ? {
-                                                                      background:
-                                                                          "#f5f5f5",
-                                                                      color: "#666",
-                                                                      fontStyle:
-                                                                          "italic",
-                                                                  }
-                                                                : {}),
-                                                            ...(isAbsent
-                                                                ? {
-                                                                      background:
-                                                                          "#ffebee",
-                                                                      color: "#d32f2f",
-                                                                      fontWeight:
-                                                                          "bold",
-                                                                  }
-                                                                : {}),
-                                                        };
+                                                        const subjectData = stu.subjects[subj];
+                                                        const isPlaceholder = subjectData?.isPlaceholder;
+                                                        const isAbsent = subjectData?.isAbsent;
                                                         return [
-                                                            <td
-                                                                key={`${stu.rollNo}-${subj}-theory`}
-                                                                style={
-                                                                    cellStyle
-                                                                }
-                                                            >
-                                                                {isPlaceholder
-                                                                    ? "-"
-                                                                    : isAbsent
-                                                                    ? "AB"
-                                                                    : subjectData?.theory ??
-                                                                      "-"}
+                                                            <td key={`${stu.rollNo}-${subj}-theory`} 
+                                                                style={getTableCellStyle(idx, isPlaceholder, isAbsent)}>
+                                                                {isPlaceholder ? "-" : isAbsent ? "AB" : subjectData?.theory ?? "-"}
                                                             </td>,
-                                                            <td
-                                                                key={`${stu.rollNo}-${subj}-practical`}
-                                                                style={
-                                                                    cellStyle
-                                                                }
-                                                            >
-                                                                {isPlaceholder
-                                                                    ? "-"
-                                                                    : isAbsent
-                                                                    ? "AB"
-                                                                    : subjectData?.practical ??
-                                                                      "-"}
+                                                            <td key={`${stu.rollNo}-${subj}-practical`} 
+                                                                style={getTableCellStyle(idx, isPlaceholder, isAbsent)}>
+                                                                {isPlaceholder ? "-" : isAbsent ? "AB" : subjectData?.practical ?? "-"}
                                                             </td>,
-                                                            <td
-                                                                key={`${stu.rollNo}-${subj}-total`}
-                                                                style={
-                                                                    cellStyle
-                                                                }
-                                                            >
-                                                                {isPlaceholder
-                                                                    ? "-"
-                                                                    : isAbsent
-                                                                    ? "AB"
-                                                                    : subjectData?.total ??
-                                                                      "-"}
+                                                            <td key={`${stu.rollNo}-${subj}-total`} 
+                                                                style={getTableCellStyle(idx, isPlaceholder, isAbsent)}>
+                                                                {isPlaceholder ? "-" : isAbsent ? "AB" : subjectData?.total ?? "-"}
                                                             </td>,
-                                                            <td
-                                                                key={`${stu.rollNo}-${subj}-grade`}
-                                                                style={
-                                                                    cellStyle
-                                                                }
-                                                            >
-                                                                {isPlaceholder
-                                                                    ? "-"
-                                                                    : isAbsent
-                                                                    ? "AB"
-                                                                    : subjectData?.grade ??
-                                                                      "-"}
+                                                            <td key={`${stu.rollNo}-${subj}-grade`} 
+                                                                style={getTableCellStyle(idx, isPlaceholder, isAbsent)}>
+                                                                {isPlaceholder ? "-" : isAbsent ? "AB" : subjectData?.grade ?? "-"}
                                                             </td>,
                                                         ];
                                                     })}
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: "1px solid #ef9a9a",
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
-                                                        {stu.total}
-                                                    </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: "1px solid #ef9a9a",
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                            minWidth: 90,
-                                                        }}
-                                                    >
+                                                    <td style={getTableCellStyle(idx)}>{stu.total}</td>
+                                                    <td style={{...getTableCellStyle(idx), minWidth: 90}}>
                                                         {percentage.toFixed(2)}%
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: "1px solid #ef9a9a",
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
-                                                        {getOverallGrade(
-                                                            percentage,
-                                                            stu.subjects
-                                                        )}
+                                                    <td style={getTableCellStyle(idx)}>
+                                                        {getOverallGrade(percentage, stu.subjects)}
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: "1px solid #ef9a9a",
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
+                                                    <td style={getTableCellStyle(idx)}>
                                                         <button
                                                             onClick={() =>
-                                                                setDeleteStudentModal(
-                                                                    {
-                                                                        open: true,
-                                                                        rollNo: stu.rollNo,
-                                                                    }
-                                                                )
+                                                                setDeleteStudentModal({
+                                                                    open: true,
+                                                                    rollNo: stu.rollNo,
+                                                                })
                                                             }
                                                             style={{
-                                                                background:
-                                                                    "transparent",
-                                                                color:
-                                                                    theme ===
-                                                                    "dark"
-                                                                        ? "#ff6f60"
-                                                                        : "#e53935",
+                                                                background: "transparent",
+                                                                color: theme.name === "dark" ? "#ff6f61" : "#e53935",
                                                                 border: "none",
                                                                 borderRadius: 0,
                                                                 padding: "8px",
                                                                 fontWeight: 400,
                                                                 fontSize: 16,
                                                                 cursor: "pointer",
-                                                                boxShadow:
-                                                                    "none",
-                                                                minWidth:
-                                                                    "auto",
-                                                                minHeight:
-                                                                    "auto",
-                                                                display:
-                                                                    "inline-flex",
-                                                                alignItems:
-                                                                    "center",
-                                                                justifyContent:
-                                                                    "center",
+                                                                boxShadow: "none",
+                                                                minWidth: "auto",
+                                                                minHeight: "auto",
+                                                                display: "inline-flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
                                                                 marginLeft: 4,
                                                                 letterSpacing: 0,
-                                                                transition:
-                                                                    "color 0.2s",
-                                                                whiteSpace:
-                                                                    "nowrap",
+                                                                transition: "color 0.2s",
+                                                                whiteSpace: "nowrap",
                                                             }}
                                                             aria-label="Delete all marks for this student"
                                                         >
                                                             <MdDelete
                                                                 size={22}
-                                                                color={
-                                                                    theme ===
-                                                                    "dark"
-                                                                        ? "#ff6f60"
-                                                                        : "#e53935"
-                                                                }
+                                                                color={theme.name === "dark" ? "#ff6f60" : "#e53935"}
                                                             />
                                                         </button>
                                                     </td>
@@ -1687,8 +1530,7 @@ function StudentList({
                                             No matching results
                                         </div>
                                         <div>
-                                            No students found for "{search}" in{" "}
-                                            {subj}
+                                            No students found for "{search}" in {subj}
                                         </div>
                                     </div>
                                 ) : (
@@ -1703,8 +1545,7 @@ function StudentList({
                                             No students found
                                         </div>
                                         <div>
-                                            No student data available for {subj}{" "}
-                                            in the selected filters
+                                            No student data available for {subj} in the selected filters
                                         </div>
                                     </div>
                                 )}
@@ -1731,10 +1572,10 @@ function StudentList({
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: "#fce4ec",
-                                                    color: "#000000",
+                                                    background: rowHeadingColors.background,
+                                                    color: rowHeadingColors.color,
                                                     fontWeight: 700,
-                                                    border: `1px solid ${theme.border}`,
+                                                    border: `1px solid ${rowHeadingColors.border}`,
                                                     fontSize: 16,
                                                     letterSpacing: 0.5,
                                                 }}
@@ -1745,10 +1586,10 @@ function StudentList({
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: "#fce4ec",
-                                                    color: "#000000",
+                                                    background: rowHeadingColors.background,
+                                                    color: rowHeadingColors.color,
                                                     fontWeight: 700,
-                                                    border: `1px solid ${theme.border}`,
+                                                    border: `1px solid ${rowHeadingColors.border}`,
                                                     fontSize: 16,
                                                     letterSpacing: 0.5,
                                                 }}
@@ -1759,10 +1600,10 @@ function StudentList({
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: "#fce4ec",
-                                                    color: "#000000",
+                                                    background: rowHeadingColors.background,
+                                                    color: rowHeadingColors.color,
                                                     fontWeight: 700,
-                                                    border: `1px solid ${theme.border}`,
+                                                    border: `1px solid ${rowHeadingColors.border}`,
                                                     fontSize: 16,
                                                     letterSpacing: 0.5,
                                                 }}
@@ -1773,10 +1614,10 @@ function StudentList({
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: "#fce4ec",
-                                                    color: "#000000",
+                                                    background: rowHeadingColors.background,
+                                                    color: rowHeadingColors.color,
                                                     fontWeight: 700,
-                                                    border: `1px solid ${theme.border}`,
+                                                    border: `1px solid ${rowHeadingColors.border}`,
                                                     fontSize: 16,
                                                     letterSpacing: 0.5,
                                                 }}
@@ -1787,10 +1628,10 @@ function StudentList({
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: "#fce4ec",
-                                                    color: "#000000",
+                                                    background: rowHeadingColors.background,
+                                                    color: rowHeadingColors.color,
                                                     fontWeight: 700,
-                                                    border: `1px solid ${theme.border}`,
+                                                    border: `1px solid ${rowHeadingColors.border}`,
                                                     fontSize: 16,
                                                     letterSpacing: 0.5,
                                                 }}
@@ -1801,10 +1642,10 @@ function StudentList({
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: "#fce4ec",
-                                                    color: "#000000",
+                                                    background: rowHeadingColors.background,
+                                                    color: rowHeadingColors.color,
                                                     fontWeight: 700,
-                                                    border: `1px solid ${theme.border}`,
+                                                    border: `1px solid ${rowHeadingColors.border}`,
                                                     fontSize: 16,
                                                     letterSpacing: 0.5,
                                                 }}
@@ -1815,10 +1656,10 @@ function StudentList({
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: "#fce4ec",
-                                                    color: "#000000",
+                                                    background: rowHeadingColors.background,
+                                                    color: rowHeadingColors.color,
                                                     fontWeight: 700,
-                                                    border: `1px solid ${theme.border}`,
+                                                    border: `1px solid ${rowHeadingColors.border}`,
                                                     fontSize: 16,
                                                     letterSpacing: 0.5,
                                                 }}
@@ -1829,144 +1670,29 @@ function StudentList({
                                     </thead>
                                     <tbody>
                                         {subjectStudents.map((student, idx) => {
-                                            const isPlaceholder =
-                                                student.isPlaceholder;
+                                            const isPlaceholder = student.isPlaceholder;
                                             const isAbsent = student.isAbsent;
-                                            const rowStyle = {
-                                                ...(idx % 2 === 1
-                                                    ? {
-                                                          background:
-                                                              theme.background,
-                                                      }
-                                                    : {}),
-                                                ...(isPlaceholder
-                                                    ? {
-                                                          background: "#f5f5f5",
-                                                          color: "#666",
-                                                      }
-                                                    : {}),
-                                                ...(isAbsent
-                                                    ? {
-                                                          background: "#fce4ec",
-                                                          color: "#d32f2f",
-                                                          fontWeight: "bold",
-                                                      }
-                                                    : {}),
-                                            };
                                             return (
-                                                <tr
-                                                    key={`${student.rollNo}-${student.subject}`}
-                                                    style={rowStyle}
-                                                >
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: `1px solid ${theme.border}`,
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
+                                                <tr key={`${student.rollNo}-${student.subject}`}>
+                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
                                                         {student.rollNo}
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: `1px solid ${theme.border}`,
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
+                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
                                                         {student.name || "-"}
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: `1px solid ${theme.border}`,
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
-                                                        {isPlaceholder
-                                                            ? "-"
-                                                            : isAbsent
-                                                            ? "AB"
-                                                            : student.theory ??
-                                                              "-"}
+                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
+                                                        {isPlaceholder ? "-" : isAbsent ? "AB" : student.theory ?? "-"}
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: `1px solid ${theme.border}`,
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
-                                                        {isPlaceholder
-                                                            ? "-"
-                                                            : isAbsent
-                                                            ? "AB"
-                                                            : student.practical ??
-                                                              "-"}
+                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
+                                                        {isPlaceholder ? "-" : isAbsent ? "AB" : student.practical ?? "-"}
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: `1px solid ${theme.border}`,
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
-                                                        {isPlaceholder
-                                                            ? "-"
-                                                            : isAbsent
-                                                            ? "AB"
-                                                            : student.total ??
-                                                              "-"}
+                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
+                                                        {isPlaceholder ? "-" : isAbsent ? "AB" : student.total ?? "-"}
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: `1px solid ${theme.border}`,
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
-                                                        {isPlaceholder
-                                                            ? "-"
-                                                            : isAbsent
-                                                            ? "AB"
-                                                            : student.grade ??
-                                                              "-"}
+                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
+                                                        {isPlaceholder ? "-" : isAbsent ? "AB" : student.grade ?? "-"}
                                                     </td>
-                                                    <td
-                                                        style={{
-                                                            padding: 12,
-                                                            textAlign: "center",
-                                                            border: `1px solid ${theme.border}`,
-                                                            background:
-                                                                theme.surface,
-                                                            color: theme.text,
-                                                            fontSize: 15,
-                                                        }}
-                                                    >
+                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
                                                         <button
                                                             onClick={() =>
                                                                 handleDeleteStudent(
@@ -1976,28 +1702,18 @@ function StudentList({
                                                                 )
                                                             }
                                                             style={{
-                                                                background:
-                                                                    "transparent",
-                                                                color:
-                                                                    theme ===
-                                                                    "dark"
-                                                                        ? "#ff6f60"
-                                                                        : "#e53935",
+                                                                background: "transparent",
+                                                                color: theme.name === "dark" ? "#ff6f60" : "#e53935",
                                                                 border: "none",
                                                                 padding: "4px",
                                                                 cursor: "pointer",
-                                                                display:
-                                                                    "inline-flex",
-                                                                alignItems:
-                                                                    "center",
-                                                                justifyContent:
-                                                                    "center",
+                                                                display: "inline-flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
                                                             }}
                                                             aria-label={`Delete ${student.rollNo} from ${student.subject}`}
                                                         >
-                                                            <MdDelete
-                                                                size={18}
-                                                            />
+                                                            <MdDelete size={18} />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -2132,8 +1848,7 @@ function StudentList({
                                     style={{
                                         padding: "4px 0",
                                         borderBottom:
-                                            idx <
-                                            absentModal.students.length - 1
+                                            idx < absentModal.students.length - 1
                                                 ? `1px solid ${theme.border}`
                                                 : "none",
                                         color: theme.text,
@@ -2178,15 +1893,11 @@ function StudentList({
                                     background: "#ff9800",
                                     color: "#fff",
                                     borderRadius: "6px",
-                                    cursor: markingAbsent
-                                        ? "not-allowed"
-                                        : "pointer",
+                                    cursor: markingAbsent ? "not-allowed" : "pointer",
                                     opacity: markingAbsent ? 0.6 : 1,
                                 }}
                             >
-                                {markingAbsent
-                                    ? "Marking..."
-                                    : "Mark as Absent"}
+                                {markingAbsent ? "Marking..." : "Mark as Absent"}
                             </button>
                         </div>
                     </div>
@@ -2261,8 +1972,7 @@ function StudentList({
                                             {
                                                 method: "DELETE",
                                                 headers: {
-                                                    "Content-Type":
-                                                        "application/json",
+                                                    "Content-Type": "application/json",
                                                     Authorization: `Bearer ${token}`,
                                                 },
                                                 body: JSON.stringify({
@@ -2270,12 +1980,9 @@ function StudentList({
                                                     session,
                                                     class: selectedClass,
                                                     examType: selectedExamType,
-                                                    ...(selectedExamType ===
-                                                        "Monthly Test" &&
+                                                    ...(selectedExamType === "Monthly Test" &&
                                                     selectedMonth
-                                                        ? {
-                                                              month: selectedMonth,
-                                                          }
+                                                        ? { month: selectedMonth }
                                                         : {}),
                                                 }),
                                             }
@@ -2298,9 +2005,7 @@ function StudentList({
                                             "Error deleting student records:",
                                             error
                                         );
-                                        alert(
-                                            "Failed to delete student records."
-                                        );
+                                        alert("Failed to delete student records.");
                                     }
                                     setDeleteStudentModal({
                                         open: false,
@@ -2323,6 +2028,7 @@ function StudentList({
                 </div>
             )}
         </div>
+    </div>
     );
 }
 

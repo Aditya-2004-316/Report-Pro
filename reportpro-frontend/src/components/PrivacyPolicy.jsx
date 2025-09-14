@@ -1,103 +1,215 @@
-import React from "react";
-const PrivacyPolicy = ({ theme }) => (
-    <div
-        style={{
-            maxWidth: 800,
-            margin: "2rem auto",
-            padding: "2rem",
-            background: theme.surface,
-            color: theme.text,
-            borderRadius: 12,
-            boxShadow: theme.shadow,
-            fontFamily: "Segoe UI, Arial, sans-serif",
-        }}
-    >
-        <h2 style={{ fontWeight: 700, marginBottom: 16 }}>Privacy Policy</h2>
-        <p>Last updated: March 2024</p>
-        <section style={{ marginBottom: 24 }}>
-            <h3>1. Introduction</h3>
-            <p>
-                Report Pro ("we", "us", or "our") is committed to protecting
-                your privacy. This Privacy Policy explains how we collect, use,
-                disclose, and safeguard your information when you use our
-                platform.
-            </p>
-        </section>
-        <section style={{ marginBottom: 24 }}>
-            <h3>2. Information We Collect</h3>
-            <ul>
-                <li>
-                    <strong>Personal Information:</strong> Name, email address,
-                    and profile details provided during registration.
-                </li>
-                <li>
-                    <strong>Usage Data:</strong> Information about how you use
-                    the platform, including log data and device information.
-                </li>
-                <li>
-                    <strong>Cookies:</strong> We use cookies to enhance your
-                    experience and analyze usage.
-                </li>
-            </ul>
-        </section>
-        <section style={{ marginBottom: 24 }}>
-            <h3>3. How We Use Your Information</h3>
-            <ul>
-                <li>To provide and maintain our services</li>
-                <li>To communicate with you about your account or updates</li>
-                <li>To improve our platform and user experience</li>
-                <li>To comply with legal obligations</li>
-            </ul>
-        </section>
-        <section style={{ marginBottom: 24 }}>
-            <h3>4. Information Sharing</h3>
-            <p>
-                We do not sell or rent your personal information. We may share
-                information with service providers who help us operate the
-                platform, or if required by law.
-            </p>
-        </section>
-        <section style={{ marginBottom: 24 }}>
-            <h3>5. Data Security</h3>
-            <p>
-                We implement industry-standard security measures to protect your
-                data. However, no method of transmission over the Internet is
-                100% secure.
-            </p>
-        </section>
-        <section style={{ marginBottom: 24 }}>
-            <h3>6. Your Rights</h3>
-            <ul>
-                <li>Access, update, or delete your personal information</li>
-                <li>Opt out of non-essential communications</li>
-                <li>Request a copy of your data</li>
-            </ul>
-        </section>
-        <section style={{ marginBottom: 24 }}>
-            <h3>7. Children's Privacy</h3>
-            <p>
-                Our platform is intended for educational use. We do not
-                knowingly collect data from children under 13 without parental
-                consent.
-            </p>
-        </section>
-        <section style={{ marginBottom: 24 }}>
-            <h3>8. Changes to This Policy</h3>
-            <p>
-                We may update this Privacy Policy from time to time. We will
-                notify you of any significant changes by posting the new policy
-                on this page.
-            </p>
-        </section>
-        <section style={{ marginBottom: 24 }}>
-            <h3>9. Contact Us</h3>
-            <p>
-                If you have questions about this Privacy Policy, please contact
-                us via the Contact Us page or at{" "}
-                <a href="mailto:support@reportpro.com">support@reportpro.com</a>
-                .
-            </p>
-        </section>
-    </div>
-);
+import React, { useMemo } from "react";
+import { Link } from "react-router-dom";
+import { MdPrivacyTip, MdSecurity, MdInfo, MdMail, MdUpdate } from "react-icons/md";
+const PrivacyPolicy = ({ theme }) => {
+    const cardStyle = {
+        background: theme.surface,
+        color: theme.text,
+        borderRadius: 12,
+        border: `1px solid ${theme.border}`,
+        boxShadow: theme.shadow,
+    };
+
+    const lastUpdatedText = new Date().toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+
+    const sections = useMemo(
+        () => [
+            {
+                id: "introduction",
+                title: "Introduction",
+                icon: <MdPrivacyTip color={theme.accent} size={20} />,
+                content: (
+                    <p style={{ margin: 0 }}>
+                        Report Pro ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform.
+                    </p>
+                ),
+            },
+            {
+                id: "data-we-collect",
+                title: "Information We Collect",
+                icon: <MdInfo color={theme.accent} size={20} />,
+                content: (
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        <li>
+                            <strong>Personal Information:</strong> Name, email address, and profile details provided during registration.
+                        </li>
+                        <li>
+                            <strong>Usage Data:</strong> Information about how you use the platform, including log data and device information.
+                        </li>
+                        <li>
+                            <strong>Cookies:</strong> We use cookies to enhance your experience and analyze usage.
+                        </li>
+                    </ul>
+                ),
+            },
+            {
+                id: "how-we-use",
+                title: "How We Use Your Information",
+                icon: <MdInfo color={theme.accent} size={20} />,
+                content: (
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        <li>To provide and maintain our services</li>
+                        <li>To communicate with you about your account or updates</li>
+                        <li>To improve our platform and user experience</li>
+                        <li>To comply with legal obligations</li>
+                    </ul>
+                ),
+            },
+            {
+                id: "sharing",
+                title: "Information Sharing",
+                icon: <MdInfo color={theme.accent} size={20} />,
+                content: (
+                    <p style={{ margin: 0 }}>
+                        We do not sell or rent your personal information. We may share information with service providers who help us operate the platform, or if required by law.
+                    </p>
+                ),
+            },
+            {
+                id: "security",
+                title: "Data Security",
+                icon: <MdSecurity color={theme.accent} size={20} />,
+                content: (
+                    <p style={{ margin: 0 }}>
+                        We implement industry-standard security measures to protect your data. However, no method of transmission over the Internet is 100% secure.
+                    </p>
+                ),
+            },
+            {
+                id: "your-rights",
+                title: "Your Rights",
+                icon: <MdPrivacyTip color={theme.accent} size={20} />,
+                content: (
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        <li>Access, update, or delete your personal information</li>
+                        <li>Opt out of non-essential communications</li>
+                        <li>Request a copy of your data</li>
+                    </ul>
+                ),
+            },
+            {
+                id: "children",
+                title: "Children's Privacy",
+                icon: <MdInfo color={theme.accent} size={20} />,
+                content: (
+                    <p style={{ margin: 0 }}>
+                        Our platform is intended for educational use. We do not knowingly collect data from children under 13 without parental consent.
+                    </p>
+                ),
+            },
+            {
+                id: "changes",
+                title: "Changes to This Policy",
+                icon: <MdUpdate color={theme.accent} size={20} />,
+                content: (
+                    <p style={{ margin: 0 }}>
+                        We may update this Privacy Policy from time to time. We will notify you of any significant changes by posting the new policy on this page.
+                    </p>
+                ),
+            },
+            {
+                id: "contact",
+                title: "Contact Us",
+                icon: <MdMail color={theme.accent} size={20} />,
+                content: (
+                    <p style={{ margin: 0 }}>
+                        If you have questions about this Privacy Policy, please contact us via the Contact Us page or at {" "}
+                        <a href="mailto:support@reportpro.com" style={{ color: theme.accent }}>support@reportpro.com</a>.
+                    </p>
+                ),
+            },
+        ],
+        [theme.accent]
+    );
+
+    const sectionTitle = (title, icon) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {icon}
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: 20 }}>{title}</h3>
+        </div>
+    );
+
+    return (
+        <div style={{ maxWidth: 1100, width: "100%", margin: "2rem auto", padding: "0 1rem" }}>
+            {/* Hero */}
+            <div
+                style={{
+                    ...cardStyle,
+                    padding: "1.8rem",
+                    background:
+                        theme.name === "dark"
+                            ? `linear-gradient(135deg, ${theme.surface} 0%, #2b2e33 100%)`
+                            : `linear-gradient(135deg, #fff 0%, #fff6f6 100%)`,
+                }}
+            >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <span
+                        style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "6px 12px",
+                            borderRadius: 999,
+                            background: theme.name === "dark" ? "#232526" : "#ffeaea",
+                            color: theme.accent,
+                            fontWeight: 700,
+                            border: `1px solid ${theme.border}`,
+                        }}
+                    >
+                        <MdPrivacyTip /> Privacy
+                    </span>
+                </div>
+                <h2 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: theme.text }}>Privacy Policy</h2>
+                <p style={{ marginTop: 8, marginBottom: 14, color: theme.textSecondary }}>
+                    This policy explains how Report Pro collects, uses, and protects your data.
+                </p>
+                <div style={{ color: theme.textSecondary, fontSize: 14 }}>Last updated: {lastUpdatedText}</div>
+            </div>
+
+            {/* Content */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginTop: 16 }}>
+                {/* TOC */}
+                <div style={{ ...cardStyle, padding: 16 }}>
+                    <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 18 }}>Contents</h3>
+                    <ol style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
+                        {sections.map((s, i) => (
+                            <li key={s.id}>
+                                <a href={`#${s.id}`} style={{ color: theme.accent, textDecoration: "none" }}>
+                                    {s.title}
+                                </a>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+
+                {/* Sections */}
+                {sections.map((s) => (
+                    <div id={s.id} key={s.id} style={{ ...cardStyle, padding: 16 }}>
+                        {sectionTitle(s.title, s.icon)}
+                        <div style={{ marginTop: 10, color: theme.textSecondary }}>{s.content}</div>
+                    </div>
+                ))}
+
+                {/* Contact CTA */}
+                <div style={{ ...cardStyle, padding: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                        <MdMail color={theme.accent} size={20} />
+                        <strong>Need more help?</strong>
+                    </div>
+                    <p style={{ marginTop: 0, marginBottom: 12, color: theme.textSecondary }}>
+                        Have questions about privacy at Report Pro? Reach out to our team.
+                    </p>
+                    <Link to="/dashboard/contact" style={{ color: theme.accent, fontWeight: 700 }}>
+                        Contact Support
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default PrivacyPolicy;

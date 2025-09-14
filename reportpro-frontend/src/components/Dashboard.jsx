@@ -491,6 +491,10 @@ function Dashboard({
         position: "relative",
         marginTop: 18,
         color: theme.text,
+        "--hover-shadow":
+            theme.surface === "#32353b"
+                ? "0 8px 32px #11182777"
+                : "0 8px 32px #e5393533",
     };
     const statCardHover = {
         boxShadow: "0 8px 32px #e5393533",
@@ -592,7 +596,7 @@ function Dashboard({
         border: "1.5px solid #ffcdd2",
     };
     const topScorerBox = {
-        background: "#fff5f5",
+        background: theme.surface === "#32353b" ? "#4a4e57" : "#fff5f5",
         borderRadius: 8,
         padding: "8px 14px",
         fontSize: 16,
@@ -601,6 +605,14 @@ function Dashboard({
         margin: "4px 0 0 0",
         boxShadow: "0 1px 4px #e5393511",
         display: "inline-block",
+    };
+
+    const subjectCardStyle = {
+        ...statCardStyle,
+        background: theme.surface,
+        border: `2px solid ${theme.border}`,
+        boxShadow: theme.shadow,
+        minHeight: 380, // Ensure consistent height
     };
     const statGrid = {
         display: "grid",
@@ -1511,7 +1523,7 @@ function Dashboard({
                             fontSize: 16,
                             fontWeight: 600,
                             color: accentDark,
-                            background: "#fff",
+                            background: theme.inputBg,
                             marginTop: 4,
                             marginBottom: 0,
                         }}

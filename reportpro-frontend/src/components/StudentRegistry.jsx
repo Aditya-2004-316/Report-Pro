@@ -139,6 +139,30 @@ function StudentRegistry({ theme }) {
             });
     }
 
+    // Helper function to get theme-aware colors
+    const getThemedColors = (theme) => {
+        if (theme?.name === "dark") {
+            return {
+                // Slightly darker than outermost container but lighter than input backgrounds
+                sectionBg: "#2a2d30",
+                sectionBorder: "#4a4d52",
+                // Same color as School Statistics heading in dark mode
+                headingColor: "#ff6f61",
+                // Same as other dropdown options
+                dropdownOptionBg: "#232526",
+            };
+        } else {
+            return {
+                sectionBg: "#fff8f8",
+                sectionBorder: "#ffe0e0",
+                headingColor: ACCENT_DARK,
+                dropdownOptionBg: "#fff",
+            };
+        }
+    };
+
+    const themedColors = getThemedColors(theme);
+
     return (
         <div
             style={{
@@ -153,7 +177,7 @@ function StudentRegistry({ theme }) {
         >
             <h2
                 style={{
-                    color: ACCENT_DARK,
+                    color: themedColors.headingColor,
                     fontWeight: 800,
                     fontSize: 28,
                     marginBottom: 24,
@@ -168,16 +192,16 @@ function StudentRegistry({ theme }) {
             {/* Configuration Section */}
             <div
                 style={{
-                    background: "#fff8f8",
+                    background: themedColors.sectionBg,
                     borderRadius: 12,
                     padding: "20px",
                     marginBottom: 24,
-                    border: `1px solid #ffe0e0`,
+                    border: `1px solid ${themedColors.sectionBorder}`,
                 }}
             >
                 <h3
                     style={{
-                        color: ACCENT_DARK,
+                        color: themedColors.headingColor,
                         fontWeight: 700,
                         fontSize: 20,
                         marginBottom: 16,
@@ -208,7 +232,7 @@ function StudentRegistry({ theme }) {
                         <label
                             style={{
                                 fontWeight: 600,
-                                color: ACCENT_DARK,
+                                color: themedColors.headingColor,
                                 marginBottom: 6,
                                 fontSize: 16,
                                 display: "block",
@@ -231,7 +255,14 @@ function StudentRegistry({ theme }) {
                             }}
                         >
                             {sessionOptions.map((sess) => (
-                                <option key={sess} value={sess}>
+                                <option
+                                    key={sess}
+                                    value={sess}
+                                    style={{
+                                        background:
+                                            themedColors.dropdownOptionBg,
+                                    }}
+                                >
                                     {sess}
                                 </option>
                             ))}
@@ -241,7 +272,7 @@ function StudentRegistry({ theme }) {
                         <label
                             style={{
                                 fontWeight: 600,
-                                color: ACCENT_DARK,
+                                color: themedColors.headingColor,
                                 marginBottom: 6,
                                 fontSize: 16,
                                 display: "block",
@@ -263,8 +294,22 @@ function StudentRegistry({ theme }) {
                                 fontWeight: 500,
                             }}
                         >
-                            <option value="9th">9th</option>
-                            <option value="10th">10th</option>
+                            <option
+                                value="9th"
+                                style={{
+                                    background: themedColors.dropdownOptionBg,
+                                }}
+                            >
+                                9th
+                            </option>
+                            <option
+                                value="10th"
+                                style={{
+                                    background: themedColors.dropdownOptionBg,
+                                }}
+                            >
+                                10th
+                            </option>
                         </select>
                     </div>
                 </div>
@@ -273,16 +318,16 @@ function StudentRegistry({ theme }) {
             {/* Add Student Section */}
             <div
                 style={{
-                    background: "#f0f9ff",
+                    background: themedColors.sectionBg,
                     borderRadius: 12,
                     padding: "20px",
                     marginBottom: 24,
-                    border: `1px solid #cce6ff`,
+                    border: `1px solid ${themedColors.sectionBorder}`,
                 }}
             >
                 <h3
                     style={{
-                        color: "#1976d2",
+                        color: theme?.name === "dark" ? "#64b5f6" : "#1976d2",
                         fontWeight: 700,
                         fontSize: 20,
                         marginBottom: 16,
@@ -292,7 +337,8 @@ function StudentRegistry({ theme }) {
                 >
                     <span
                         style={{
-                            background: "#1976d2",
+                            background:
+                                theme?.name === "dark" ? "#64b5f6" : "#1976d2",
                             width: 24,
                             height: 24,
                             borderRadius: "50%",
@@ -313,7 +359,10 @@ function StudentRegistry({ theme }) {
                         <label
                             style={{
                                 fontWeight: 600,
-                                color: "#1976d2",
+                                color:
+                                    theme?.name === "dark"
+                                        ? "#64b5f6"
+                                        : "#1976d2",
                                 marginBottom: 6,
                                 fontSize: 16,
                                 display: "block",
@@ -335,7 +384,11 @@ function StudentRegistry({ theme }) {
                                 fontSize: 16,
                                 padding: "12px 10px",
                                 borderRadius: 8,
-                                border: `2px solid #1976d2`,
+                                border: `2px solid ${
+                                    theme?.name === "dark"
+                                        ? "#64b5f6"
+                                        : "#1976d2"
+                                }`,
                                 background: theme?.inputBg || "#fff",
                                 color: theme?.text || "#222",
                                 fontWeight: 500,
@@ -346,7 +399,10 @@ function StudentRegistry({ theme }) {
                         <label
                             style={{
                                 fontWeight: 600,
-                                color: "#1976d2",
+                                color:
+                                    theme?.name === "dark"
+                                        ? "#64b5f6"
+                                        : "#1976d2",
                                 marginBottom: 6,
                                 fontSize: 16,
                                 display: "block",
@@ -368,7 +424,11 @@ function StudentRegistry({ theme }) {
                                 fontSize: 16,
                                 padding: "12px 10px",
                                 borderRadius: 8,
-                                border: `2px solid #1976d2`,
+                                border: `2px solid ${
+                                    theme?.name === "dark"
+                                        ? "#64b5f6"
+                                        : "#1976d2"
+                                }`,
                                 background: theme?.inputBg || "#fff",
                                 color: theme?.text || "#222",
                                 fontWeight: 500,
@@ -379,7 +439,10 @@ function StudentRegistry({ theme }) {
                         <button
                             onClick={handleAddStudent}
                             style={{
-                                background: "#1976d2",
+                                background:
+                                    theme?.name === "dark"
+                                        ? "#64b5f6"
+                                        : "#1976d2",
                                 color: "#fff",
                                 border: "none",
                                 borderRadius: 8,
@@ -503,9 +566,13 @@ function StudentRegistry({ theme }) {
                         color: "#f44336",
                         marginBottom: 16,
                         padding: "12px",
-                        background: "#ffebee",
+                        background:
+                            theme?.name === "dark" ? "#424242" : "#ffebee",
                         borderRadius: 8,
-                        border: "1px solid #ffcdd2",
+                        border:
+                            theme?.name === "dark"
+                                ? "1px solid #616161"
+                                : "1px solid #ffcdd2",
                     }}
                 >
                     {error}
@@ -515,10 +582,10 @@ function StudentRegistry({ theme }) {
             {/* Student List Section */}
             <div
                 style={{
-                    background: "#fafafa",
+                    background: themedColors.sectionBg,
                     borderRadius: 12,
                     padding: "20px",
-                    border: `1px solid #e0e0e0`,
+                    border: `1px solid ${themedColors.sectionBorder}`,
                 }}
             >
                 <div
@@ -531,7 +598,8 @@ function StudentRegistry({ theme }) {
                 >
                     <h3
                         style={{
-                            color: "#388e3c",
+                            color:
+                                theme?.name === "dark" ? "#81c784" : "#388e3c",
                             fontWeight: 700,
                             fontSize: 20,
                             margin: 0,
@@ -541,7 +609,10 @@ function StudentRegistry({ theme }) {
                     >
                         <span
                             style={{
-                                background: "#388e3c",
+                                background:
+                                    theme?.name === "dark"
+                                        ? "#81c784"
+                                        : "#388e3c",
                                 width: 24,
                                 height: 24,
                                 borderRadius: "50%",
@@ -561,7 +632,7 @@ function StudentRegistry({ theme }) {
                         style={{
                             fontSize: 16,
                             fontWeight: 600,
-                            color: ACCENT_DARK,
+                            color: themedColors.headingColor,
                         }}
                     >
                         Total Students: {students.length}
@@ -595,14 +666,28 @@ function StudentRegistry({ theme }) {
                             }}
                         >
                             <thead>
-                                <tr style={{ background: "#e8f5e9" }}>
+                                <tr
+                                    style={{
+                                        background:
+                                            theme?.name === "dark"
+                                                ? "#383838"
+                                                : "#e8f5e9",
+                                    }}
+                                >
                                     <th
                                         style={{
                                             padding: "14px 10px",
                                             fontWeight: 700,
-                                            color: "#388e3c",
+                                            color:
+                                                theme?.name === "dark"
+                                                    ? "#81c784"
+                                                    : "#388e3c",
                                             fontSize: 15,
-                                            borderBottom: `2px solid #388e3c`,
+                                            borderBottom: `2px solid ${
+                                                theme?.name === "dark"
+                                                    ? "#81c784"
+                                                    : "#388e3c"
+                                            }`,
                                             textAlign: "left",
                                         }}
                                     >
@@ -612,9 +697,16 @@ function StudentRegistry({ theme }) {
                                         style={{
                                             padding: "14px 10px",
                                             fontWeight: 700,
-                                            color: "#388e3c",
+                                            color:
+                                                theme?.name === "dark"
+                                                    ? "#81c784"
+                                                    : "#388e3c",
                                             fontSize: 15,
-                                            borderBottom: `2px solid #388e3c`,
+                                            borderBottom: `2px solid ${
+                                                theme?.name === "dark"
+                                                    ? "#81c784"
+                                                    : "#388e3c"
+                                            }`,
                                             textAlign: "left",
                                         }}
                                     >
@@ -624,9 +716,16 @@ function StudentRegistry({ theme }) {
                                         style={{
                                             padding: "14px 10px",
                                             fontWeight: 700,
-                                            color: "#388e3c",
+                                            color:
+                                                theme?.name === "dark"
+                                                    ? "#81c784"
+                                                    : "#388e3c",
                                             fontSize: 15,
-                                            borderBottom: `2px solid #388e3c`,
+                                            borderBottom: `2px solid ${
+                                                theme?.name === "dark"
+                                                    ? "#81c784"
+                                                    : "#388e3c"
+                                            }`,
                                             textAlign: "center",
                                         }}
                                     >
@@ -657,21 +756,32 @@ function StudentRegistry({ theme }) {
                                         style={{
                                             background:
                                                 idx % 2 === 0
-                                                    ? "#ffffff"
+                                                    ? theme?.name === "dark"
+                                                        ? "#2a2d30"
+                                                        : "#ffffff"
+                                                    : theme?.name === "dark"
+                                                    ? "#3a3d40"
                                                     : "#f9f9f9",
                                             transition: "background 0.2s",
                                         }}
                                         onMouseOver={(e) =>
                                             (e.target.closest(
                                                 "tr"
-                                            ).style.background = "#fff3e0")
+                                            ).style.background =
+                                                theme?.name === "dark"
+                                                    ? "#3d3d3d"
+                                                    : "#fff3e0")
                                         }
                                         onMouseOut={(e) =>
                                             (e.target.closest(
                                                 "tr"
                                             ).style.background =
                                                 idx % 2 === 0
-                                                    ? "#ffffff"
+                                                    ? theme?.name === "dark"
+                                                        ? "#2a2d30"
+                                                        : "#ffffff"
+                                                    : theme?.name === "dark"
+                                                    ? "#3a3d40"
                                                     : "#f9f9f9")
                                         }
                                     >
@@ -679,7 +789,11 @@ function StudentRegistry({ theme }) {
                                             style={{
                                                 padding: "12px 10px",
                                                 fontWeight: 500,
-                                                border: "1px solid #eee",
+                                                border:
+                                                    theme?.name === "dark"
+                                                        ? "1px solid #4a4d52"
+                                                        : "1px solid #eee",
+                                                color: theme?.text,
                                             }}
                                         >
                                             {editingIdx === idx ? (
@@ -699,7 +813,12 @@ function StudentRegistry({ theme }) {
                                                         fontSize: 15,
                                                         padding: "8px 10px",
                                                         borderRadius: 5,
-                                                        border: `1.5px solid #1976d2`,
+                                                        border: `1.5px solid ${
+                                                            theme?.name ===
+                                                            "dark"
+                                                                ? "#64b5f6"
+                                                                : "#1976d2"
+                                                        }`,
                                                         background:
                                                             theme?.inputBg ||
                                                             "#fff",
@@ -715,7 +834,11 @@ function StudentRegistry({ theme }) {
                                         <td
                                             style={{
                                                 padding: "12px 10px",
-                                                border: "1px solid #eee",
+                                                border:
+                                                    theme?.name === "dark"
+                                                        ? "1px solid #4a4d52"
+                                                        : "1px solid #eee",
+                                                color: theme?.text,
                                             }}
                                         >
                                             {editingIdx === idx ? (
@@ -733,7 +856,12 @@ function StudentRegistry({ theme }) {
                                                         fontSize: 15,
                                                         padding: "8px 10px",
                                                         borderRadius: 5,
-                                                        border: `1.5px solid #1976d2`,
+                                                        border: `1.5px solid ${
+                                                            theme?.name ===
+                                                            "dark"
+                                                                ? "#64b5f6"
+                                                                : "#1976d2"
+                                                        }`,
                                                         background:
                                                             theme?.inputBg ||
                                                             "#fff",
@@ -750,7 +878,11 @@ function StudentRegistry({ theme }) {
                                             style={{
                                                 padding: "12px 10px",
                                                 textAlign: "center",
-                                                border: "1px solid #eee",
+                                                border:
+                                                    theme?.name === "dark"
+                                                        ? "1px solid #4a4d52"
+                                                        : "1px solid #eee",
+                                                color: theme?.text,
                                             }}
                                         >
                                             {editingIdx === idx ? (
@@ -768,7 +900,10 @@ function StudentRegistry({ theme }) {
                                                         }
                                                         style={{
                                                             background:
-                                                                "#388e3c",
+                                                                theme?.name ===
+                                                                "dark"
+                                                                    ? "#81c784"
+                                                                    : "#388e3c",
                                                             color: "#fff",
                                                             border: "none",
                                                             borderRadius: 5,
@@ -795,9 +930,20 @@ function StudentRegistry({ theme }) {
                                                         }
                                                         style={{
                                                             background:
-                                                                "#f5f5f5",
-                                                            color: "#666",
-                                                            border: `1px solid #ddd`,
+                                                                theme?.name ===
+                                                                "dark"
+                                                                    ? "#424242"
+                                                                    : "#f5f5f5",
+                                                            color:
+                                                                theme?.name ===
+                                                                "dark"
+                                                                    ? "#e0e0e0"
+                                                                    : "#666",
+                                                            border:
+                                                                theme?.name ===
+                                                                "dark"
+                                                                    ? `1px solid #616161`
+                                                                    : `1px solid #ddd`,
                                                             borderRadius: 5,
                                                             padding: "8px 16px",
                                                             fontWeight: 600,
@@ -807,11 +953,17 @@ function StudentRegistry({ theme }) {
                                                         }}
                                                         onMouseOver={(e) =>
                                                             (e.target.style.background =
-                                                                "#e0e0e0")
+                                                                theme?.name ===
+                                                                "dark"
+                                                                    ? "#616161"
+                                                                    : "#e0e0e0")
                                                         }
                                                         onMouseOut={(e) =>
                                                             (e.target.style.background =
-                                                                "#f5f5f5")
+                                                                theme?.name ===
+                                                                "dark"
+                                                                    ? "#424242"
+                                                                    : "#f5f5f5")
                                                         }
                                                     >
                                                         Cancel
@@ -834,7 +986,10 @@ function StudentRegistry({ theme }) {
                                                         }
                                                         style={{
                                                             background:
-                                                                "#1976d2",
+                                                                theme?.name ===
+                                                                "dark"
+                                                                    ? "#64b5f6"
+                                                                    : "#1976d2",
                                                             color: "#fff",
                                                             border: "none",
                                                             borderRadius: 5,
@@ -1005,9 +1160,18 @@ function StudentRegistry({ theme }) {
                             <button
                                 onClick={() => setShowRemoveConfirm(false)}
                                 style={{
-                                    background: "#f5f5f5",
-                                    color: "#666",
-                                    border: `1px solid #ddd`,
+                                    background:
+                                        theme?.name === "dark"
+                                            ? "#424242"
+                                            : "#f5f5f5",
+                                    color:
+                                        theme?.name === "dark"
+                                            ? "#e0e0e0"
+                                            : "#666",
+                                    border:
+                                        theme?.name === "dark"
+                                            ? `1px solid #616161`
+                                            : `1px solid #ddd`,
                                     borderRadius: 8,
                                     padding: "12px 24px",
                                     fontWeight: 700,
@@ -1017,10 +1181,16 @@ function StudentRegistry({ theme }) {
                                     outline: "none",
                                 }}
                                 onMouseOver={(e) =>
-                                    (e.target.style.background = "#e0e0e0")
+                                    (e.target.style.background =
+                                        theme?.name === "dark"
+                                            ? "#616161"
+                                            : "#e0e0e0")
                                 }
                                 onMouseOut={(e) =>
-                                    (e.target.style.background = "#f5f5f5")
+                                    (e.target.style.background =
+                                        theme?.name === "dark"
+                                            ? "#424242"
+                                            : "#f5f5f5")
                                 }
                             >
                                 Cancel
