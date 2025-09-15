@@ -169,6 +169,40 @@ function MarkEntryForm({
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
+    // Prevent mouse wheel or arrow/page keys from changing number inputs when focused
+    useEffect(() => {
+        const handleWheel = (e) => {
+            const active = document.activeElement;
+            if (
+                active &&
+                active.tagName === "INPUT" &&
+                active.getAttribute("type") === "number"
+            ) {
+                e.preventDefault();
+            }
+        };
+        const handleKeydown = (e) => {
+            const active = document.activeElement;
+            if (
+                active &&
+                active.tagName === "INPUT" &&
+                active.getAttribute("type") === "number" &&
+                (e.key === "ArrowUp" ||
+                    e.key === "ArrowDown" ||
+                    e.key === "PageUp" ||
+                    e.key === "PageDown")
+            ) {
+                e.preventDefault();
+            }
+        };
+        document.addEventListener("wheel", handleWheel, { passive: false });
+        document.addEventListener("keydown", handleKeydown);
+        return () => {
+            document.removeEventListener("wheel", handleWheel);
+            document.removeEventListener("keydown", handleKeydown);
+        };
+    }, []);
+
     // Autocomplete for name/rollNo
     function handleSelectRegistryStudent(s) {
         setRollNo(s.rollNo);
@@ -1726,8 +1760,21 @@ function MarkEntryForm({
                             </label>
                             <input
                                 type="number"
+                                inputMode="numeric"
+                                step={1}
                                 value={theory}
                                 onChange={(e) => setTheory(e.target.value)}
+                                onWheel={(e) => e.preventDefault()}
+                                onKeyDown={(e) => {
+                                    if (
+                                        e.key === "ArrowUp" ||
+                                        e.key === "ArrowDown" ||
+                                        e.key === "PageUp" ||
+                                        e.key === "PageDown"
+                                    ) {
+                                        e.preventDefault();
+                                    }
+                                }}
                                 required
                                 min={0}
                                 max={75}
@@ -1744,8 +1791,21 @@ function MarkEntryForm({
                             </label>
                             <input
                                 type="number"
+                                inputMode="numeric"
+                                step={1}
                                 value={practical}
                                 onChange={(e) => setPractical(e.target.value)}
+                                onWheel={(e) => e.preventDefault()}
+                                onKeyDown={(e) => {
+                                    if (
+                                        e.key === "ArrowUp" ||
+                                        e.key === "ArrowDown" ||
+                                        e.key === "PageUp" ||
+                                        e.key === "PageDown"
+                                    ) {
+                                        e.preventDefault();
+                                    }
+                                }}
                                 required
                                 min={0}
                                 max={25}
