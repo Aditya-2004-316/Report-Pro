@@ -163,19 +163,98 @@ function StudentRegistry({ theme }) {
 
     const themedColors = getThemedColors(theme);
 
+    // Responsive styles (mirrors approach used in other pages)
+    const responsiveStyleTag = (
+        <style>{`
+            /* Large tablets and down */
+            @media (max-width: 1024px) {
+                .registry-container {
+                    max-width: 95vw !important;
+                    padding: 1.5rem !important;
+                }
+                .registry-title {
+                    font-size: 24px !important;
+                }
+            }
+
+            /* Tablets */
+            @media (max-width: 768px) {
+                .registry-container {
+                    max-width: 98vw !important;
+                    padding: 1.2rem !important;
+                    border-radius: 14px !important;
+                }
+                .registry-title {
+                    font-size: 22px !important;
+                    margin-bottom: 18px !important;
+                }
+                .registry-config-grid,
+                .registry-add-row {
+                    flex-direction: column !important;
+                    gap: 12px !important;
+                    align-items: stretch !important;
+                }
+                .registry-actions {
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                    gap: 12px !important;
+                }
+                .registry-btn {
+                    width: 100% !important;
+                }
+                .registry-table th,
+                .registry-table td {
+                    padding: 10px 8px !important;
+                    font-size: 14px !important;
+                }
+            }
+
+            /* Phones */
+            @media (max-width: 480px) {
+                .registry-container {
+                    padding: 1rem !important;
+                    border-radius: 12px !important;
+                }
+                .registry-title {
+                    font-size: 20px !important;
+                    margin-bottom: 14px !important;
+                }
+                .registry-table {
+                    min-width: 520px !important; /* keep horizontal scroll but slightly smaller */
+                }
+                .registry-table th,
+                .registry-table td {
+                    padding: 8px 6px !important;
+                    font-size: 13px !important;
+                }
+            }
+
+            /* Extra small phones */
+            @media (max-width: 360px) {
+                .registry-title {
+                    font-size: 18px !important;
+                }
+            }
+        `}</style>
+    );
+
     return (
-        <div
-            style={{
-                maxWidth: 900,
-                margin: "2rem auto",
-                background: theme?.surface || "#fff",
-                borderRadius: 16,
-                boxShadow: theme?.shadow || "0 2px 12px #0001",
-                padding: "2rem",
-                color: theme?.text || "#222",
-            }}
-        >
+        <>
+            {responsiveStyleTag}
+            <div
+                className="registry-container"
+                style={{
+                    maxWidth: 900,
+                    margin: "2rem auto",
+                    background: theme?.surface || "#fff",
+                    borderRadius: 16,
+                    boxShadow: theme?.shadow || "0 2px 12px #0001",
+                    padding: "2rem",
+                    color: theme?.text || "#222",
+                }}
+            >
             <h2
+                className="registry-title"
                 style={{
                     color: themedColors.headingColor,
                     fontWeight: 800,
@@ -191,6 +270,7 @@ function StudentRegistry({ theme }) {
 
             {/* Configuration Section */}
             <div
+                className="registry-section registry-config"
                 style={{
                     background: themedColors.sectionBg,
                     borderRadius: 12,
@@ -227,7 +307,7 @@ function StudentRegistry({ theme }) {
                     </span>
                     Configuration
                 </h3>
-                <div style={{ display: "flex", gap: 20, marginBottom: 10 }}>
+                <div className="registry-config-grid" style={{ display: "flex", gap: 20, marginBottom: 10 }}>
                     <div style={{ flex: 1 }}>
                         <label
                             style={{
@@ -258,10 +338,7 @@ function StudentRegistry({ theme }) {
                                 <option
                                     key={sess}
                                     value={sess}
-                                    style={{
-                                        background:
-                                            themedColors.dropdownOptionBg,
-                                    }}
+                                    style={{ background: themedColors.dropdownOptionBg }}
                                 >
                                     {sess}
                                 </option>
@@ -294,22 +371,8 @@ function StudentRegistry({ theme }) {
                                 fontWeight: 500,
                             }}
                         >
-                            <option
-                                value="9th"
-                                style={{
-                                    background: themedColors.dropdownOptionBg,
-                                }}
-                            >
-                                9th
-                            </option>
-                            <option
-                                value="10th"
-                                style={{
-                                    background: themedColors.dropdownOptionBg,
-                                }}
-                            >
-                                10th
-                            </option>
+                            <option value="9th" style={{ background: themedColors.dropdownOptionBg }}>9th</option>
+                            <option value="10th" style={{ background: themedColors.dropdownOptionBg }}>10th</option>
                         </select>
                     </div>
                 </div>
@@ -317,6 +380,7 @@ function StudentRegistry({ theme }) {
 
             {/* Add Student Section */}
             <div
+                className="registry-section registry-add"
                 style={{
                     background: themedColors.sectionBg,
                     borderRadius: 12,
@@ -337,8 +401,7 @@ function StudentRegistry({ theme }) {
                 >
                     <span
                         style={{
-                            background:
-                                theme?.name === "dark" ? "#64b5f6" : "#1976d2",
+                            background: theme?.name === "dark" ? "#64b5f6" : "#1976d2",
                             width: 24,
                             height: 24,
                             borderRadius: "50%",
@@ -354,15 +417,12 @@ function StudentRegistry({ theme }) {
                     </span>
                     Add New Student
                 </h3>
-                <div style={{ display: "flex", gap: 12, alignItems: "end" }}>
+                <div className="registry-add-row" style={{ display: "flex", gap: 12, alignItems: "end" }}>
                     <div style={{ flex: 1 }}>
                         <label
                             style={{
                                 fontWeight: 600,
-                                color:
-                                    theme?.name === "dark"
-                                        ? "#64b5f6"
-                                        : "#1976d2",
+                                color: theme?.name === "dark" ? "#64b5f6" : "#1976d2",
                                 marginBottom: 6,
                                 fontSize: 16,
                                 display: "block",
@@ -373,10 +433,7 @@ function StudentRegistry({ theme }) {
                         <input
                             value={newStudent.rollNo}
                             onChange={(e) =>
-                                setNewStudent({
-                                    ...newStudent,
-                                    rollNo: e.target.value,
-                                })
+                                setNewStudent({ ...newStudent, rollNo: e.target.value })
                             }
                             placeholder="Enter roll number"
                             style={{
@@ -384,11 +441,7 @@ function StudentRegistry({ theme }) {
                                 fontSize: 16,
                                 padding: "12px 10px",
                                 borderRadius: 8,
-                                border: `2px solid ${
-                                    theme?.name === "dark"
-                                        ? "#64b5f6"
-                                        : "#1976d2"
-                                }`,
+                                border: `2px solid ${theme?.name === "dark" ? "#64b5f6" : "#1976d2"}`,
                                 background: theme?.inputBg || "#fff",
                                 color: theme?.text || "#222",
                                 fontWeight: 500,
@@ -399,10 +452,7 @@ function StudentRegistry({ theme }) {
                         <label
                             style={{
                                 fontWeight: 600,
-                                color:
-                                    theme?.name === "dark"
-                                        ? "#64b5f6"
-                                        : "#1976d2",
+                                color: theme?.name === "dark" ? "#64b5f6" : "#1976d2",
                                 marginBottom: 6,
                                 fontSize: 16,
                                 display: "block",
@@ -413,10 +463,7 @@ function StudentRegistry({ theme }) {
                         <input
                             value={newStudent.name}
                             onChange={(e) =>
-                                setNewStudent({
-                                    ...newStudent,
-                                    name: e.target.value,
-                                })
+                                setNewStudent({ ...newStudent, name: e.target.value })
                             }
                             placeholder="Enter student name"
                             style={{
@@ -424,11 +471,7 @@ function StudentRegistry({ theme }) {
                                 fontSize: 16,
                                 padding: "12px 10px",
                                 borderRadius: 8,
-                                border: `2px solid ${
-                                    theme?.name === "dark"
-                                        ? "#64b5f6"
-                                        : "#1976d2"
-                                }`,
+                                border: `2px solid ${theme?.name === "dark" ? "#64b5f6" : "#1976d2"}`,
                                 background: theme?.inputBg || "#fff",
                                 color: theme?.text || "#222",
                                 fontWeight: 500,
@@ -437,12 +480,10 @@ function StudentRegistry({ theme }) {
                     </div>
                     <div>
                         <button
+                            className="registry-btn"
                             onClick={handleAddStudent}
                             style={{
-                                background:
-                                    theme?.name === "dark"
-                                        ? "#64b5f6"
-                                        : "#1976d2",
+                                background: theme?.name === "dark" ? "#64b5f6" : "#1976d2",
                                 color: "#fff",
                                 border: "none",
                                 borderRadius: 8,
@@ -456,9 +497,7 @@ function StudentRegistry({ theme }) {
                                 display: "flex",
                                 alignItems: "center",
                             }}
-                            onMouseOver={(e) =>
-                                (e.target.style.opacity = "0.9")
-                            }
+                            onMouseOver={(e) => (e.target.style.opacity = "0.9")}
                             onMouseOut={(e) => (e.target.style.opacity = "1")}
                         >
                             Add Student
@@ -469,6 +508,7 @@ function StudentRegistry({ theme }) {
 
             {/* Action Buttons */}
             <div
+                className="registry-actions"
                 style={{
                     display: "flex",
                     gap: 16,
@@ -477,6 +517,7 @@ function StudentRegistry({ theme }) {
                 }}
             >
                 <button
+                    className="registry-btn"
                     onClick={handleSaveRegistry}
                     disabled={saving}
                     style={{
@@ -517,10 +558,9 @@ function StudentRegistry({ theme }) {
                     )}
                 </button>
                 <button
+                    className="registry-btn"
                     onClick={() => setShowRemoveConfirm(true)}
-                    disabled={
-                        students.length === 0 || !session || !studentClass
-                    }
+                    disabled={students.length === 0 || !session || !studentClass}
                     style={{
                         background: "#f44336",
                         color: "#fff",
@@ -529,32 +569,16 @@ function StudentRegistry({ theme }) {
                         padding: "12px 24px",
                         fontWeight: 700,
                         fontSize: 16,
-                        cursor:
-                            students.length === 0 || !session || !studentClass
-                                ? "not-allowed"
-                                : "pointer",
+                        cursor: students.length === 0 || !session || !studentClass ? "not-allowed" : "pointer",
                         boxShadow: theme?.shadow,
-                        opacity:
-                            students.length === 0 || !session || !studentClass
-                                ? 0.5
-                                : 1,
+                        opacity: students.length === 0 || !session || !studentClass ? 0.5 : 1,
                         outline: "none",
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
                     }}
-                    onMouseOver={(e) =>
-                        (e.target.style.opacity =
-                            students.length === 0 || !session || !studentClass
-                                ? "0.5"
-                                : "0.9")
-                    }
-                    onMouseOut={(e) =>
-                        (e.target.style.opacity =
-                            students.length === 0 || !session || !studentClass
-                                ? "0.5"
-                                : "1")
-                    }
+                    onMouseOver={(e) => (e.target.style.opacity = students.length === 0 || !session || !studentClass ? "0.5" : "0.9")}
+                    onMouseOut={(e) => (e.target.style.opacity = students.length === 0 || !session || !studentClass ? "0.5" : "1")}
                 >
                     Remove Registry
                 </button>
@@ -581,6 +605,7 @@ function StudentRegistry({ theme }) {
 
             {/* Student List Section */}
             <div
+                className="registry-section registry-list"
                 style={{
                     background: themedColors.sectionBg,
                     borderRadius: 12,
@@ -658,6 +683,7 @@ function StudentRegistry({ theme }) {
                 ) : (
                     <div style={{ overflowX: "auto" }}>
                         <table
+                            className="registry-table"
                             style={{
                                 width: "100%",
                                 borderCollapse: "collapse",
@@ -1209,7 +1235,8 @@ function StudentRegistry({ theme }) {
                     display: inline-block;
                 }
             `}</style>
-        </div>
+            </div>
+        </>
     );
 }
 
