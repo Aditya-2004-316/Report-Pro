@@ -305,11 +305,9 @@ app.post("/api/students", requireAuth, async (req, res) => {
                 });
             }
             if (practicalNum < 0 || practicalNum > 25) {
-                return res
-                    .status(400)
-                    .json({
-                        error: "Practical marks must be between 0 and 25.",
-                    });
+                return res.status(400).json({
+                    error: "Practical marks must be between 0 and 25.",
+                });
             }
         }
 
@@ -920,6 +918,7 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
             session,
             class: studentClass,
             month,
+            subject, // Optional subject parameter for subject-specific marking
         } = req.body;
 
         if (!students || !Array.isArray(students) || students.length === 0) {
@@ -952,7 +951,8 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
                 .json({ error: "Month is required for Monthly Test." });
         }
 
-        const SUBJECTS = [
+        // If subject is specified, only mark for that subject, otherwise mark for all subjects
+        let SUBJECTS = [
             "Mathematics",
             "Science",
             "English",
@@ -965,9 +965,14 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
             "Music",
         ];
 
+        // If subject is provided, only use that subject
+        if (subject && SUBJECTS.includes(subject)) {
+            SUBJECTS = [subject];
+        }
+
         const results = [];
 
-        // Mark each student as absent for all subjects
+        // Mark each student as absent for specified subjects
         for (const studentInfo of students) {
             const { rollNo, name } = studentInfo;
 
@@ -976,13 +981,13 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
             }
 
             // Create absent records for each subject
-            for (const subject of SUBJECTS) {
+            for (const subj of SUBJECTS) {
                 const absentRecord = {
                     rollNo: rollNo.trim(),
                     name: name.trim(),
                     class: studentClass,
                     examType,
-                    subject: subject.trim(),
+                    subject: subj.trim(),
                     theory: 0,
                     practical: 0,
                     total: 0,
@@ -1001,7 +1006,7 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
                     const result = await Student.findOneAndUpdate(
                         {
                             rollNo: rollNo.trim(),
-                            subject: subject.trim(),
+                            subject: subj.trim(),
                             examType,
                             session: session.trim(),
                             user: req.userId,
@@ -1014,7 +1019,7 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
                     results.push(result);
                 } catch (error) {
                     console.error(
-                        `Error marking student ${rollNo} absent for ${subject}:`,
+                        `Error marking student ${rollNo} absent for ${subj}:`,
                         error
                     );
                 }
@@ -1023,11 +1028,107 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
 
         res.json({
             success: true,
-            message: `Marked ${students.length} students as absent for ${examType}`,
+            message: `Marked ${
+                students.length
+            } students as absent for ${examType}${
+                subject ? ` in ${subject}` : " in all subjects"
+            }`,
             recordsCreated: results.length,
         });
     } catch (error) {
         console.error("Error marking students as absent:", error);
+        res.status(500).json({ error: "Server error", details: error.message });
+    }
+});
+
+// Mark students as present (reverse of absent) for a specific exam type
+app.post("/api/students/present", requireAuth, async (req, res) => {
+    try {
+        const {
+            students,
+            examType,
+            session,
+            class: studentClass,
+            month,
+            subject, // Optional subject parameter for subject-specific marking
+        } = req.body;
+
+        if (!students || !Array.isArray(students) || students.length === 0) {
+            return res
+                .status(400)
+                .json({ error: "Students array is required." });
+        }
+
+        if (!examType || !session || !studentClass) {
+            return res
+                .status(400)
+                .json({ error: "examType, session, and class are required." });
+        }
+
+        const VALID_EXAM_TYPES = [
+            "Monthly Test",
+            "Quarterly Exam",
+            "Half Monthly Exam",
+            "Annual Exam",
+        ];
+
+        if (!VALID_EXAM_TYPES.includes(examType)) {
+            return res.status(400).json({ error: "Invalid exam type." });
+        }
+
+        // Validate month for Monthly Test
+        if (examType === "Monthly Test" && !month) {
+            return res
+                .status(400)
+                .json({ error: "Month is required for Monthly Test." });
+        }
+
+        // Remove absent records for each student
+        let recordsRemoved = 0;
+
+        for (const rollNo of students) {
+            if (!rollNo) continue;
+
+            try {
+                // Build the query for deleting absent records
+                const deleteQuery = {
+                    rollNo: rollNo.trim(),
+                    examType,
+                    session: session.trim(),
+                    class: studentClass,
+                    user: req.userId,
+                    isAbsent: true,
+                    ...(examType === "Monthly Test" ? { month } : {}),
+                };
+
+                // If subject is specified, only delete for that subject
+                if (subject) {
+                    deleteQuery.subject = subject;
+                }
+
+                // Delete all absent records for this student in the current context
+                const deleteResult = await Student.deleteMany(deleteQuery);
+
+                recordsRemoved += deleteResult.deletedCount;
+            } catch (error) {
+                console.error(
+                    `Error marking student ${rollNo} as present:`,
+                    error
+                );
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Marked ${
+                students.length
+            } students as present for ${examType}${
+                subject ? ` in ${subject}` : " in all subjects"
+            }`,
+            recordsRemoved: recordsRemoved,
+        });
+    } catch (error) {
+        console.error("Error marking students as present:", error);
         res.status(500).json({ error: "Server error", details: error.message });
     }
 });

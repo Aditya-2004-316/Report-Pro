@@ -56,7 +56,15 @@ function StudentList({
     const [absentModal, setAbsentModal] = useState({
         open: false,
         students: [],
+        subject: undefined, // Add subject property for subject-specific marking
     });
+    const [presentModal, setPresentModal] = useState({
+        open: false,
+        students: [],
+        subject: undefined, // Add subject property for subject-specific marking
+    });
+    // State for subject-specific selected rows
+    const [subjectSelectedRows, setSubjectSelectedRows] = useState({});
 
     const currentYear = new Date().getFullYear();
     const sessionOptions = [
@@ -393,12 +401,20 @@ function StudentList({
     });
 
     function getOverallGrade(percentage, studentSubjects) {
-        // Original grade logic with custom mark ranges
-        const hasFailedSubject = Object.values(studentSubjects).some(
-            (subject) => subject.grade === "E1" || subject.grade === "E2"
+        // Check if any subject is marked as absent - if so, treat as E2
+        const hasAbsentSubject = Object.values(studentSubjects).some(
+            (subject) => subject.isAbsent
         );
 
-        if (hasFailedSubject) {
+        // Original grade logic with custom mark ranges
+        const hasFailedSubject = Object.values(studentSubjects).some(
+            (subject) =>
+                subject.grade === "E1" ||
+                subject.grade === "E2" ||
+                subject.isAbsent
+        );
+
+        if (hasFailedSubject || hasAbsentSubject) {
             let normalGrade;
             if (percentage >= 91) normalGrade = "A1";
             else if (percentage >= 81) normalGrade = "A2";
@@ -409,7 +425,7 @@ function StudentList({
             else if (percentage >= 33) normalGrade = "D";
             else if (percentage >= 21) normalGrade = "E1";
             else normalGrade = "E2";
-            return normalGrade === "E2" ? "E2" : "E1";
+            return normalGrade === "E2" || hasAbsentSubject ? "E2" : "E1";
         }
 
         // Original custom mark ranges
@@ -580,9 +596,33 @@ function StudentList({
         });
     }
 
-    // Function to mark selected students as absent
-    async function handleMarkAsAbsent() {
-        const selectedStudents = selectedRows
+    // Function to check if any selected student is already marked as absent
+    const checkIfAnySelectedAbsent = () => {
+        if (selectedRows.length === 0) return false;
+
+        // Check if any of the selected students are marked as absent in the current context
+        for (const key of selectedRows) {
+            const studentData = studentsByRollNo[key];
+
+            if (studentData) {
+                // Check if any subject for this student is marked as absent
+                for (const subject in studentData.subjects) {
+                    if (
+                        studentData.subjects[subject] &&
+                        studentData.subjects[subject].isAbsent
+                    ) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    };
+
+    // Function to get selected students info with validation
+    const getSelectedStudentsInfo = () => {
+        return selectedRows
             .map((key) => {
                 const [rollNo] = key.split("-");
                 const registryStudent = registryStudents.find(
@@ -593,18 +633,186 @@ function StudentList({
                     : null;
             })
             .filter(Boolean);
+    };
+
+    // Function to mark selected students as absent
+    async function handleMarkAsAbsent() {
+        const selectedStudents = getSelectedStudentsInfo();
 
         if (selectedStudents.length === 0) {
             alert("Please select students to mark as absent.");
             return;
         }
 
+        // Additional validation
+        if (!session || !selectedClass || !selectedExamType) {
+            alert(
+                "Please select session, class, and exam type before marking students as absent."
+            );
+            return;
+        }
+
+        // For Monthly Test, ensure month is selected
+        if (selectedExamType === "Monthly Test" && !selectedMonth) {
+            alert(
+                "Please select a month for Monthly Test before marking students as absent."
+            );
+            return;
+        }
+
         setAbsentModal({ open: true, students: selectedStudents });
     }
 
+    // Function to mark selected students as present (reverse of absent)
+    async function handleMarkAsPresent() {
+        const selectedStudents = getSelectedStudentsInfo();
+
+        if (selectedStudents.length === 0) {
+            alert("Please select students to mark as present.");
+            return;
+        }
+
+        // Additional validation
+        if (!session || !selectedClass || !selectedExamType) {
+            alert(
+                "Please select session, class, and exam type before marking students as present."
+            );
+            return;
+        }
+
+        // For Monthly Test, ensure month is selected
+        if (selectedExamType === "Monthly Test" && !selectedMonth) {
+            alert(
+                "Please select a month for Monthly Test before marking students as present."
+            );
+            return;
+        }
+
+        // Show confirmation modal for marking as present
+        setPresentModal({ open: true, students: selectedStudents });
+    }
+
+    // Function to toggle subject-specific row selection
+    const toggleSubjectRowSelection = (subject, studentKey) => {
+        setSubjectSelectedRows((prev) => {
+            const currentSelections = prev[subject] || [];
+            if (currentSelections.includes(studentKey)) {
+                // Remove from selection
+                return {
+                    ...prev,
+                    [subject]: currentSelections.filter(
+                        (key) => key !== studentKey
+                    ),
+                };
+            } else {
+                // Add to selection
+                return {
+                    ...prev,
+                    [subject]: [...currentSelections, studentKey],
+                };
+            }
+        });
+    };
+
+    // Function to check if any selected student is absent for a specific subject
+    const checkIfAnySubjectSelectedAbsent = (subject) => {
+        const selectedKeys = subjectSelectedRows[subject] || [];
+        if (selectedKeys.length === 0) return false;
+
+        // Check if any of the selected students are marked as absent in this subject
+        for (const key of selectedKeys) {
+            const [rollNo, studentSubject] = key.split("-");
+            const student = students.find(
+                (s) => s.rollNo === rollNo && s.subject === studentSubject
+            );
+
+            if (student && student.isAbsent) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    // Function to get selected students info for a specific subject
+    const getSubjectSelectedStudentsInfo = (subject) => {
+        const selectedKeys = subjectSelectedRows[subject] || [];
+        return selectedKeys
+            .map((key) => {
+                const [rollNo] = key.split("-");
+                const registryStudent = registryStudents.find(
+                    (s) => s.rollNo === rollNo
+                );
+                return registryStudent
+                    ? { rollNo, name: registryStudent.name }
+                    : null;
+            })
+            .filter(Boolean);
+    };
+
+    // Function to mark selected students as absent for a specific subject
+    const handleSubjectMarkAsAbsent = (subject) => {
+        const selectedStudents = getSubjectSelectedStudentsInfo(subject);
+
+        if (selectedStudents.length === 0) {
+            alert(`Please select students to mark as absent for ${subject}.`);
+            return;
+        }
+
+        // Additional validation
+        if (!session || !selectedClass || !selectedExamType) {
+            alert(
+                "Please select session, class, and exam type before marking students as absent."
+            );
+            return;
+        }
+
+        // For Monthly Test, ensure month is selected
+        if (selectedExamType === "Monthly Test" && !selectedMonth) {
+            alert(
+                "Please select a month for Monthly Test before marking students as absent."
+            );
+            return;
+        }
+
+        setAbsentModal({ open: true, students: selectedStudents, subject });
+    };
+
+    // Function to mark selected students as present for a specific subject
+    const handleSubjectMarkAsPresent = (subject) => {
+        const selectedStudents = getSubjectSelectedStudentsInfo(subject);
+
+        if (selectedStudents.length === 0) {
+            alert(`Please select students to mark as present for ${subject}.`);
+            return;
+        }
+
+        // Additional validation
+        if (!session || !selectedClass || !selectedExamType) {
+            alert(
+                "Please select session, class, and exam type before marking students as present."
+            );
+            return;
+        }
+
+        // For Monthly Test, ensure month is selected
+        if (selectedExamType === "Monthly Test" && !selectedMonth) {
+            alert(
+                "Please select a month for Monthly Test before marking students as present."
+            );
+            return;
+        }
+
+        setPresentModal({ open: true, students: selectedStudents, subject });
+    };
+
+    // Modify the confirmMarkAsAbsent function to handle subject-specific marking
     async function confirmMarkAsAbsent() {
         setMarkingAbsent(true);
         try {
+            // Check if this is a subject-specific marking
+            const isSubjectSpecific = absentModal.subject !== undefined;
+
             const response = await fetch(`${API_BASE}/api/students/absent`, {
                 method: "POST",
                 headers: {
@@ -612,12 +820,15 @@ function StudentList({
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    students: absentModal.students.map((s) => s.rollNo),
+                    students: absentModal.students,
                     session,
                     class: selectedClass,
                     examType: selectedExamType,
                     ...(selectedExamType === "Monthly Test" && selectedMonth
                         ? { month: selectedMonth }
+                        : {}),
+                    ...(isSubjectSpecific
+                        ? { subject: absentModal.subject }
                         : {}),
                 }),
             });
@@ -629,17 +840,102 @@ function StudentList({
                 );
             }
 
+            const result = await response.json();
+            console.log("Mark as absent result:", result);
+
             // Refresh student data
             await fetchStudents();
             setSelectedRows([]);
+
+            // Clear subject-specific selections if applicable
+            if (isSubjectSpecific) {
+                setSubjectSelectedRows((prev) => ({
+                    ...prev,
+                    [absentModal.subject]: [],
+                }));
+            }
+
             setAbsentModal({ open: false, students: [] });
             setPopupMsg(
-                `Successfully marked ${absentModal.students.length} students as absent.`
+                `Successfully marked ${
+                    absentModal.students.length
+                } students as absent for ${selectedExamType}${
+                    selectedExamType === "Monthly Test" && selectedMonth
+                        ? ` in ${selectedMonth}`
+                        : ""
+                }${isSubjectSpecific ? ` in ${absentModal.subject}` : ""}.`
             );
             setTimeout(() => setPopupMsg(""), 3000);
         } catch (error) {
             console.error("Error marking students as absent:", error);
             alert("Failed to mark students as absent: " + error.message);
+        }
+        setMarkingAbsent(false);
+    }
+
+    // Modify the confirmMarkAsPresent function to handle subject-specific marking
+    async function confirmMarkAsPresent() {
+        setMarkingAbsent(true);
+        try {
+            // Check if this is a subject-specific marking
+            const isSubjectSpecific = presentModal.subject !== undefined;
+
+            const response = await fetch(`${API_BASE}/api/students/present`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    students: presentModal.students.map((s) => s.rollNo),
+                    session,
+                    class: selectedClass,
+                    examType: selectedExamType,
+                    ...(selectedExamType === "Monthly Test" && selectedMonth
+                        ? { month: selectedMonth }
+                        : {}),
+                    ...(isSubjectSpecific
+                        ? { subject: presentModal.subject }
+                        : {}),
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                    errorData.error || "Failed to mark students as present"
+                );
+            }
+
+            const result = await response.json();
+            console.log("Mark as present result:", result);
+
+            // Refresh student data
+            await fetchStudents();
+            setSelectedRows([]);
+
+            // Clear subject-specific selections if applicable
+            if (isSubjectSpecific) {
+                setSubjectSelectedRows((prev) => ({
+                    ...prev,
+                    [presentModal.subject]: [],
+                }));
+            }
+
+            setPresentModal({ open: false, students: [] });
+            setPopupMsg(
+                `Successfully marked ${
+                    presentModal.students.length
+                } students as present for ${selectedExamType}${
+                    selectedExamType === "Monthly Test" && selectedMonth
+                        ? ` in ${selectedMonth}`
+                        : ""
+                }${isSubjectSpecific ? ` in ${presentModal.subject}` : ""}.`
+            );
+            setTimeout(() => setPopupMsg(""), 3000);
+        } catch (error) {
+            console.error("Error marking students as present:", error);
+            alert("Failed to mark students as present: " + error.message);
         }
         setMarkingAbsent(false);
     }
@@ -661,46 +957,42 @@ function StudentList({
         }
     };
 
-// NEW: Helper function for consistent table cell styling
-const getTableCellStyle = (idx, isPlaceholder = false, isAbsent = false) => {
-    // Enforce a single background color for all rows/cells
-    const baseStyle = {
-        padding: 12,
-        textAlign: "center",
-        fontSize: 15,
-        color: theme.text,
-        background: theme.surface,
-        border: theme.name === "dark" ? "1px solid #4a4d52" : "1px solid #ef9a9a",
+    // NEW: Helper function for consistent table cell styling
+    const getTableCellStyle = (
+        idx,
+        isPlaceholder = false,
+        isAbsent = false
+    ) => {
+        // Enforce a single background color for all rows/cells
+        const baseStyle = {
+            padding: 12,
+            textAlign: "center",
+            fontSize: 15,
+            color: theme.text,
+            background: theme.surface,
+            border:
+                theme.name === "dark"
+                    ? "1px solid #4a4d52"
+                    : "1px solid #ef9a9a",
+        };
+
+        // Optional textual hints without changing the background color
+        if (isAbsent) {
+            baseStyle.color = theme.name === "dark" ? "#ff6f60" : "#d32f2f";
+            baseStyle.fontWeight = "bold";
+        } else if (isPlaceholder) {
+            baseStyle.color =
+                theme.textSecondary ||
+                (theme.name === "dark" ? "#bbbbbb" : "#666");
+            baseStyle.fontStyle = "italic";
+        }
+
+        return baseStyle;
     };
 
-    // Optional textual hints without changing the background color
-    if (isAbsent) {
-        baseStyle.color = theme.name === "dark" ? "#ff6f60" : "#d32f2f";
-        baseStyle.fontWeight = "bold";
-    } else if (isPlaceholder) {
-        baseStyle.color = theme.textSecondary || (theme.name === "dark" ? "#bbbbbb" : "#666");
-        baseStyle.fontStyle = "italic";
-    }
+    const rowHeadingColors = getRowHeadingColors();
 
-    return baseStyle;
-};
-
-const rowHeadingColors = getRowHeadingColors();
-
-return (
-    <div
-        style={{
-            width: "100%",
-            maxWidth: 1400,
-            margin: "2rem auto",
-            background: theme.background,
-            borderRadius: 16,
-            boxShadow: theme.shadow,
-            padding: "2rem 1.5rem",
-            boxSizing: "border-box",
-            color: theme.text,
-        }}
-    >
+    return (
         <div
             style={{
                 width: "100%",
@@ -714,46 +1006,155 @@ return (
                 color: theme.text,
             }}
         >
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    marginBottom: 24,
-                    position: "relative",
-                }}
-            >
-                <h1
-                    style={{
-                        background:
-                            "linear-gradient(90deg, #e53935 0%, #b71c1c 100%)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        fontWeight: 800,
-                        fontSize: 28,
-                        margin: 0,
-                        letterSpacing: 1,
-                    }}
-                >
-                    Student Results
-                </h1>
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 16,
-                        position: "absolute",
-                        right: 0,
-                    }}
-                >
+            {/* Comprehensive responsive styles for Student Results page - matching Statistics page exactly */}
+            <style>{`
+                /* Header Styles */
+                .student-results-header {
+                    display: flex;
+                    justify-content: center;
+                    align-items: flex-start;
+                    margin-bottom: 24px;
+                    gap: 20px;
+                    flex-wrap: wrap;
+                    position: relative;
+                }
+                
+                .student-results-title {
+                    background: linear-gradient(90deg, #e53935 0%, #b71c1c 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    font-weight: 800;
+                    font-size: 28px;
+                    margin: 0;
+                    letter-spacing: 1;
+                    flex: 1 1 auto;
+                    text-align: center;
+                }
+                
+                .student-results-header-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    flex: 0 0 auto;
+                    position: absolute;
+                    right: 0;
+                    top: 0;
+                }
+                
+                .student-results-updated-time {
+                    color: #b71c1c;
+
+                    font-weight: 500;
+                    font-size: 13px;
+                    white-space: nowrap;
+                }
+                
+                /* Summary Header Styles */
+                .summary-header-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-bottom: 16px;
+                    gap: 20px;
+                    flex-wrap: wrap;
+                    position: relative;
+                }
+                
+                .summary-title {
+                    background: linear-gradient(90deg, #e53935 0%, #b71c1c 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    font-weight: 800;
+                    font-size: 20px;
+                    margin: 0;
+                    text-align: center;
+                    flex: 1 1 auto;
+                }
+                
+                .mark-absent-button-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    flex: 0 0 auto;
+                    position: absolute;
+                    right: 0;
+                    top: 0;
+                }
+                
+                /* Enhanced responsive styles to match Statistics page exactly */
+                @media (max-width: 992px) {
+                    .student-results-header,
+                    .summary-header-container {
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        gap: 16px !important;
+                        position: static !important;
+                    }
+                    
+                    .student-results-header-actions,
+                    .mark-absent-button-container {
+                        position: static !important;
+                        width: 100% !important;
+                        justify-content: flex-end !important;
+                        flex-wrap: wrap !important;
+                    }
+                }
+                
+                @media (max-width: 768px) {
+                    .student-results-header-actions,
+                    .mark-absent-button-container {
+                        justify-content: center !important;
+                        gap: 8px !important;
+                    }
+                    
+                    .student-results-title {
+                        font-size: 24px;
+                    }
+                    
+                    .summary-title {
+                        font-size: 18px;
+                    }
+                }
+                
+                /* Large Desktop (1400px and up) */
+                @media (min-width: 1400px) {
+                    .student-results-title {
+                        font-size: 34px;
+                    }
+                }
+                
+                /* Desktop (1024px to 1399px) */
+                @media (min-width: 1024px) and (max-width: 1399px) {
+                    .student-results-title {
+                        font-size: 32px;
+                    }
+                }
+                
+                /* Tablet Landscape (768px to 1023px) */
+                @media (min-width: 768px) and (max-width: 1023px) {
+                    .student-results-title {
+                        font-size: 28px;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    .student-results-header-actions,
+                    .mark-absent-button-container {
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    
+                    .student-results-updated-time {
+                        font-size: 13px;
+                    }
+                }
+            `}</style>
+            <div className="student-results-header">
+                <h1 className="student-results-title">Student Results</h1>
+                <div className="student-results-header-actions">
                     {lastUpdated && (
-                        <span
-                            style={{
-                                color: accentDark,
-                                fontWeight: 500,
-                                fontSize: 15,
-                            }}
-                        >
+                        <span className="student-results-updated-time">
                             Updated: {lastUpdated.toLocaleTimeString()}
                         </span>
                     )}
@@ -779,7 +1180,6 @@ return (
                     </button>
                 </div>
             </div>
-
             <div
                 style={{
                     display: "grid",
@@ -968,7 +1368,6 @@ return (
                     </div>
                 )}
             </div>
-
             <input
                 type="text"
                 placeholder="Search students by roll number, name, or subject..."
@@ -989,7 +1388,6 @@ return (
                     color: theme.text,
                 }}
             />
-
             {popupMsg && (
                 <div
                     style={{
@@ -1004,7 +1402,6 @@ return (
                     {popupMsg}
                 </div>
             )}
-
             {/* Summary Table */}
             {Object.values(studentsByRollNo).length > 0 && (
                 <div
@@ -1020,53 +1417,56 @@ return (
                         color: theme.text,
                     }}
                 >
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            marginBottom: 16,
-                            position: "relative",
-                        }}
-                    >
-                        <h3
-                            style={{
-                                background:
-                                    "linear-gradient(90deg, #e53935 0%, #b71c1c 100%)",
-                                WebkitBackgroundClip: "text",
-                                WebkitTextFillColor: "transparent",
-                                fontWeight: 800,
-                                fontSize: 20,
-                                margin: 0,
-                                textAlign: "center",
-                            }}
-                        >
-                            All Subjects Summary
-                        </h3>
+                    <div className="summary-header-container">
+                        <h3 className="summary-title">All Subjects Summary</h3>
                         {selectedRows.length > 0 && (
-                            <button
-                                onClick={handleMarkAsAbsent}
-                                disabled={markingAbsent}
-                                style={{
-                                    background: "#ff9800",
-                                    color: "#fff",
-                                    border: "none",
-                                    borderRadius: 8,
-                                    padding: "8px 16px",
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    cursor: "pointer",
-                                    boxShadow:
-                                        "0 2px 4px rgba(255, 152, 0, 0.3)",
-                                    opacity: markingAbsent ? 0.6 : 1,
-                                    position: "absolute",
-                                    right: 0,
-                                }}
-                            >
-                                {markingAbsent
-                                    ? "Marking..."
-                                    : `Mark ${selectedRows.length} as Absent`}
-                            </button>
+                            <div className="mark-absent-button-container">
+                                {checkIfAnySelectedAbsent() ? (
+                                    <button
+                                        onClick={handleMarkAsPresent}
+                                        disabled={markingAbsent}
+                                        style={{
+                                            background: "#4caf50", // Green color for present
+                                            color: "#fff",
+                                            border: "none",
+                                            borderRadius: 8,
+                                            padding: "8px 16px",
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            cursor: "pointer",
+                                            boxShadow:
+                                                "0 2px 4px rgba(76, 175, 80, 0.3)",
+                                            opacity: markingAbsent ? 0.6 : 1,
+                                        }}
+                                    >
+                                        {markingAbsent
+                                            ? "Marking..."
+                                            : `Mark ${selectedRows.length} as Present`}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleMarkAsAbsent}
+                                        disabled={markingAbsent}
+                                        style={{
+                                            background: "#ff9800",
+                                            color: "#fff",
+                                            border: "none",
+                                            borderRadius: 8,
+                                            padding: "8px 16px",
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            cursor: "pointer",
+                                            boxShadow:
+                                                "0 2px 4px rgba(255, 152, 0, 0.3)",
+                                            opacity: markingAbsent ? 0.6 : 1,
+                                        }}
+                                    >
+                                        {markingAbsent
+                                            ? "Marking..."
+                                            : `Mark ${selectedRows.length} as Absent`}
+                                    </button>
+                                )}
+                            </div>
                         )}
                     </div>
                     <div
@@ -1087,35 +1487,35 @@ return (
                     >
                         <style>
                             {`
-                            .summary-table-scroll::-webkit-scrollbar {
-                                height: 12px;
-                            }
-                            
-                            .summary-table-scroll::-webkit-scrollbar-track {
-                                background: #f8d7da;
-                                border-radius: 6px;
-                            }
-                            
-                            .summary-table-scroll::-webkit-scrollbar-thumb {
-                                background: #e91e63;
-                                border-radius: 6px;
-                                border: 2px solid #f8d7da;
-                            }
-                            
-                            .summary-table-scroll::-webkit-scrollbar-thumb:hover {
-                                background: #c2185b;
-                            }
-                            
-                            .summary-table-scroll::-webkit-scrollbar-corner {
-                                background: #f8d7da;
-                            }
-                            
-                            /* Firefox */
-                            .summary-table-scroll {
-                                scrollbar-width: thin;
-                                scrollbar-color: #e91e63 #f8d7da;
-                            }
-                            `}
+                        .summary-table-scroll::-webkit-scrollbar {
+                            height: 12px;
+                        }
+                        
+                        .summary-table-scroll::-webkit-scrollbar-track {
+                            background: #f8d7da;
+                            border-radius: 6px;
+                        }
+                        
+                        .summary-table-scroll::-webkit-scrollbar-thumb {
+                            background: #e91e63;
+                            border-radius: 6px;
+                            border: 2px solid #f8d7da;
+                        }
+                        
+                        .summary-table-scroll::-webkit-scrollbar-thumb:hover {
+                            background: #c2185b;
+                        }
+                        
+                        .summary-table-scroll::-webkit-scrollbar-corner {
+                            background: #f8d7da;
+                        }
+                        
+                        /* Firefox */
+                        .summary-table-scroll {
+                            scrollbar-width: thin;
+                            scrollbar-color: #e91e63 #f8d7da;
+                        }
+                        `}
                         </style>
                         <table
                             style={{
@@ -1129,7 +1529,10 @@ return (
                                 marginTop: 8,
                                 boxShadow: theme.shadow,
                                 color: theme.text,
-                                border: theme.name === "dark" ? "1px solid #4a4d52" : "1px solid #f5c6cb",
+                                border:
+                                    theme.name === "dark"
+                                        ? "1px solid #4a4d52"
+                                        : "1px solid #f5c6cb",
                                 minWidth: 900,
                             }}
                         >
@@ -1140,7 +1543,8 @@ return (
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: rowHeadingColors.background,
+                                            background:
+                                                rowHeadingColors.background,
                                             color: rowHeadingColors.color,
                                             fontWeight: 700,
                                             border: `1px solid ${rowHeadingColors.border}`,
@@ -1155,7 +1559,8 @@ return (
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: rowHeadingColors.background,
+                                            background:
+                                                rowHeadingColors.background,
                                             color: rowHeadingColors.color,
                                             fontWeight: 700,
                                             border: `1px solid ${rowHeadingColors.border}`,
@@ -1170,7 +1575,8 @@ return (
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: rowHeadingColors.background,
+                                            background:
+                                                rowHeadingColors.background,
                                             color: rowHeadingColors.color,
                                             fontWeight: 700,
                                             border: `1px solid ${rowHeadingColors.border}`,
@@ -1185,7 +1591,8 @@ return (
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: rowHeadingColors.background,
+                                            background:
+                                                rowHeadingColors.background,
                                             color: rowHeadingColors.color,
                                             fontWeight: 700,
                                             border: `1px solid ${rowHeadingColors.border}`,
@@ -1202,7 +1609,8 @@ return (
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: rowHeadingColors.background,
+                                                background:
+                                                    rowHeadingColors.background,
                                                 color: rowHeadingColors.color,
                                                 fontWeight: 700,
                                                 border: `1px solid ${rowHeadingColors.border}`,
@@ -1218,7 +1626,8 @@ return (
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: rowHeadingColors.background,
+                                            background:
+                                                rowHeadingColors.background,
                                             color: rowHeadingColors.color,
                                             fontWeight: 700,
                                             border: `1px solid ${rowHeadingColors.border}`,
@@ -1233,7 +1642,8 @@ return (
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: rowHeadingColors.background,
+                                            background:
+                                                rowHeadingColors.background,
                                             color: rowHeadingColors.color,
                                             fontWeight: 700,
                                             border: `1px solid ${rowHeadingColors.border}`,
@@ -1248,7 +1658,8 @@ return (
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: rowHeadingColors.background,
+                                            background:
+                                                rowHeadingColors.background,
                                             color: rowHeadingColors.color,
                                             fontWeight: 700,
                                             border: `1px solid ${rowHeadingColors.border}`,
@@ -1263,7 +1674,8 @@ return (
                                         style={{
                                             padding: 14,
                                             textAlign: "center",
-                                            background: rowHeadingColors.background,
+                                            background:
+                                                rowHeadingColors.background,
                                             color: rowHeadingColors.color,
                                             fontWeight: 700,
                                             border: `1px solid ${rowHeadingColors.border}`,
@@ -1281,7 +1693,8 @@ return (
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: rowHeadingColors.background,
+                                                background:
+                                                    rowHeadingColors.background,
                                                 color: rowHeadingColors.color,
                                                 fontWeight: 700,
                                                 border: `1px solid ${rowHeadingColors.border}`,
@@ -1296,7 +1709,8 @@ return (
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: rowHeadingColors.background,
+                                                background:
+                                                    rowHeadingColors.background,
                                                 color: rowHeadingColors.color,
                                                 fontWeight: 700,
                                                 border: `1px solid ${rowHeadingColors.border}`,
@@ -1311,7 +1725,8 @@ return (
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: rowHeadingColors.background,
+                                                background:
+                                                    rowHeadingColors.background,
                                                 color: rowHeadingColors.color,
                                                 fontWeight: 700,
                                                 border: `1px solid ${rowHeadingColors.border}`,
@@ -1326,7 +1741,8 @@ return (
                                             style={{
                                                 padding: 14,
                                                 textAlign: "center",
-                                                background: rowHeadingColors.background,
+                                                background:
+                                                    rowHeadingColors.background,
                                                 color: rowHeadingColors.color,
                                                 fontWeight: 700,
                                                 border: `1px solid ${rowHeadingColors.border}`,
@@ -1340,7 +1756,8 @@ return (
                                 </tr>
                             </thead>
                             <tbody>
-                                {Object.values(studentsByRollNo).length === 0 ? (
+                                {Object.values(studentsByRollNo).length ===
+                                0 ? (
                                     <tr>
                                         <td
                                             colSpan={SUBJECTS.length * 4 + 6}
@@ -1357,105 +1774,244 @@ return (
                                 ) : (
                                     Object.values(studentsByRollNo)
                                         .sort((a, b) => {
-                                            const rollA = parseInt(a.rollNo) || 0;
-                                            const rollB = parseInt(b.rollNo) || 0;
+                                            const rollA =
+                                                parseInt(a.rollNo) || 0;
+                                            const rollB =
+                                                parseInt(b.rollNo) || 0;
                                             return rollA - rollB;
                                         })
                                         .map((stu, idx) => {
-                                            const percentage = ((stu.total || 0) / (stu.maxTotal || 1)) * 100;
+                                            const percentage =
+                                                ((stu.total || 0) /
+                                                    (stu.maxTotal || 1)) *
+                                                100;
                                             const key = getStudentKey(stu);
                                             return (
                                                 <tr key={key}>
-                                                    <td style={getTableCellStyle(idx)}>
+                                                    <td
+                                                        style={getTableCellStyle(
+                                                            idx
+                                                        )}
+                                                    >
                                                         <input
                                                             type="checkbox"
-                                                            checked={selectedRows.includes(key)}
+                                                            checked={selectedRows.includes(
+                                                                key
+                                                            )}
                                                             onChange={(e) => {
-                                                                if (e.target.checked) {
-                                                                    setSelectedRows((prev) => [...prev, key]);
+                                                                if (
+                                                                    e.target
+                                                                        .checked
+                                                                ) {
+                                                                    setSelectedRows(
+                                                                        (
+                                                                            prev
+                                                                        ) => [
+                                                                            ...prev,
+                                                                            key,
+                                                                        ]
+                                                                    );
                                                                 } else {
-                                                                    setSelectedRows((prev) =>
-                                                                        prev.filter((k) => k !== key)
+                                                                    setSelectedRows(
+                                                                        (
+                                                                            prev
+                                                                        ) =>
+                                                                            prev.filter(
+                                                                                (
+                                                                                    k
+                                                                                ) =>
+                                                                                    k !==
+                                                                                    key
+                                                                            )
                                                                     );
                                                                 }
                                                             }}
                                                             aria-label={`Select student ${stu.rollNo}`}
                                                         />
                                                     </td>
-                                                    <td style={getTableCellStyle(idx)}>{stu.rollNo}</td>
-                                                    <td style={{
-                                                        ...getTableCellStyle(idx),
-                                                        minWidth: 120,
-                                                        maxWidth: 300,
-                                                        whiteSpace: "normal",
-                                                        wordBreak: "break-word",
-                                                    }}>
+                                                    <td
+                                                        style={getTableCellStyle(
+                                                            idx
+                                                        )}
+                                                    >
+                                                        {stu.rollNo}
+                                                    </td>
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx
+                                                            ),
+                                                            minWidth: 120,
+                                                            maxWidth: 300,
+                                                            whiteSpace:
+                                                                "normal",
+                                                            wordBreak:
+                                                                "break-word",
+                                                        }}
+                                                    >
                                                         {stu.name || "-"}
                                                     </td>
-                                                    <td style={getTableCellStyle(idx)}>{stu.examType || "-"}</td>
+                                                    <td
+                                                        style={getTableCellStyle(
+                                                            idx
+                                                        )}
+                                                    >
+                                                        {stu.examType || "-"}
+                                                    </td>
                                                     {SUBJECTS.map((subj) => {
-                                                        const subjectData = stu.subjects[subj];
-                                                        const isPlaceholder = subjectData?.isPlaceholder;
-                                                        const isAbsent = subjectData?.isAbsent;
+                                                        const subjectData =
+                                                            stu.subjects[subj];
+                                                        const isPlaceholder =
+                                                            subjectData?.isPlaceholder;
+                                                        const isAbsent =
+                                                            subjectData?.isAbsent;
                                                         return [
-                                                            <td key={`${stu.rollNo}-${subj}-theory`} 
-                                                                style={getTableCellStyle(idx, isPlaceholder, isAbsent)}>
-                                                                {isPlaceholder ? "-" : isAbsent ? "AB" : subjectData?.theory ?? "-"}
+                                                            <td
+                                                                key={`${stu.rollNo}-${subj}-theory`}
+                                                                style={getTableCellStyle(
+                                                                    idx,
+                                                                    isPlaceholder,
+                                                                    isAbsent
+                                                                )}
+                                                            >
+                                                                {isPlaceholder
+                                                                    ? "-"
+                                                                    : isAbsent
+                                                                    ? "AB"
+                                                                    : subjectData?.theory ??
+                                                                      "-"}
                                                             </td>,
-                                                            <td key={`${stu.rollNo}-${subj}-practical`} 
-                                                                style={getTableCellStyle(idx, isPlaceholder, isAbsent)}>
-                                                                {isPlaceholder ? "-" : isAbsent ? "AB" : subjectData?.practical ?? "-"}
+                                                            <td
+                                                                key={`${stu.rollNo}-${subj}-practical`}
+                                                                style={getTableCellStyle(
+                                                                    idx,
+                                                                    isPlaceholder,
+                                                                    isAbsent
+                                                                )}
+                                                            >
+                                                                {isPlaceholder
+                                                                    ? "-"
+                                                                    : isAbsent
+                                                                    ? "AB"
+                                                                    : subjectData?.practical ??
+                                                                      "-"}
                                                             </td>,
-                                                            <td key={`${stu.rollNo}-${subj}-total`} 
-                                                                style={getTableCellStyle(idx, isPlaceholder, isAbsent)}>
-                                                                {isPlaceholder ? "-" : isAbsent ? "AB" : subjectData?.total ?? "-"}
+                                                            <td
+                                                                key={`${stu.rollNo}-${subj}-total`}
+                                                                style={getTableCellStyle(
+                                                                    idx,
+                                                                    isPlaceholder,
+                                                                    isAbsent
+                                                                )}
+                                                            >
+                                                                {isPlaceholder
+                                                                    ? "-"
+                                                                    : isAbsent
+                                                                    ? "AB"
+                                                                    : subjectData?.total ??
+                                                                      "-"}
                                                             </td>,
-                                                            <td key={`${stu.rollNo}-${subj}-grade`} 
-                                                                style={getTableCellStyle(idx, isPlaceholder, isAbsent)}>
-                                                                {isPlaceholder ? "-" : isAbsent ? "AB" : subjectData?.grade ?? "-"}
+                                                            <td
+                                                                key={`${stu.rollNo}-${subj}-grade`}
+                                                                style={getTableCellStyle(
+                                                                    idx,
+                                                                    isPlaceholder,
+                                                                    isAbsent
+                                                                )}
+                                                            >
+                                                                {isPlaceholder
+                                                                    ? "-"
+                                                                    : isAbsent
+                                                                    ? "AB"
+                                                                    : subjectData?.grade ??
+                                                                      "-"}
                                                             </td>,
                                                         ];
                                                     })}
-                                                    <td style={getTableCellStyle(idx)}>{stu.total}</td>
-                                                    <td style={{...getTableCellStyle(idx), minWidth: 90}}>
+                                                    <td
+                                                        style={getTableCellStyle(
+                                                            idx
+                                                        )}
+                                                    >
+                                                        {stu.total}
+                                                    </td>
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx
+                                                            ),
+                                                            minWidth: 90,
+                                                        }}
+                                                    >
                                                         {percentage.toFixed(2)}%
                                                     </td>
-                                                    <td style={getTableCellStyle(idx)}>
-                                                        {getOverallGrade(percentage, stu.subjects)}
+                                                    <td
+                                                        style={getTableCellStyle(
+                                                            idx
+                                                        )}
+                                                    >
+                                                        {getOverallGrade(
+                                                            percentage,
+                                                            stu.subjects
+                                                        )}
                                                     </td>
-                                                    <td style={getTableCellStyle(idx)}>
+                                                    <td
+                                                        style={getTableCellStyle(
+                                                            idx
+                                                        )}
+                                                    >
                                                         <button
                                                             onClick={() =>
-                                                                setDeleteStudentModal({
-                                                                    open: true,
-                                                                    rollNo: stu.rollNo,
-                                                                })
+                                                                setDeleteStudentModal(
+                                                                    {
+                                                                        open: true,
+                                                                        rollNo: stu.rollNo,
+                                                                    }
+                                                                )
                                                             }
                                                             style={{
-                                                                background: "transparent",
-                                                                color: theme.name === "dark" ? "#ff6f61" : "#e53935",
+                                                                background:
+                                                                    "transparent",
+                                                                color:
+                                                                    theme.name ===
+                                                                    "dark"
+                                                                        ? "#ff6f61"
+                                                                        : "#e53935",
                                                                 border: "none",
                                                                 borderRadius: 0,
                                                                 padding: "8px",
                                                                 fontWeight: 400,
                                                                 fontSize: 16,
                                                                 cursor: "pointer",
-                                                                boxShadow: "none",
-                                                                minWidth: "auto",
-                                                                minHeight: "auto",
-                                                                display: "inline-flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
+                                                                boxShadow:
+                                                                    "none",
+                                                                minWidth:
+                                                                    "auto",
+                                                                minHeight:
+                                                                    "auto",
+                                                                display:
+                                                                    "inline-flex",
+                                                                alignItems:
+                                                                    "center",
+                                                                justifyContent:
+                                                                    "center",
                                                                 marginLeft: 4,
                                                                 letterSpacing: 0,
-                                                                transition: "color 0.2s",
-                                                                whiteSpace: "nowrap",
+                                                                transition:
+                                                                    "color 0.2s",
+                                                                whiteSpace:
+                                                                    "nowrap",
                                                             }}
                                                             aria-label="Delete all marks for this student"
                                                         >
                                                             <MdDelete
                                                                 size={22}
-                                                                color={theme.name === "dark" ? "#ff6f60" : "#e53935"}
+                                                                color={
+                                                                    theme.name ===
+                                                                    "dark"
+                                                                        ? "#ff6f60"
+                                                                        : "#e53935"
+                                                                }
                                                             />
                                                         </button>
                                                     </td>
@@ -1468,7 +2024,6 @@ return (
                     </div>
                 </div>
             )}
-
             {getSubjectsWithResults().map((subj) => {
                 const subjectStudents = studentsBySubject[subj] || [];
                 const hasResults = subjectStudents.length > 0;
@@ -1530,7 +2085,8 @@ return (
                                             No matching results
                                         </div>
                                         <div>
-                                            No students found for "{search}" in {subj}
+                                            No students found for "{search}" in{" "}
+                                            {subj}
                                         </div>
                                     </div>
                                 ) : (
@@ -1545,13 +2101,49 @@ return (
                                             No students found
                                         </div>
                                         <div>
-                                            No student data available for {subj} in the selected filters
+                                            No student data available for {subj}{" "}
+                                            in the selected filters
                                         </div>
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <div style={{ overflowX: "auto" }}>
+                            <div
+                                style={{ overflowX: "auto" }}
+                                className="subject-table-scroll"
+                            >
+                                <style>
+                                    {`
+                                    .subject-table-scroll::-webkit-scrollbar {
+                                        height: 12px;
+                                    }
+                                    
+                                    .subject-table-scroll::-webkit-scrollbar-track {
+                                        background: #f8d7da;
+                                        border-radius: 6px;
+                                    }
+                                    
+                                    .subject-table-scroll::-webkit-scrollbar-thumb {
+                                        background: #e91e63;
+                                        border-radius: 6px;
+                                        border: 2px solid #f8d7da;
+                                    }
+                                    
+                                    .subject-table-scroll::-webkit-scrollbar-thumb:hover {
+                                        background: #c2185b;
+                                    }
+                                    
+                                    .subject-table-scroll::-webkit-scrollbar-corner {
+                                        background: #f8d7da;
+                                    }
+                                    
+                                    /* Firefox */
+                                    .subject-table-scroll {
+                                        scrollbar-width: thin;
+                                        scrollbar-color: #e91e63 #f8d7da;
+                                    }
+                                    `}
+                                </style>
                                 <table
                                     style={{
                                         width: "100%",
@@ -1572,7 +2164,23 @@ return (
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: rowHeadingColors.background,
+                                                    background:
+                                                        rowHeadingColors.background,
+                                                    color: rowHeadingColors.color,
+                                                    fontWeight: 700,
+                                                    border: `1px solid ${rowHeadingColors.border}`,
+                                                    fontSize: 16,
+                                                    letterSpacing: 0.5,
+                                                }}
+                                            >
+                                                Select
+                                            </th>
+                                            <th
+                                                style={{
+                                                    padding: 14,
+                                                    textAlign: "center",
+                                                    background:
+                                                        rowHeadingColors.background,
                                                     color: rowHeadingColors.color,
                                                     fontWeight: 700,
                                                     border: `1px solid ${rowHeadingColors.border}`,
@@ -1586,7 +2194,8 @@ return (
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: rowHeadingColors.background,
+                                                    background:
+                                                        rowHeadingColors.background,
                                                     color: rowHeadingColors.color,
                                                     fontWeight: 700,
                                                     border: `1px solid ${rowHeadingColors.border}`,
@@ -1600,7 +2209,8 @@ return (
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: rowHeadingColors.background,
+                                                    background:
+                                                        rowHeadingColors.background,
                                                     color: rowHeadingColors.color,
                                                     fontWeight: 700,
                                                     border: `1px solid ${rowHeadingColors.border}`,
@@ -1614,7 +2224,8 @@ return (
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: rowHeadingColors.background,
+                                                    background:
+                                                        rowHeadingColors.background,
                                                     color: rowHeadingColors.color,
                                                     fontWeight: 700,
                                                     border: `1px solid ${rowHeadingColors.border}`,
@@ -1628,7 +2239,8 @@ return (
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: rowHeadingColors.background,
+                                                    background:
+                                                        rowHeadingColors.background,
                                                     color: rowHeadingColors.color,
                                                     fontWeight: 700,
                                                     border: `1px solid ${rowHeadingColors.border}`,
@@ -1642,7 +2254,8 @@ return (
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: rowHeadingColors.background,
+                                                    background:
+                                                        rowHeadingColors.background,
                                                     color: rowHeadingColors.color,
                                                     fontWeight: 700,
                                                     border: `1px solid ${rowHeadingColors.border}`,
@@ -1656,7 +2269,8 @@ return (
                                                 style={{
                                                     padding: 14,
                                                     textAlign: "center",
-                                                    background: rowHeadingColors.background,
+                                                    background:
+                                                        rowHeadingColors.background,
                                                     color: rowHeadingColors.color,
                                                     fontWeight: 700,
                                                     border: `1px solid ${rowHeadingColors.border}`,
@@ -1670,29 +2284,143 @@ return (
                                     </thead>
                                     <tbody>
                                         {subjectStudents.map((student, idx) => {
-                                            const isPlaceholder = student.isPlaceholder;
+                                            const isPlaceholder =
+                                                student.isPlaceholder;
                                             const isAbsent = student.isAbsent;
+                                            const studentKey = `${student.rollNo}-${student.subject}`;
+                                            const isSelected = (
+                                                subjectSelectedRows[subj] || []
+                                            ).includes(studentKey);
                                             return (
-                                                <tr key={`${student.rollNo}-${student.subject}`}>
-                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
+                                                <tr key={studentKey}>
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx,
+                                                                isPlaceholder,
+                                                                isAbsent
+                                                            ),
+                                                            fontStyle: "normal",
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={() =>
+                                                                toggleSubjectRowSelection(
+                                                                    subj,
+                                                                    studentKey
+                                                                )
+                                                            }
+                                                            style={{
+                                                                cursor: "pointer",
+                                                                transform:
+                                                                    "scale(1.2)",
+                                                            }}
+                                                        />
+                                                    </td>
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx,
+                                                                isPlaceholder,
+                                                                isAbsent
+                                                            ),
+                                                            fontStyle: "normal",
+                                                        }}
+                                                    >
                                                         {student.rollNo}
                                                     </td>
-                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx,
+                                                                isPlaceholder,
+                                                                isAbsent
+                                                            ),
+                                                            fontStyle: "normal",
+                                                        }}
+                                                    >
                                                         {student.name || "-"}
                                                     </td>
-                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
-                                                        {isPlaceholder ? "-" : isAbsent ? "AB" : student.theory ?? "-"}
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx,
+                                                                isPlaceholder,
+                                                                isAbsent
+                                                            ),
+                                                            fontStyle: "normal",
+                                                        }}
+                                                    >
+                                                        {isPlaceholder
+                                                            ? "-"
+                                                            : isAbsent
+                                                            ? "AB"
+                                                            : student.theory ??
+                                                              "-"}
                                                     </td>
-                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
-                                                        {isPlaceholder ? "-" : isAbsent ? "AB" : student.practical ?? "-"}
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx,
+                                                                isPlaceholder,
+                                                                isAbsent
+                                                            ),
+                                                            fontStyle: "normal",
+                                                        }}
+                                                    >
+                                                        {isPlaceholder
+                                                            ? "-"
+                                                            : isAbsent
+                                                            ? "AB"
+                                                            : student.practical ??
+                                                              "-"}
                                                     </td>
-                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
-                                                        {isPlaceholder ? "-" : isAbsent ? "AB" : student.total ?? "-"}
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx,
+                                                                isPlaceholder,
+                                                                isAbsent
+                                                            ),
+                                                            fontStyle: "normal",
+                                                        }}
+                                                    >
+                                                        {isPlaceholder
+                                                            ? "-"
+                                                            : isAbsent
+                                                            ? "AB"
+                                                            : student.total ??
+                                                              "-"}
                                                     </td>
-                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
-                                                        {isPlaceholder ? "-" : isAbsent ? "AB" : student.grade ?? "-"}
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx,
+                                                                isPlaceholder,
+                                                                isAbsent
+                                                            ),
+                                                            fontStyle: "normal",
+                                                        }}
+                                                    >
+                                                        {isPlaceholder
+                                                            ? "-"
+                                                            : isAbsent
+                                                            ? "AB"
+                                                            : student.grade ??
+                                                              "-"}
                                                     </td>
-                                                    <td style={{ ...getTableCellStyle(idx, isPlaceholder, isAbsent), fontStyle: "normal" }}>
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx,
+                                                                isPlaceholder,
+                                                                isAbsent
+                                                            ),
+                                                            fontStyle: "normal",
+                                                        }}
+                                                    >
                                                         <button
                                                             onClick={() =>
                                                                 handleDeleteStudent(
@@ -1702,18 +2430,28 @@ return (
                                                                 )
                                                             }
                                                             style={{
-                                                                background: "transparent",
-                                                                color: theme.name === "dark" ? "#ff6f60" : "#e53935",
+                                                                background:
+                                                                    "transparent",
+                                                                color:
+                                                                    theme.name ===
+                                                                    "dark"
+                                                                        ? "#ff6f60"
+                                                                        : "#e53935",
                                                                 border: "none",
                                                                 padding: "4px",
                                                                 cursor: "pointer",
-                                                                display: "inline-flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
+                                                                display:
+                                                                    "inline-flex",
+                                                                alignItems:
+                                                                    "center",
+                                                                justifyContent:
+                                                                    "center",
                                                             }}
                                                             aria-label={`Delete ${student.rollNo} from ${student.subject}`}
                                                         >
-                                                            <MdDelete size={18} />
+                                                            <MdDelete
+                                                                size={18}
+                                                            />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -1721,12 +2459,83 @@ return (
                                         })}
                                     </tbody>
                                 </table>
+                                {/* Subject-specific absent/present buttons */}
+                                {(subjectSelectedRows[subj] || []).length >
+                                    0 && (
+                                    <div
+                                        style={{
+                                            marginTop: 16,
+                                            display: "flex",
+                                            justifyContent: "flex-end",
+                                            gap: 12,
+                                        }}
+                                    >
+                                        {checkIfAnySubjectSelectedAbsent(
+                                            subj
+                                        ) ? (
+                                            <button
+                                                onClick={() =>
+                                                    handleSubjectMarkAsPresent(
+                                                        subj
+                                                    )
+                                                }
+                                                disabled={markingAbsent}
+                                                style={{
+                                                    background: "#4caf50", // Green color for present
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: 8,
+                                                    padding: "8px 16px",
+                                                    fontSize: 14,
+                                                    fontWeight: 600,
+                                                    cursor: "pointer",
+                                                    boxShadow:
+                                                        "0 2px 4px rgba(76, 175, 80, 0.3)",
+                                                    opacity: markingAbsent
+                                                        ? 0.6
+                                                        : 1,
+                                                }}
+                                            >
+                                                {markingAbsent
+                                                    ? "Marking..."
+                                                    : `Mark ${subjectSelectedRows[subj].length} as Present`}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() =>
+                                                    handleSubjectMarkAsAbsent(
+                                                        subj
+                                                    )
+                                                }
+                                                disabled={markingAbsent}
+                                                style={{
+                                                    background: "#ff9800",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: 8,
+                                                    padding: "8px 16px",
+                                                    fontSize: 14,
+                                                    fontWeight: 600,
+                                                    cursor: "pointer",
+                                                    boxShadow:
+                                                        "0 2px 4px rgba(255, 152, 0, 0.3)",
+                                                    opacity: markingAbsent
+                                                        ? 0.6
+                                                        : 1,
+                                                }}
+                                            >
+                                                {markingAbsent
+                                                    ? "Marking..."
+                                                    : `Mark ${subjectSelectedRows[subj].length} as Absent`}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
                 );
             })}
-
             {deleteModal.open && (
                 <div
                     style={{
@@ -1796,7 +2605,6 @@ return (
                     </div>
                 </div>
             )}
-
             {/* Absent Marking Modal */}
             {absentModal.open && (
                 <div
@@ -1829,7 +2637,16 @@ return (
                         </h3>
                         <p style={{ color: theme.text, marginBottom: 16 }}>
                             Are you sure you want to mark the following{" "}
-                            {absentModal.students.length} student(s) as absent?
+                            {absentModal.students.length} student(s) as absent{" "}
+                            {absentModal.subject
+                                ? `in ${absentModal.subject} for`
+                                : "for"}{" "}
+                            {selectedExamType}
+                            {selectedExamType === "Monthly Test" &&
+                            selectedMonth
+                                ? ` in ${selectedMonth}`
+                                : ""}
+                            ?
                         </p>
                         <div
                             style={{
@@ -1848,7 +2665,8 @@ return (
                                     style={{
                                         padding: "4px 0",
                                         borderBottom:
-                                            idx < absentModal.students.length - 1
+                                            idx <
+                                            absentModal.students.length - 1
                                                 ? `1px solid ${theme.border}`
                                                 : "none",
                                         color: theme.text,
@@ -1871,6 +2689,7 @@ return (
                                     setAbsentModal({
                                         open: false,
                                         students: [],
+                                        subject: absentModal.subject,
                                     })
                                 }
                                 style={{
@@ -1893,11 +2712,137 @@ return (
                                     background: "#ff9800",
                                     color: "#fff",
                                     borderRadius: "6px",
-                                    cursor: markingAbsent ? "not-allowed" : "pointer",
+                                    cursor: markingAbsent
+                                        ? "not-allowed"
+                                        : "pointer",
                                     opacity: markingAbsent ? 0.6 : 1,
                                 }}
                             >
-                                {markingAbsent ? "Marking..." : "Mark as Absent"}
+                                {markingAbsent
+                                    ? "Marking..."
+                                    : "Mark as Absent"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Mark as Present Modal */}
+            {presentModal && presentModal.open && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "rgba(0,0,0,0.5)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 1000,
+                    }}
+                >
+                    <div
+                        style={{
+                            background: theme.surface,
+                            padding: "24px",
+                            borderRadius: "12px",
+                            maxWidth: "500px",
+                            width: "90%",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+                            color: theme.text,
+                        }}
+                    >
+                        <h3 style={{ marginTop: 0, color: theme.text }}>
+                            Mark Students as Present
+                        </h3>
+                        <p style={{ color: theme.text, marginBottom: 16 }}>
+                            Are you sure you want to mark the following{" "}
+                            {presentModal.students.length} student(s) as present{" "}
+                            {presentModal.subject
+                                ? `in ${presentModal.subject} for`
+                                : "for"}{" "}
+                            {selectedExamType}
+                            {selectedExamType === "Monthly Test" &&
+                            selectedMonth
+                                ? ` in ${selectedMonth}`
+                                : ""}
+                            ?
+                        </p>
+                        <div
+                            style={{
+                                maxHeight: "200px",
+                                overflowY: "auto",
+                                background: theme.background,
+                                padding: "12px",
+                                borderRadius: "8px",
+                                marginBottom: "16px",
+                                border: `1px solid ${theme.border}`,
+                            }}
+                        >
+                            {presentModal.students.map((student, idx) => (
+                                <div
+                                    key={idx}
+                                    style={{
+                                        padding: "4px 0",
+                                        borderBottom:
+                                            idx <
+                                            presentModal.students.length - 1
+                                                ? `1px solid ${theme.border}`
+                                                : "none",
+                                        color: theme.text,
+                                    }}
+                                >
+                                    <strong>Roll No:</strong> {student.rollNo} -{" "}
+                                    <strong>Name:</strong> {student.name}
+                                </div>
+                            ))}
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "12px",
+                                justifyContent: "flex-end",
+                            }}
+                        >
+                            <button
+                                onClick={() =>
+                                    setPresentModal({
+                                        open: false,
+                                        students: [],
+                                        subject: presentModal.subject,
+                                    })
+                                }
+                                style={{
+                                    padding: "8px 16px",
+                                    border: `1px solid ${theme.border}`,
+                                    background: theme.surface,
+                                    color: theme.text,
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmMarkAsPresent}
+                                disabled={markingAbsent}
+                                style={{
+                                    padding: "8px 16px",
+                                    border: "none",
+                                    background: "#4caf50",
+                                    color: "#fff",
+                                    borderRadius: "6px",
+                                    cursor: markingAbsent
+                                        ? "not-allowed"
+                                        : "pointer",
+                                    opacity: markingAbsent ? 0.6 : 1,
+                                }}
+                            >
+                                {markingAbsent
+                                    ? "Marking..."
+                                    : "Mark as Present"}
                             </button>
                         </div>
                     </div>
@@ -1972,7 +2917,8 @@ return (
                                             {
                                                 method: "DELETE",
                                                 headers: {
-                                                    "Content-Type": "application/json",
+                                                    "Content-Type":
+                                                        "application/json",
                                                     Authorization: `Bearer ${token}`,
                                                 },
                                                 body: JSON.stringify({
@@ -1980,9 +2926,12 @@ return (
                                                     session,
                                                     class: selectedClass,
                                                     examType: selectedExamType,
-                                                    ...(selectedExamType === "Monthly Test" &&
+                                                    ...(selectedExamType ===
+                                                        "Monthly Test" &&
                                                     selectedMonth
-                                                        ? { month: selectedMonth }
+                                                        ? {
+                                                              month: selectedMonth,
+                                                          }
                                                         : {}),
                                                 }),
                                             }
@@ -2005,7 +2954,9 @@ return (
                                             "Error deleting student records:",
                                             error
                                         );
-                                        alert("Failed to delete student records.");
+                                        alert(
+                                            "Failed to delete student records."
+                                        );
                                     }
                                     setDeleteStudentModal({
                                         open: false,
@@ -2028,7 +2979,6 @@ return (
                 </div>
             )}
         </div>
-    </div>
     );
 }
 

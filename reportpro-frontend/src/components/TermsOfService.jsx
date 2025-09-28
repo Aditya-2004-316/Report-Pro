@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { MdGavel, MdInfo, MdSecurity, MdUpdate, MdMail } from "react-icons/md";
+
 const TermsOfService = ({ theme }) => {
     const cardStyle = {
         background: theme.surface,
@@ -24,7 +25,9 @@ const TermsOfService = ({ theme }) => {
                 icon: <MdGavel color={theme.accent} size={20} />,
                 content: (
                     <p style={{ margin: 0 }}>
-                        By accessing or using Report Pro ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, please do not use the Service.
+                        By accessing or using Report Pro ("the Service"), you
+                        agree to be bound by these Terms of Service. If you do
+                        not agree, please do not use the Service.
                     </p>
                 ),
             },
@@ -34,9 +37,18 @@ const TermsOfService = ({ theme }) => {
                 icon: <MdInfo color={theme.accent} size={20} />,
                 content: (
                     <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        <li>You must provide accurate information during registration.</li>
-                        <li>You are responsible for maintaining the confidentiality of your account.</li>
-                        <li>You agree not to misuse the Service or attempt unauthorized access.</li>
+                        <li>
+                            You must provide accurate information during
+                            registration.
+                        </li>
+                        <li>
+                            You are responsible for maintaining the
+                            confidentiality of your account.
+                        </li>
+                        <li>
+                            You agree not to misuse the Service or attempt
+                            unauthorized access.
+                        </li>
                     </ul>
                 ),
             },
@@ -46,7 +58,10 @@ const TermsOfService = ({ theme }) => {
                 icon: <MdInfo color={theme.accent} size={20} />,
                 content: (
                     <p style={{ margin: 0 }}>
-                        All content, trademarks, and data on the Service are the property of Report Pro or its licensors. You may not reproduce or distribute any part of the Service without permission.
+                        All content, trademarks, and data on the Service are the
+                        property of Report Pro or its licensors. You may not
+                        reproduce or distribute any part of the Service without
+                        permission.
                     </p>
                 ),
             },
@@ -56,7 +71,9 @@ const TermsOfService = ({ theme }) => {
                 icon: <MdInfo color={theme.accent} size={20} />,
                 content: (
                     <p style={{ margin: 0 }}>
-                        You retain ownership of content you submit, but grant us a license to use it for operating and improving the Service.
+                        You retain ownership of content you submit, but grant us
+                        a license to use it for operating and improving the
+                        Service.
                     </p>
                 ),
             },
@@ -66,7 +83,9 @@ const TermsOfService = ({ theme }) => {
                 icon: <MdSecurity color={theme.accent} size={20} />,
                 content: (
                     <p style={{ margin: 0 }}>
-                        We reserve the right to suspend or terminate your access for violations of these Terms or for any reason at our discretion.
+                        We reserve the right to suspend or terminate your access
+                        for violations of these Terms or for any reason at our
+                        discretion.
                     </p>
                 ),
             },
@@ -76,7 +95,9 @@ const TermsOfService = ({ theme }) => {
                 icon: <MdInfo color={theme.accent} size={20} />,
                 content: (
                     <p style={{ margin: 0 }}>
-                        The Service is provided "as is" without warranties. We are not liable for any damages arising from your use of the Service.
+                        The Service is provided "as is" without warranties. We
+                        are not liable for any damages arising from your use of
+                        the Service.
                     </p>
                 ),
             },
@@ -86,7 +107,9 @@ const TermsOfService = ({ theme }) => {
                 icon: <MdUpdate color={theme.accent} size={20} />,
                 content: (
                     <p style={{ margin: 0 }}>
-                        We may update these Terms from time to time. Continued use of the Service constitutes acceptance of the new Terms.
+                        We may update these Terms from time to time. Continued
+                        use of the Service constitutes acceptance of the new
+                        Terms.
                     </p>
                 ),
             },
@@ -94,7 +117,12 @@ const TermsOfService = ({ theme }) => {
                 id: "law",
                 title: "Governing Law",
                 icon: <MdGavel color={theme.accent} size={20} />,
-                content: <p style={{ margin: 0 }}>These Terms are governed by the laws of your jurisdiction.</p>,
+                content: (
+                    <p style={{ margin: 0 }}>
+                        These Terms are governed by the laws of your
+                        jurisdiction.
+                    </p>
+                ),
             },
             {
                 id: "contact",
@@ -102,8 +130,15 @@ const TermsOfService = ({ theme }) => {
                 icon: <MdMail color={theme.accent} size={20} />,
                 content: (
                     <p style={{ margin: 0 }}>
-                        For questions about these Terms, please contact us via the Contact Us page or at {" "}
-                        <a href="mailto:support@reportpro.com" style={{ color: theme.accent }}>support@reportpro.com</a>.
+                        For questions about these Terms, please contact us via
+                        the Contact Us page or at{" "}
+                        <a
+                            href="mailto:support@reportpro.com"
+                            style={{ color: theme.accent }}
+                        >
+                            support@reportpro.com
+                        </a>
+                        .
                     </p>
                 ),
             },
@@ -114,86 +149,272 @@ const TermsOfService = ({ theme }) => {
     const sectionTitle = (title, icon) => (
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {icon}
-            <h3 style={{ margin: 0, fontWeight: 800, fontSize: 20 }}>{title}</h3>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: 20 }}>
+                {title}
+            </h3>
         </div>
     );
 
     return (
-        <div style={{ maxWidth: 1100, width: "100%", margin: "2rem auto", padding: "0 1rem" }}>
-            {/* Hero */}
+        <>
+            {/* Responsive styles for Terms of Service page */}
+            <style>{`
+                /* Critical fix for the 730px overflow issue */
+                @media (max-width: 730px) {
+                    .terms-service-container {
+                        max-width: 98vw !important;
+                        padding: 1.3rem !important;
+                        margin: 1rem auto !important;
+                        box-sizing: border-box !important;
+                        overflow-x: hidden !important;
+                    }
+                    .terms-service-content-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 14px !important;
+                    }
+                    .terms-service-toc {
+                        padding: 14px !important;
+                    }
+                    .terms-service-section {
+                        padding: 14px !important;
+                    }
+                    /* Ensure all elements stay within container */
+                    .terms-service-container,
+                    .terms-service-container *,
+                    .terms-service-container *::before,
+                    .terms-service-container *::after {
+                        box-sizing: border-box !important;
+                        max-width: 100% !important;
+                    }
+                }
+
+                /* Tablets and large phones (600px to 767px) */
+                @media (min-width: 600px) and (max-width: 767px) {
+                    .terms-service-container {
+                        max-width: 98vw !important;
+                        padding: 1.2rem !important;
+                        border-radius: 14px !important;
+                        margin: 1rem auto !important;
+                        overflow-x: hidden !important;
+                    }
+                    .terms-service-content-grid {
+                        gap: 14px !important;
+                    }
+                }
+
+                /* Small phones (480px to 599px) */
+                @media (min-width: 480px) and (max-width: 599px) {
+                    .terms-service-container {
+                        padding: 1rem !important;
+                        border-radius: 12px !important;
+                        margin: 0.8rem auto !important;
+                        overflow-x: hidden !important;
+                    }
+                    .terms-service-toc {
+                        padding: 12px !important;
+                    }
+                    .terms-service-section {
+                        padding: 12px !important;
+                    }
+                }
+
+                /* Extra small phones (360px and below) */
+                @media (max-width: 360px) {
+                    .terms-service-container {
+                        padding: 0.8rem !important;
+                        margin: 0.5rem auto !important;
+                        overflow-x: hidden !important;
+                    }
+                }
+
+                /* Landscape orientation on phones */
+                @media (max-height: 500px) and (orientation: landscape) {
+                    .terms-service-container {
+                        margin: 0.5rem auto !important;
+                        padding: 1rem !important;
+                        overflow-x: hidden !important;
+                    }
+                }
+
+                /* Ensure no horizontal overflow on any screen size */
+                .terms-service-container {
+                    max-width: 100% !important;
+                    overflow-x: hidden !important;
+                    box-sizing: border-box !important;
+                }
+            `}</style>
+
             <div
+                className="terms-service-container"
                 style={{
-                    ...cardStyle,
-                    padding: "1.8rem",
-                    background:
-                        theme.name === "dark"
-                            ? `linear-gradient(135deg, ${theme.surface} 0%, #2b2e33 100%)`
-                            : `linear-gradient(135deg, #fff 0%, #fff6f6 100%)`,
+                    maxWidth: 1100,
+                    width: "100%",
+                    margin: "2rem auto",
+                    padding: "0 1rem",
                 }}
             >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                    <span
+                {/* Hero */}
+                <div
+                    style={{
+                        ...cardStyle,
+                        padding: "1.8rem",
+                        background:
+                            theme.name === "dark"
+                                ? `linear-gradient(135deg, ${theme.surface} 0%, #2b2e33 100%)`
+                                : `linear-gradient(135deg, #fff 0%, #fff6f6 100%)`,
+                    }}
+                >
+                    <div
                         style={{
-                            display: "inline-flex",
+                            display: "flex",
                             alignItems: "center",
-                            gap: 8,
-                            padding: "6px 12px",
-                            borderRadius: 999,
-                            background: theme.name === "dark" ? "#232526" : "#ffeaea",
-                            color: theme.accent,
-                            fontWeight: 700,
-                            border: `1px solid ${theme.border}`,
+                            gap: 10,
+                            marginBottom: 8,
                         }}
                     >
-                        <MdGavel /> Legal
-                    </span>
-                </div>
-                <h2 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: theme.text }}>Terms of Service</h2>
-                <p style={{ marginTop: 8, marginBottom: 14, color: theme.textSecondary }}>
-                    The rules and guidelines for using Report Pro.
-                </p>
-                <div style={{ color: theme.textSecondary, fontSize: 14 }}>Last updated: {lastUpdatedText}</div>
-            </div>
-
-            {/* Content */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginTop: 16 }}>
-                {/* TOC */}
-                <div style={{ ...cardStyle, padding: 16 }}>
-                    <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 18 }}>Contents</h3>
-                    <ol style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-                        {sections.map((s) => (
-                            <li key={s.id}>
-                                <a href={`#${s.id}`} style={{ color: theme.accent, textDecoration: "none" }}>
-                                    {s.title}
-                                </a>
-                            </li>
-                        ))}
-                    </ol>
-                </div>
-
-                {/* Sections */}
-                {sections.map((s) => (
-                    <div id={s.id} key={s.id} style={{ ...cardStyle, padding: 16 }}>
-                        {sectionTitle(s.title, s.icon)}
-                        <div style={{ marginTop: 10, color: theme.textSecondary }}>{s.content}</div>
+                        <span
+                            style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "6px 12px",
+                                borderRadius: 999,
+                                background:
+                                    theme.name === "dark"
+                                        ? "#232526"
+                                        : "#ffeaea",
+                                color: theme.accent,
+                                fontWeight: 700,
+                                border: `1px solid ${theme.border}`,
+                            }}
+                        >
+                            <MdGavel /> Legal
+                        </span>
                     </div>
-                ))}
-
-                {/* Contact CTA */}
-                <div style={{ ...cardStyle, padding: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                        <MdMail color={theme.accent} size={20} />
-                        <strong>Questions about these Terms?</strong>
-                    </div>
-                    <p style={{ marginTop: 0, marginBottom: 12, color: theme.textSecondary }}>
-                        We’re here to help clarify any part of our Terms of Service.
+                    <h2
+                        style={{
+                            margin: 0,
+                            fontSize: 28,
+                            fontWeight: 900,
+                            color: theme.text,
+                        }}
+                    >
+                        Terms of Service
+                    </h2>
+                    <p
+                        style={{
+                            marginTop: 8,
+                            marginBottom: 14,
+                            color: theme.textSecondary,
+                        }}
+                    >
+                        The rules and guidelines for using Report Pro.
                     </p>
-                    <Link to="/dashboard/contact" style={{ color: theme.accent, fontWeight: 700 }}>
-                        Contact Support
-                    </Link>
+                    <div style={{ color: theme.textSecondary, fontSize: 14 }}>
+                        Last updated: {lastUpdatedText}
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div
+                    className="terms-service-content-grid"
+                    style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr",
+                        gap: 16,
+                        marginTop: 16,
+                    }}
+                >
+                    {/* TOC */}
+                    <div
+                        className="terms-service-toc"
+                        style={{ ...cardStyle, padding: 16 }}
+                    >
+                        <h3
+                            style={{
+                                marginTop: 0,
+                                marginBottom: 10,
+                                fontSize: 18,
+                            }}
+                        >
+                            Contents
+                        </h3>
+                        <ol
+                            style={{
+                                margin: 0,
+                                paddingLeft: 18,
+                                lineHeight: 1.7,
+                            }}
+                        >
+                            {sections.map((s) => (
+                                <li key={s.id}>
+                                    <a
+                                        href={`#${s.id}`}
+                                        style={{
+                                            color: theme.accent,
+                                            textDecoration: "none",
+                                        }}
+                                    >
+                                        {s.title}
+                                    </a>
+                                </li>
+                            ))}
+                        </ol>
+                    </div>
+
+                    {/* Sections */}
+                    {sections.map((s) => (
+                        <div
+                            id={s.id}
+                            key={s.id}
+                            className="terms-service-section"
+                            style={{ ...cardStyle, padding: 16 }}
+                        >
+                            {sectionTitle(s.title, s.icon)}
+                            <div
+                                style={{
+                                    marginTop: 10,
+                                    color: theme.textSecondary,
+                                }}
+                            >
+                                {s.content}
+                            </div>
+                        </div>
+                    ))}
+
+                    {/* Contact CTA */}
+                    <div style={{ ...cardStyle, padding: 16 }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                marginBottom: 8,
+                            }}
+                        >
+                            <MdMail color={theme.accent} size={20} />
+                            <strong>Questions about these Terms?</strong>
+                        </div>
+                        <p
+                            style={{
+                                marginTop: 0,
+                                marginBottom: 12,
+                                color: theme.textSecondary,
+                            }}
+                        >
+                            We’re here to help clarify any part of our Terms of
+                            Service.
+                        </p>
+                        <Link
+                            to="/dashboard/contact"
+                            style={{ color: theme.accent, fontWeight: 700 }}
+                        >
+                            Contact Support
+                        </Link>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

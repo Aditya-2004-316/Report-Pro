@@ -10,6 +10,7 @@ import {
     MdPhone,
     MdArrowForward,
 } from "react-icons/md";
+
 const HelpSupport = ({ theme }) => {
     const [query, setQuery] = useState("");
     const [openFaq, setOpenFaq] = useState(new Set());
@@ -37,12 +38,18 @@ const HelpSupport = ({ theme }) => {
                 q: "Who can I contact for technical support?",
                 a: (
                     <span>
-                        Email us at {" "}
-                        <a href="mailto:support@reportpro.com" style={{ color: theme.accent }}>
+                        Email us at{" "}
+                        <a
+                            href="mailto:support@reportpro.com"
+                            style={{ color: theme.accent }}
+                        >
                             support@reportpro.com
                         </a>{" "}
-                        or use the {" "}
-                        <Link to="/dashboard/contact" style={{ color: theme.accent }}>
+                        or use the{" "}
+                        <Link
+                            to="/dashboard/contact"
+                            style={{ color: theme.accent }}
+                        >
                             Contact Us
                         </Link>{" "}
                         page.
@@ -74,18 +81,22 @@ const HelpSupport = ({ theme }) => {
     const filteredFaqs = useMemo(() => {
         const ql = query.trim().toLowerCase();
         if (!ql) return faqs;
-        return faqs.filter((f) =>
-            (typeof f.a === "string" ? f.a : "")
-                .toString()
-                .toLowerCase()
-                .includes(ql) || f.q.toLowerCase().includes(ql)
+        return faqs.filter(
+            (f) =>
+                (typeof f.a === "string" ? f.a : "")
+                    .toString()
+                    .toLowerCase()
+                    .includes(ql) || f.q.toLowerCase().includes(ql)
         );
     }, [faqs, query]);
 
     const filteredTips = useMemo(() => {
         const ql = query.trim().toLowerCase();
         if (!ql) return tips;
-        return tips.filter((t) => t.t.toLowerCase().includes(ql) || t.d.toLowerCase().includes(ql));
+        return tips.filter(
+            (t) =>
+                t.t.toLowerCase().includes(ql) || t.d.toLowerCase().includes(ql)
+        );
     }, [tips, query]);
 
     const cardStyle = {
@@ -97,13 +108,27 @@ const HelpSupport = ({ theme }) => {
     };
 
     const sectionTitle = (icon, text) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "8px 0 12px 0" }}>
+        <div
+            style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                margin: "8px 0 12px 0",
+            }}
+        >
             {icon}
             <h3 style={{ margin: 0, fontWeight: 800, fontSize: 20 }}>{text}</h3>
         </div>
     );
 
-    const AccordionItem = ({ id, title, content, openSet, setOpenSet, icon }) => {
+    const AccordionItem = ({
+        id,
+        title,
+        content,
+        openSet,
+        setOpenSet,
+        icon,
+    }) => {
         const isOpen = openSet.has(id);
         const toggle = () => {
             const next = new Set(openSet);
@@ -129,13 +154,21 @@ const HelpSupport = ({ theme }) => {
                         textAlign: "left",
                     }}
                 >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                        }}
+                    >
                         {icon}
                         <span style={{ fontWeight: 700 }}>{title}</span>
                     </div>
                     <span
                         style={{
-                            transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
+                            transform: isOpen
+                                ? "rotate(90deg)"
+                                : "rotate(0deg)",
                             transition: "transform 0.2s",
                             color: theme.accent,
                         }}
@@ -144,7 +177,12 @@ const HelpSupport = ({ theme }) => {
                     </span>
                 </button>
                 {isOpen && (
-                    <div style={{ marginTop: 10, color: theme.textSecondary || theme.text }}>
+                    <div
+                        style={{
+                            marginTop: 10,
+                            color: theme.textSecondary || theme.text,
+                        }}
+                    >
                         {content}
                     </div>
                 )}
@@ -153,178 +191,390 @@ const HelpSupport = ({ theme }) => {
     };
 
     return (
-        <div style={{ maxWidth: 1100, width: "100%", margin: "2rem auto", padding: "0 1rem" }}>
-            {/* Hero */}
+        <>
+            {/* Responsive styles for Help & Support page */}
+            <style>{`
+                /* Critical fix for the 730px overflow issue */
+                @media (max-width: 730px) {
+                    .help-support-container {
+                        max-width: 98vw !important;
+                        padding: 1.3rem !important;
+                        margin: 1rem auto !important;
+                        box-sizing: border-box !important;
+                        overflow-x: hidden !important;
+                    }
+                    .help-support-content-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 14px !important;
+                    }
+                    .help-support-search-container {
+                        flex-direction: column !important;
+                        gap: 12px !important;
+                        align-items: stretch !important;
+                    }
+                    .help-support-search-input {
+                        width: 100% !important;
+                    }
+                    .help-support-contact-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 14px !important;
+                    }
+                    /* Ensure all elements stay within container */
+                    .help-support-container,
+                    .help-support-container *,
+                    .help-support-container *::before,
+                    .help-support-container *::after {
+                        box-sizing: border-box !important;
+                        max-width: 100% !important;
+                    }
+                }
+
+                /* Tablets and large phones (600px to 767px) */
+                @media (min-width: 600px) and (max-width: 767px) {
+                    .help-support-container {
+                        max-width: 98vw !important;
+                        padding: 1.2rem !important;
+                        border-radius: 14px !important;
+                        margin: 1rem auto !important;
+                        overflow-x: hidden !important;
+                    }
+                    .help-support-contact-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 14px !important;
+                    }
+                }
+
+                /* Small phones (480px to 599px) */
+                @media (min-width: 480px) and (max-width: 599px) {
+                    .help-support-container {
+                        padding: 1rem !important;
+                        border-radius: 12px !important;
+                        margin: 0.8rem auto !important;
+                        overflow-x: hidden !important;
+                    }
+                }
+
+                /* Extra small phones (360px and below) */
+                @media (max-width: 360px) {
+                    .help-support-container {
+                        padding: 0.8rem !important;
+                        margin: 0.5rem auto !important;
+                        overflow-x: hidden !important;
+                    }
+                }
+
+                /* Landscape orientation on phones */
+                @media (max-height: 500px) and (orientation: landscape) {
+                    .help-support-container {
+                        margin: 0.5rem auto !important;
+                        padding: 1rem !important;
+                        overflow-x: hidden !important;
+                    }
+                }
+
+                /* Ensure no horizontal overflow on any screen size */
+                .help-support-container {
+                    max-width: 100% !important;
+                    overflow-x: hidden !important;
+                    box-sizing: border-box !important;
+                }
+            `}</style>
+
             <div
+                className="help-support-container"
                 style={{
-                    ...cardStyle,
-                    padding: "1.8rem",
-                    background:
-                        theme.name === "dark"
-                            ? `linear-gradient(135deg, ${theme.surface} 0%, #2b2e33 100%)`
-                            : `linear-gradient(135deg, #fff 0%, #fff6f6 100%)`,
+                    maxWidth: 1100,
+                    width: "100%",
+                    margin: "2rem auto",
+                    padding: "0 1rem",
                 }}
             >
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                    <span
-                        style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "6px 12px",
-                            borderRadius: 999,
-                            background: theme.name === "dark" ? "#232526" : "#ffeaea",
-                            color: theme.accent,
-                            fontWeight: 700,
-                            border: `1px solid ${theme.border}`,
-                        }}
-                    >
-                        <MdSupportAgent /> Support Center
-                    </span>
-                </div>
-                <h2 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: theme.text }}>
-                    Help & Support
-                </h2>
-                <p style={{ marginTop: 8, marginBottom: 14, color: theme.textSecondary }}>
-                    Find answers, troubleshoot issues, and contact our team. We’re here to help.
-                </p>
-
-                {/* Search */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {/* Hero */}
+                <div
+                    style={{
+                        ...cardStyle,
+                        padding: "1.8rem",
+                        background:
+                            theme.name === "dark"
+                                ? `linear-gradient(135deg, ${theme.surface} 0%, #2b2e33 100%)`
+                                : `linear-gradient(135deg, #fff 0%, #fff6f6 100%)`,
+                    }}
+                >
                     <div
                         style={{
-                            flex: 1,
                             display: "flex",
                             alignItems: "center",
-                            gap: 8,
-                            background: theme.inputBg,
-                            border: `1px solid ${theme.inputBorder || theme.border}`,
-                            borderRadius: 10,
-                            padding: "10px 12px",
+                            gap: 12,
+                            marginBottom: 8,
                         }}
                     >
-                        <MdSearch size={20} color={theme.textSecondary} />
-                        <input
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Search FAQs and troubleshooting..."
+                        <span
                             style={{
-                                width: "100%",
-                                border: "none",
-                                outline: "none",
-                                background: "transparent",
-                                color: theme.text,
-                                fontSize: 16,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "6px 12px",
+                                borderRadius: 999,
+                                background:
+                                    theme.name === "dark"
+                                        ? "#232526"
+                                        : "#ffeaea",
+                                color: theme.accent,
+                                fontWeight: 700,
+                                border: `1px solid ${theme.border}`,
                             }}
-                        />
+                        >
+                            <MdSupportAgent /> Support Center
+                        </span>
                     </div>
-                    <Link
-                        to="/dashboard/contact"
+                    <h2
                         style={{
-                            textDecoration: "none",
-                            background: theme.accent,
-                            color: "#fff",
-                            padding: "10px 14px",
-                            borderRadius: 10,
-                            fontWeight: 700,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 8,
-                            boxShadow: theme.shadow,
+                            margin: 0,
+                            fontSize: 28,
+                            fontWeight: 900,
+                            color: theme.text,
                         }}
                     >
-                        <MdChat /> Contact Support
-                    </Link>
-                </div>
-            </div>
+                        Help & Support
+                    </h2>
+                    <p
+                        style={{
+                            marginTop: 8,
+                            marginBottom: 14,
+                            color: theme.textSecondary,
+                        }}
+                    >
+                        Find answers, troubleshoot issues, and contact our team.
+                        We’re here to help.
+                    </p>
 
-            {/* Content Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginTop: 16 }}>
-                {/* FAQs */}
-                <div style={{ ...cardStyle, padding: 16 }}>
-                    {sectionTitle(<MdQuestionAnswer color={theme.accent} size={22} />, "Frequently Asked Questions")}
-                    <div>
-                        {filteredFaqs.length === 0 ? (
-                            <div style={{ color: theme.textSecondary }}>No FAQs match your search.</div>
-                        ) : (
-                            filteredFaqs.map((item, idx) => (
-                                <AccordionItem
-                                    key={idx}
-                                    id={idx}
-                                    title={item.q}
-                                    content={item.a}
-                                    openSet={openFaq}
-                                    setOpenSet={setOpenFaq}
-                                    icon={<MdQuestionAnswer size={20} color={theme.accent} />}
-                                />
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Troubleshooting */}
-                <div style={{ ...cardStyle, padding: 16 }}>
-                    {sectionTitle(<MdBugReport color={theme.accent} size={22} />, "Troubleshooting Tips")}
-                    <div>
-                        {filteredTips.length === 0 ? (
-                            <div style={{ color: theme.textSecondary }}>No troubleshooting items match your search.</div>
-                        ) : (
-                            filteredTips.map((item, idx) => (
-                                <AccordionItem
-                                    key={idx}
-                                    id={idx}
-                                    title={item.t}
-                                    content={item.d}
-                                    openSet={openTips}
-                                    setOpenSet={setOpenTips}
-                                    icon={<MdBugReport size={20} color={theme.accent} />}
-                                />
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Contact Cards */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
-                    <div style={{ ...cardStyle, padding: 16 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                            <MdEmail color={theme.accent} size={22} />
-                            <strong>Support Email</strong>
+                    {/* Search */}
+                    <div
+                        className="help-support-search-container"
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                        }}
+                    >
+                        <div
+                            style={{
+                                flex: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                background: theme.inputBg,
+                                border: `1px solid ${
+                                    theme.inputBorder || theme.border
+                                }`,
+                                borderRadius: 10,
+                                padding: "10px 12px",
+                            }}
+                        >
+                            <MdSearch size={20} color={theme.textSecondary} />
+                            <input
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="Search FAQs and troubleshooting..."
+                                style={{
+                                    width: "100%",
+                                    border: "none",
+                                    outline: "none",
+                                    background: "transparent",
+                                    color: theme.text,
+                                    fontSize: 16,
+                                }}
+                            />
                         </div>
-                        <p style={{ marginTop: 0, marginBottom: 12, color: theme.textSecondary }}>
-                            For general queries or issues, email us.
-                        </p>
-                        <a href="mailto:support@reportpro.com" style={{ color: theme.accent, fontWeight: 700 }}>
-                            support@reportpro.com
-                        </a>
-                    </div>
-                    <div style={{ ...cardStyle, padding: 16 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                            <MdChat color={theme.accent} size={22} />
-                            <strong>Contact Form</strong>
-                        </div>
-                        <p style={{ marginTop: 0, marginBottom: 12, color: theme.textSecondary }}>
-                            Prefer a form? Use our in-app contact page.
-                        </p>
-                        <Link to="/dashboard/contact" style={{ color: theme.accent, fontWeight: 700 }}>
-                            Open Contact Page
+                        <Link
+                            to="/dashboard/contact"
+                            style={{
+                                textDecoration: "none",
+                                background: theme.accent,
+                                color: "#fff",
+                                padding: "10px 14px",
+                                borderRadius: 10,
+                                fontWeight: 700,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                boxShadow: theme.shadow,
+                            }}
+                        >
+                            <MdChat /> Contact Support
                         </Link>
                     </div>
+                </div>
+
+                {/* Content Grid */}
+                <div
+                    className="help-support-content-grid"
+                    style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr",
+                        gap: 16,
+                        marginTop: 16,
+                    }}
+                >
+                    {/* FAQs */}
                     <div style={{ ...cardStyle, padding: 16 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                            <MdPhone color={theme.accent} size={22} />
-                            <strong>Business Hours</strong>
+                        {sectionTitle(
+                            <MdQuestionAnswer color={theme.accent} size={22} />,
+                            "Frequently Asked Questions"
+                        )}
+                        <div>
+                            {filteredFaqs.length === 0 ? (
+                                <div style={{ color: theme.textSecondary }}>
+                                    No FAQs match your search.
+                                </div>
+                            ) : (
+                                filteredFaqs.map((item, idx) => (
+                                    <AccordionItem
+                                        key={idx}
+                                        id={idx}
+                                        title={item.q}
+                                        content={item.a}
+                                        openSet={openFaq}
+                                        setOpenSet={setOpenFaq}
+                                        icon={
+                                            <MdQuestionAnswer
+                                                size={20}
+                                                color={theme.accent}
+                                            />
+                                        }
+                                    />
+                                ))
+                            )}
                         </div>
-                        <p style={{ marginTop: 0, marginBottom: 8 }}>
-                            Monday - Friday
-                        </p>
-                        <p style={{ marginTop: 0, marginBottom: 0, color: theme.textSecondary }}>
-                            9:00 AM - 6:00 PM (IST)
-                        </p>
+                    </div>
+
+                    {/* Troubleshooting */}
+                    <div style={{ ...cardStyle, padding: 16 }}>
+                        {sectionTitle(
+                            <MdBugReport color={theme.accent} size={22} />,
+                            "Troubleshooting Tips"
+                        )}
+                        <div>
+                            {filteredTips.length === 0 ? (
+                                <div style={{ color: theme.textSecondary }}>
+                                    No troubleshooting items match your search.
+                                </div>
+                            ) : (
+                                filteredTips.map((item, idx) => (
+                                    <AccordionItem
+                                        key={idx}
+                                        id={idx}
+                                        title={item.t}
+                                        content={item.d}
+                                        openSet={openTips}
+                                        setOpenSet={setOpenTips}
+                                        icon={
+                                            <MdBugReport
+                                                size={20}
+                                                color={theme.accent}
+                                            />
+                                        }
+                                    />
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Contact Cards */}
+                    <div
+                        className="help-support-contact-grid"
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns:
+                                "repeat(auto-fit, minmax(260px, 1fr))",
+                            gap: 16,
+                        }}
+                    >
+                        <div style={{ ...cardStyle, padding: 16 }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                <MdEmail color={theme.accent} size={22} />
+                                <strong>Support Email</strong>
+                            </div>
+                            <p
+                                style={{
+                                    marginTop: 0,
+                                    marginBottom: 12,
+                                    color: theme.textSecondary,
+                                }}
+                            >
+                                For general queries or issues, email us.
+                            </p>
+                            <a
+                                href="mailto:support@reportpro.com"
+                                style={{ color: theme.accent, fontWeight: 700 }}
+                            >
+                                support@reportpro.com
+                            </a>
+                        </div>
+                        <div style={{ ...cardStyle, padding: 16 }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                <MdChat color={theme.accent} size={22} />
+                                <strong>Contact Form</strong>
+                            </div>
+                            <p
+                                style={{
+                                    marginTop: 0,
+                                    marginBottom: 12,
+                                    color: theme.textSecondary,
+                                }}
+                            >
+                                Prefer a form? Use our in-app contact page.
+                            </p>
+                            <Link
+                                to="/dashboard/contact"
+                                style={{ color: theme.accent, fontWeight: 700 }}
+                            >
+                                Open Contact Page
+                            </Link>
+                        </div>
+                        <div style={{ ...cardStyle, padding: 16 }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                <MdPhone color={theme.accent} size={22} />
+                                <strong>Business Hours</strong>
+                            </div>
+                            <p style={{ marginTop: 0, marginBottom: 8 }}>
+                                Monday - Friday
+                            </p>
+                            <p
+                                style={{
+                                    marginTop: 0,
+                                    marginBottom: 0,
+                                    color: theme.textSecondary,
+                                }}
+                            >
+                                9:00 AM - 6:00 PM (IST)
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 
