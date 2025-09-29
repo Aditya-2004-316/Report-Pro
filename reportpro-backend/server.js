@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 const allowedOrigins = [
-    "https://report-pro-rho.vercel.app", // Your deployed frontend
+    "https://report-pro-mm9o.vercel.app/", // Your deployed frontend
     "http://localhost:5173", // Vite dev server
     "http://localhost:3000", // (Optional: for local dev)
 ];
