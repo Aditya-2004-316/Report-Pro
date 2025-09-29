@@ -314,7 +314,6 @@ function MarkEntryForm({
         try {
             const token = sessionStorage.getItem("token");
             if (!token) {
-                console.warn("No authentication token found");
                 exists = false;
             } else {
                 // Construct API URL with proper filters including class and month
@@ -329,7 +328,6 @@ function MarkEntryForm({
                 });
 
                 if (res.status === 401) {
-                    console.warn("Authentication failed, token may be expired");
                     exists = false;
                 } else if (res.ok) {
                     const studentsList = await res.json();
@@ -378,12 +376,10 @@ function MarkEntryForm({
                         );
                     });
                 } else {
-                    console.warn("Failed to fetch students:", res.status);
                     exists = false;
                 }
             }
         } catch (err) {
-            console.warn("Error checking for existing students:", err);
             // fallback: allow submit if backend check fails
             exists = false;
         }
@@ -403,7 +399,6 @@ function MarkEntryForm({
     // Separate function to handle actual data submission
     const submitStudentData = async (data) => {
         if (!onSubmit) {
-            console.warn("No onSubmit handler provided");
             return;
         }
 
@@ -413,17 +408,9 @@ function MarkEntryForm({
 
             // Only proceed with registry addition if marks submission was successful
             if (!result || !result.success) {
-                console.warn(
-                    "Marks submission failed, not adding to registry:",
-                    result?.error || "Unknown error"
-                );
                 // Don't reset form on submission failure so user can retry
                 return;
             }
-
-            console.log(
-                "Marks submitted successfully, proceeding with registry addition if needed"
-            );
 
             // ONLY after confirmed successful marks submission, handle auto-add to registry
             if (
@@ -441,10 +428,6 @@ function MarkEntryForm({
                 );
 
                 if (!existingStudent) {
-                    console.log("Adding new student to registry:", {
-                        rollNo: data.rollNo.trim(),
-                        name: data.name.trim(),
-                    });
                     try {
                         const token = sessionStorage.getItem("token");
                         const newRegistryStudents = [
@@ -474,42 +457,16 @@ function MarkEntryForm({
                         if (registryResponse.ok) {
                             // Update local registry state only if API call succeeded
                             setRegistryStudents(newRegistryStudents);
-                            console.log(
-                                "Student successfully added to registry"
-                            );
                         } else {
-                            console.warn(
-                                "Failed to add student to registry - API call failed:",
-                                registryResponse.status
-                            );
                         }
                     } catch (error) {
-                        console.warn(
-                            "Failed to add student to registry - network error:",
-                            error
-                        );
                         // Silently fail, registry will refresh on next session/class change
                     }
                 } else {
-                    console.log(
-                        "Student already exists in registry, skipping addition"
-                    );
                 }
             } else {
                 if (!autoAddToRegistry) {
-                    console.log("Auto-add to registry is disabled");
                 } else {
-                    console.log(
-                        "Skipping registry addition - missing required data:",
-                        {
-                            autoAddToRegistry,
-                            hasRollNo: !!data.rollNo.trim(),
-                            isNotNA: data.rollNo.trim() !== "N/A",
-                            hasName: !!data.name.trim(),
-                            hasSession: !!session,
-                            hasStudentClass: !!studentClass,
-                        }
-                    );
                 }
             }
 
@@ -536,15 +493,12 @@ function MarkEntryForm({
                                 ? refreshedData.students
                                 : []
                         );
-                        console.log("Registry data refreshed successfully");
                     }
                 } catch (error) {
-                    console.warn("Failed to refresh registry data:", error);
                     // Silently fail, registry will refresh on next session/class change
                 }
             }
         } catch (error) {
-            console.error("Error during data submission:", error);
             // Don't reset form on error so user can retry
         }
     };

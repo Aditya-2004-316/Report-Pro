@@ -103,10 +103,7 @@ function StudentList({
 
     const fetchStudents = async () => {
         if (!session || !token || !selectedClass) {
-            console.log(
-                "StudentList: Skipping data fetch - missing required params:",
-                { session, token: !!token, selectedClass }
-            );
+            // Removed console log for production
             return;
         }
 
@@ -186,7 +183,7 @@ function StudentList({
             setStudents(combinedStudents);
             setLastUpdated(new Date());
         } catch (error) {
-            console.error("StudentList: Error fetching students:", error);
+            // Removed error log for production
             setStudents([]);
         }
     };
@@ -348,7 +345,6 @@ function StudentList({
     const studentsByRollNo = {};
     filtered.forEach((s) => {
         if (!s || !s.rollNo || !s.examType || !s.subject) {
-            console.warn("StudentList: Skipping invalid student data:", s);
             return;
         }
 
@@ -841,7 +837,7 @@ function StudentList({
             }
 
             const result = await response.json();
-            console.log("Mark as absent result:", result);
+            // Removed console log for production
 
             // Refresh student data
             await fetchStudents();
@@ -867,7 +863,7 @@ function StudentList({
             );
             setTimeout(() => setPopupMsg(""), 3000);
         } catch (error) {
-            console.error("Error marking students as absent:", error);
+            // Removed console error for production
             alert("Failed to mark students as absent: " + error.message);
         }
         setMarkingAbsent(false);
@@ -887,7 +883,7 @@ function StudentList({
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    students: presentModal.students.map((s) => s.rollNo),
+                    students: presentModal.students,
                     session,
                     class: selectedClass,
                     examType: selectedExamType,
@@ -908,7 +904,7 @@ function StudentList({
             }
 
             const result = await response.json();
-            console.log("Mark as present result:", result);
+            // Removed console log for production
 
             // Refresh student data
             await fetchStudents();
@@ -934,7 +930,7 @@ function StudentList({
             );
             setTimeout(() => setPopupMsg(""), 3000);
         } catch (error) {
-            console.error("Error marking students as present:", error);
+            // Removed console error for production
             alert("Failed to mark students as present: " + error.message);
         }
         setMarkingAbsent(false);
@@ -2950,10 +2946,6 @@ function StudentList({
                                         );
                                         setTimeout(() => setPopupMsg(""), 3000);
                                     } catch (error) {
-                                        console.error(
-                                            "Error deleting student records:",
-                                            error
-                                        );
                                         alert(
                                             "Failed to delete student records."
                                         );

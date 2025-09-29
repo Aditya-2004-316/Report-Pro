@@ -10,7 +10,7 @@ async function testAbsentPresentFunctionality() {
     try {
         // Connect to MongoDB
         await mongoose.connect(MONGODB_URI);
-        console.log("Connected to MongoDB");
+        // Removed console log for production
 
         // Test user ID (mock)
         const userId = "test-user-id";
@@ -30,13 +30,13 @@ async function testAbsentPresentFunctionality() {
             user: userId,
         };
 
-        console.log("Creating test student record...");
+        // Removed console log for production
         // Create a test student record
         const student = await Student.create(testData);
-        console.log("Created student record:", student.rollNo, student.subject);
+        // Removed console log for production
 
         // Test absent functionality
-        console.log("Testing absent functionality...");
+        // Removed console log for production
         const absentData = {
             ...testData,
             theory: 0,
@@ -58,11 +58,7 @@ async function testAbsentPresentFunctionality() {
             absentData,
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );
-        console.log(
-            "Marked student as absent:",
-            absentStudent.rollNo,
-            absentStudent.isAbsent
-        );
+        // Removed console log for production
 
         // Verify the student is marked as absent
         const verifyAbsent = await Student.findOne({
@@ -72,11 +68,11 @@ async function testAbsentPresentFunctionality() {
             session: testData.session,
             user: userId,
         });
-        console.log("Verification - isAbsent:", verifyAbsent.isAbsent);
-        console.log("Verification - grade:", verifyAbsent.grade);
+        // Removed console log for production
+        // Removed console log for production
 
         // Test present functionality
-        console.log("Testing present functionality...");
+        // Removed console log for production
         // Remove the absent record (mark as present)
         const deleteResult = await Student.deleteMany({
             rollNo: testData.rollNo,
@@ -85,7 +81,7 @@ async function testAbsentPresentFunctionality() {
             user: userId,
             isAbsent: true,
         });
-        console.log("Removed absent records:", deleteResult.deletedCount);
+        // Removed console log for production
 
         // Verify the record is removed
         const verifyPresent = await Student.findOne({
@@ -95,21 +91,21 @@ async function testAbsentPresentFunctionality() {
             session: testData.session,
             user: userId,
         });
-        console.log("Verification after marking present:", verifyPresent);
+        // Removed console log for production
 
         // Clean up test data
         await Student.deleteMany({
             rollNo: testData.rollNo,
             user: userId,
         });
-        console.log("Cleaned up test data");
+        // Removed console log for production
 
-        console.log("Test completed successfully!");
+        // Removed console log for production
     } catch (error) {
-        console.error("Test failed:", error);
+        // Removed error log for production
     } finally {
         await mongoose.connection.close();
-        console.log("Disconnected from MongoDB");
+        // Removed console log for production
     }
 }
 

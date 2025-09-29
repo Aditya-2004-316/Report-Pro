@@ -37,9 +37,9 @@ const connectDB = async () => {
             //     useUnifiedTopology: true,
             // }
         );
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        // Removed console log for production
     } catch (error) {
-        console.error("MongoDB connection error:", error.message);
+        // Removed error log for production
         process.exit(1);
     }
 };
@@ -359,10 +359,8 @@ app.post("/api/students", requireAuth, async (req, res) => {
                 }
             } catch (registryError) {
                 // If registry lookup fails, continue with submitted name
-                console.log(
-                    "Registry lookup failed, using submitted name:",
-                    registryError.message
-                );
+                // If registry lookup fails, continue with submitted name
+                // Removed error log for production
             }
         }
 
@@ -398,10 +396,10 @@ app.post("/api/students", requireAuth, async (req, res) => {
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
-        console.log("Student saved successfully:", student);
+        // Removed success log for production
         res.json(student);
     } catch (error) {
-        console.error("Error saving student:", error);
+        // Removed error log for production
         res.status(500).json({
             error: "Server error",
             details: error.message,
@@ -427,12 +425,12 @@ app.get("/api/students", requireAuth, async (req, res) => {
         if (subject && subject !== "All") query.subject = subject;
         if (examType === "Monthly Test" && month) query.month = month;
 
-        console.log("Students API - Filter applied:", query);
+        // Removed debug log for production
         const students = await Student.find(query);
-        console.log("Students API - Students found:", students.length);
+        // Removed debug log for production
         res.json(students);
     } catch (error) {
-        console.error("Error fetching students:", error);
+        // Removed error log for production
         res.status(500).json({
             error: "Server error",
             details: error.message,
@@ -451,7 +449,7 @@ app.get("/api/students/:rollNo", requireAuth, async (req, res) => {
             return res.status(404).json({ error: "Not found" });
         res.json(students);
     } catch (error) {
-        console.error("Error fetching student:", error);
+        // Removed error log for production
         res.status(500).json({
             error: "Server error",
             details: error.message,
@@ -469,9 +467,9 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
         if (subject && subject !== "All") filter.subject = subject;
         if (examType === "Monthly Test" && month) filter.month = month;
 
-        console.log("Statistics API - Filter applied:", filter);
+        // Removed debug log for production
         const students = await Student.find(filter);
-        console.log("Statistics API - Students found:", students.length);
+        // Removed debug log for production
 
         if (!students.length) {
             return res.json({
@@ -506,7 +504,7 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
         });
 
         const uniqueStudents = Object.values(studentsByRollNo);
-        console.log("Statistics API - Unique students:", uniqueStudents.length);
+        // Removed debug log for production
 
         // Calculate pass/fail based on unique students
         let pass = 0,
@@ -546,17 +544,11 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
             totalSubjectRecords: students.length,
         };
 
-        console.log("Statistics API - Result:", {
-            pass,
-            fail,
-            totalStudents: uniqueStudents.length,
-            totalRecords: students.length,
-            classAverage: result.classAverage,
-        });
+        // Removed debug log for production
 
         res.json(result);
     } catch (error) {
-        console.error("Error fetching statistics:", error);
+        // Removed error log for production
         res.status(500).json({
             error: "Server error",
             details: error.message,
@@ -570,7 +562,7 @@ app.post("/api/clear-students", requireAuth, async (req, res) => {
         await Student.deleteMany({ user: req.userId });
         res.json({ success: true });
     } catch (error) {
-        console.error("Error clearing students:", error);
+        // Removed error log for production
         res.status(500).json({
             error: "Server error",
             details: error.message,
@@ -1018,10 +1010,7 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
 
                     results.push(result);
                 } catch (error) {
-                    console.error(
-                        `Error marking student ${rollNo} absent for ${subj}:`,
-                        error
-                    );
+                    // Removed error log for production
                 }
             }
         }
@@ -1036,7 +1025,7 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
             recordsCreated: results.length,
         });
     } catch (error) {
-        console.error("Error marking students as absent:", error);
+        // Removed error log for production
         res.status(500).json({ error: "Server error", details: error.message });
     }
 });
@@ -1111,10 +1100,7 @@ app.post("/api/students/present", requireAuth, async (req, res) => {
 
                 recordsRemoved += deleteResult.deletedCount;
             } catch (error) {
-                console.error(
-                    `Error marking student ${rollNo} as present:`,
-                    error
-                );
+                // Removed error log for production
             }
         }
 
@@ -1128,11 +1114,11 @@ app.post("/api/students/present", requireAuth, async (req, res) => {
             recordsRemoved: recordsRemoved,
         });
     } catch (error) {
-        console.error("Error marking students as present:", error);
+        // Removed error log for production
         res.status(500).json({ error: "Server error", details: error.message });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    // Removed console log for production
 });

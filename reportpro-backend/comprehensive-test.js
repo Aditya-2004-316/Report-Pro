@@ -28,14 +28,14 @@ async function runComprehensiveTest() {
     try {
         // Connect to MongoDB
         await mongoose.connect(MONGODB_URI);
-        console.log("✅ Connected to MongoDB");
+        // Removed console log for production
 
         // Test user ID (mock)
         const userId = "test-user-id-123";
 
         // Clear any existing test data
         await Student.deleteMany({ user: userId });
-        console.log("🧹 Cleaned up existing test data");
+        // Removed console log for production
 
         // Test data
         const baseData = {
@@ -47,7 +47,7 @@ async function runComprehensiveTest() {
             user: userId,
         };
 
-        console.log("\n--- Test 1: Creating regular student records ---");
+        // Removed console log for production
         // Create regular student records for multiple subjects
         const subjects = ["Mathematics", "Science", "English"];
         const regularRecords = [];
@@ -62,10 +62,10 @@ async function runComprehensiveTest() {
                 grade: "A1",
             });
             regularRecords.push(record);
-            console.log(`✅ Created regular record for ${subject}`);
+            // Removed console log for production
         }
 
-        console.log("\n--- Test 2: Marking student as absent ---");
+        // Removed console log for production
         // Mark student as absent for all subjects
         const absentRecords = [];
         for (const subject of subjects) {
@@ -87,10 +87,10 @@ async function runComprehensiveTest() {
                 { upsert: true, new: true, setDefaultsOnInsert: true }
             );
             absentRecords.push(absentRecord);
-            console.log(`✅ Marked ${subject} as absent`);
+            // Removed console log for production
         }
 
-        console.log("\n--- Test 3: Verifying absent status ---");
+        // Removed console log for production
         // Verify all subjects are marked as absent
         for (const subject of subjects) {
             const record = await Student.findOne({
@@ -102,18 +102,13 @@ async function runComprehensiveTest() {
             });
 
             if (record && record.isAbsent && record.grade === "AB") {
-                console.log(
-                    `✅ Verified ${subject} is correctly marked as absent`
-                );
+                // Removed console log for production
             } else {
-                console.log(`❌ Failed to verify ${subject} as absent`);
-                console.log(
-                    `   isAbsent: ${record?.isAbsent}, grade: ${record?.grade}`
-                );
+                // Removed console log for production
             }
         }
 
-        console.log("\n--- Test 4: Marking student as present ---");
+        // Removed console log for production
         // Mark student as present (remove absent records)
         const deleteResult = await Student.deleteMany({
             rollNo: baseData.rollNo,
@@ -122,9 +117,9 @@ async function runComprehensiveTest() {
             user: userId,
             isAbsent: true,
         });
-        console.log(`✅ Removed ${deleteResult.deletedCount} absent records`);
+        // Removed console log for production
 
-        console.log("\n--- Test 5: Verifying present status ---");
+        // Removed console log for production
         // Verify absent records are removed
         const remainingRecords = await Student.find({
             rollNo: baseData.rollNo,
@@ -134,14 +129,12 @@ async function runComprehensiveTest() {
         });
 
         if (remainingRecords.length === 0) {
-            console.log("✅ Verified all absent records removed");
+            // Removed console log for production
         } else {
-            console.log(
-                `⚠️  ${remainingRecords.length} records still exist (these should be non-absent records)`
-            );
+            // Removed console log for production
         }
 
-        console.log("\n--- Test 6: Context isolation ---");
+        // Removed console log for production
         // Test that absent records are isolated by context
         const differentContext = {
             ...baseData,
@@ -159,9 +152,7 @@ async function runComprehensiveTest() {
             grade: "AB",
             isAbsent: true,
         });
-        console.log(
-            "✅ Marked student as absent in different context (Monthly Test)"
-        );
+        // Removed console log for production
 
         // Remove absent records for original context
         const removeResult = await Student.deleteMany({
@@ -171,9 +162,7 @@ async function runComprehensiveTest() {
             user: userId,
             isAbsent: true,
         });
-        console.log(
-            `✅ Removed absent records for original context (${removeResult.deletedCount} records)`
-        );
+        // Removed console log for production
 
         // Verify different context record still exists
         const differentContextRecord = await Student.findOne({
@@ -185,27 +174,23 @@ async function runComprehensiveTest() {
         });
 
         if (differentContextRecord) {
-            console.log(
-                "✅ Verified context isolation - different context record still exists"
-            );
+            // Removed console log for production
         } else {
-            console.log("❌ Context isolation test failed");
+            // Removed console log for production
         }
 
-        console.log("\n--- Test 7: Clean up ---");
+        // Removed console log for production
         // Clean up all test data
         await Student.deleteMany({ user: userId });
-        console.log("✅ Cleaned up all test data");
+        // Removed console log for production
 
-        console.log("\n--- Test Summary ---");
-        console.log("✅ All tests completed successfully!");
-        console.log("✅ Absent/Present functionality is working correctly");
-        console.log("✅ Context isolation is working properly");
+        // Removed console log for production
+        // Removed console log for production
     } catch (error) {
-        console.error("❌ Test failed:", error);
+        // Removed error log for production
     } finally {
         await mongoose.connection.close();
-        console.log("🔌 Disconnected from MongoDB");
+        // Removed console log for production
     }
 }
 

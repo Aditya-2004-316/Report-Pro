@@ -120,20 +120,9 @@ function Dashboard({
     }, []);
     useEffect(() => {
         if (!session || !token || !selectedClass) {
-            console.log(
-                "Dashboard: Skipping data fetch - missing required params:",
-                { session, token: !!token, selectedClass }
-            );
             return;
         }
         setLoading(true);
-        console.log("Dashboard: Fetching data with params:", {
-            session,
-            selectedClass,
-            selectedExamType,
-            selectedSubject,
-            selectedMonth,
-        });
 
         // Fetch all students for the session/class (for general student list)
         fetch(
@@ -149,47 +138,24 @@ function Dashboard({
                 return res.json();
             })
             .then((data) => {
-                console.log(
-                    "Dashboard: Students data received:",
-                    data.length,
-                    "students"
-                );
                 // Validate data structure with comprehensive checks
                 if (Array.isArray(data)) {
                     const validStudents = data.filter(validateStudentData);
-                    console.log(
-                        "Dashboard: Valid students:",
-                        validStudents.length,
-                        "out of",
-                        data.length
-                    );
                     if (validStudents.length !== data.length) {
-                        console.warn(
-                            "Dashboard: Some students were filtered out due to missing/invalid fields"
-                        );
                         const invalidStudent = data.find(
                             (s) => !validateStudentData(s)
                         );
                         if (invalidStudent) {
-                            console.log(
-                                "Dashboard: Sample invalid student:",
-                                invalidStudent
-                            );
                         }
                     }
                     setStudents(validStudents);
                 } else {
-                    console.error(
-                        "Dashboard: Invalid data format received:",
-                        typeof data
-                    );
                     setStudents([]);
                 }
                 setLoading(false);
                 setLastUpdated(new Date());
             })
             .catch((error) => {
-                console.error("Dashboard: Error fetching students:", error);
                 setLoading(false);
             });
 
@@ -202,14 +168,6 @@ function Dashboard({
         if (!session || !token || !selectedClass) return;
 
         try {
-            console.log("Dashboard: Fetching statistics with filters:", {
-                session,
-                selectedClass,
-                selectedExamType,
-                selectedSubject,
-                selectedMonth,
-            });
-
             const response = await fetch(
                 `${API_BASE}/api/statistics?session=${session}&class=${selectedClass}&examType=${selectedExamType}&subject=${selectedSubject}${
                     selectedExamType === "Monthly Test" && selectedMonth
@@ -258,16 +216,8 @@ function Dashboard({
                         : 0,
             };
 
-            console.log(
-                "Dashboard: Validated statistics received:",
-                validatedStats
-            );
             setStats(validatedStats);
         } catch (error) {
-            console.error(
-                "Dashboard: Error fetching filtered statistics:",
-                error
-            );
             // Set empty stats on error with proper structure
             setStats({
                 topScorer: null,
@@ -295,10 +245,6 @@ function Dashboard({
     // Refresh data when dataRefreshTrigger changes (after mark entry)
     useEffect(() => {
         if (dataRefreshTrigger > 0) {
-            console.log(
-                "Dashboard: Refreshing data due to trigger:",
-                dataRefreshTrigger
-            );
             fetchFilteredStatistics();
         }
     }, [dataRefreshTrigger]);
@@ -353,24 +299,6 @@ function Dashboard({
             month: selectedMonth,
         }
     );
-
-    // Debug logging
-    console.log("Dashboard Debug:", {
-        totalStudents: students.length,
-        filteredStudents: filteredStudents.length,
-        selectedExamType,
-        selectedSubject,
-        selectedMonth,
-        filters: {
-            examType: selectedExamType,
-            subject: selectedSubject,
-            month: selectedMonth,
-        },
-        currentSession: session,
-        currentClass: selectedClass,
-        token: token ? "Present" : "Missing",
-        statsFromAPI: stats,
-    });
 
     if (loading) return <div>Loading...</div>;
 
