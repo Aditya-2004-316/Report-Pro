@@ -12,20 +12,22 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
-const allowedOrigins = [
-    "https://report-pro-mm9o.vercel.app/", // Your deployed frontend
-    "http://localhost:5173", // Vite dev server
-    "http://localhost:3000", // (Optional: for local dev)
-];
+// CORS configuration
+const corsOptions = {
+    origin: [
+        "https://report-pro-mm9o.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200,
+};
 
-// Middleware
-app.use(
-    cors({
-        origin: allowedOrigins,
-        credentials: true, // Only if you use cookies or need credentials
-    })
-);
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
+
+// Handle preflight requests for all routes
+app.options("*", cors(corsOptions));
 
 // MongoDB Connection with better error handling
 const connectDB = async () => {
