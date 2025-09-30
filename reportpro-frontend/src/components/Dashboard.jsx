@@ -31,6 +31,7 @@ import {
     MdBarChart,
     MdGrade,
 } from "react-icons/md";
+import PreviousYearsModal from "./PreviousYearsModal";
 
 // Custom bar shape to prevent gray overlay on hover
 const CustomBar = (props) => {
@@ -105,6 +106,7 @@ function Dashboard({
     });
     const [registryStudents, setRegistryStudents] = useState([]);
     const [loadingRegistry, setLoadingRegistry] = useState(false);
+    const [showPreviousYearsModal, setShowPreviousYearsModal] = useState(false);
 
     // Only show sessions: currentYear-nextYear and nextYear-yearAfter
     const currentYear = new Date().getFullYear();
@@ -1398,6 +1400,24 @@ function Dashboard({
                         </span>
                     )}
                     <button
+                        onClick={() => setShowPreviousYearsModal(true)}
+                        style={{
+                            ...exportBtnStyle,
+                            padding: "10px 16px",
+                            fontSize: 14,
+                            fontWeight: 600,
+                            borderRadius: 8,
+                            boxShadow: "0 2px 4px rgba(229, 57, 53, 0.3)",
+                            whiteSpace: "nowrap",
+                            background:
+                                theme.surface === "#32353b"
+                                    ? "#5d5d5d"
+                                    : "#757575",
+                        }}
+                    >
+                        Previous Years
+                    </button>
+                    <button
                         onClick={exportCSV}
                         className={exportBtnClass}
                         style={{
@@ -2255,6 +2275,14 @@ function Dashboard({
                     }
                 )}
             </div>
+            {showPreviousYearsModal && (
+                <PreviousYearsModal
+                    open={showPreviousYearsModal}
+                    onClose={() => setShowPreviousYearsModal(false)}
+                    theme={theme}
+                    session={session}
+                />
+            )}
         </div>
     );
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ExportDataModal from "./ExportDataModal";
 import Settings from "./Settings";
+import PreviousYearsModal from "./PreviousYearsModal";
 
 function Footer({
     theme,
@@ -14,6 +15,7 @@ function Footer({
     const [isMobile, setIsMobile] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [showPreviousYearsModal, setShowPreviousYearsModal] = useState(false);
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth <= 767);
         handleResize();
@@ -632,6 +634,29 @@ function Footer({
                                 e.target.style.transform = "translateY(0)";
                                 e.target.style.boxShadow = "none";
                             }}
+                            onClick={() => setShowPreviousYearsModal(true)}
+                        >
+                            <span role="img" aria-label="Previous Years">
+                                📚
+                            </span>{" "}
+                            Previous Years
+                        </button>
+                        <button
+                            style={actionButtonStyle}
+                            className="action-button"
+                            onMouseEnter={(e) => {
+                                Object.assign(
+                                    e.target.style,
+                                    actionButtonHoverStyle
+                                );
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.background = "none";
+                                e.target.style.borderColor = theme.border;
+                                e.target.style.color = theme.textSecondary;
+                                e.target.style.transform = "translateY(0)";
+                                e.target.style.boxShadow = "none";
+                            }}
                             onClick={() => setShowExportModal(true)}
                         >
                             <span role="img" aria-label="Export Data">
@@ -663,11 +688,23 @@ function Footer({
                 </div>
             </div>
 
+            {showPreviousYearsModal && (
+                <PreviousYearsModal
+                    open={showPreviousYearsModal}
+                    onClose={() => setShowPreviousYearsModal(false)}
+                    theme={theme}
+                    session={session}
+                />
+            )}
+
             {showExportModal && (
                 <ExportDataModal
                     open={showExportModal}
                     onClose={() => setShowExportModal(false)}
                     theme={theme}
+                    session={session}
+                    selectedClass="9th"
+                    selectedExamType="Monthly Test"
                 />
             )}
 

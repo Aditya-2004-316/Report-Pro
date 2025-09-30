@@ -966,11 +966,19 @@ app.post("/api/students/absent", requireAuth, async (req, res) => {
 
         const results = [];
 
+        // Check if students array contains objects or strings
+        const isObjectArray =
+            students.length > 0 &&
+            typeof students[0] === "object" &&
+            students[0] !== null;
+
         // Mark each student as absent for specified subjects
         for (const studentInfo of students) {
-            const { rollNo, name } = studentInfo;
+            // Handle both formats: array of objects {rollNo, name} or array of strings (rollNo only)
+            const rollNo = isObjectArray ? studentInfo.rollNo : studentInfo;
+            const name = isObjectArray ? studentInfo.name : "Unknown";
 
-            if (!rollNo || !name) {
+            if (!rollNo) {
                 continue; // Skip invalid student entries
             }
 
@@ -1077,7 +1085,16 @@ app.post("/api/students/present", requireAuth, async (req, res) => {
         // Remove absent records for each student
         let recordsRemoved = 0;
 
-        for (const rollNo of students) {
+        // Check if students array contains objects or strings
+        const isObjectArray =
+            students.length > 0 &&
+            typeof students[0] === "object" &&
+            students[0] !== null;
+
+        for (const studentInfo of students) {
+            // Handle both formats: array of objects {rollNo, name} or array of strings (rollNo only)
+            const rollNo = isObjectArray ? studentInfo.rollNo : studentInfo;
+
             if (!rollNo) continue;
 
             try {
@@ -1093,6 +1110,7 @@ app.post("/api/students/present", requireAuth, async (req, res) => {
                 };
 
                 // If subject is specified, only delete for that subject
+                // If no subject is specified, we should delete absent records for ALL subjects
                 if (subject) {
                     deleteQuery.subject = subject;
                 }

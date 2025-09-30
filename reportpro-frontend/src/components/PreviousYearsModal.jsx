@@ -1,39 +1,19 @@
-import React, {
-    useState,
-    useEffect,
-    useCallback,
-    useRef,
-    useMemo,
-} from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { SUBJECTS } from "./subjects";
 
-// Dummy API_BASE for demonstration; replace with actual API if needed
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-function ExportDataModal({
-    open,
-    onClose,
-    theme,
-    session: initialSession,
-    selectedClass: initialClass = "9th",
-    selectedExamType: initialExamType = "Monthly Test",
-}) {
+function PreviousYearsModal({ open, onClose, theme, session }) {
+    const [selectedSession, setSelectedSession] = useState("");
+    const [selectedClass, setSelectedClass] = useState("9th");
+    const [selectedExamType, setSelectedExamType] = useState("Monthly Test");
+    const [selectedMonth, setSelectedMonth] = useState("");
     const [search, setSearch] = useState("");
-    const [selectedRows, setSelectedRows] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [selectedClass, setSelectedClass] = useState(initialClass || "9th");
-    const [selectedExamType, setSelectedExamType] = useState(
-        initialExamType || "Monthly Test"
-    );
-    const [session, setSession] = useState(initialSession || "");
     const [students, setStudents] = useState([]);
     const [registryStudents, setRegistryStudents] = useState([]);
-    const [selectedMonth, setSelectedMonth] = useState("");
-
-    // Refs to track if effects have run
-    const hasSetDefaultSession = useRef(false);
-    const hasInitialized = useRef(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [selectedRows, setSelectedRows] = useState([]);
 
     const MONTHS = [
         "January",
@@ -50,64 +30,23 @@ function ExportDataModal({
         "December",
     ];
 
-    // Only show sessions: currentYear-nextYear and nextYear-yearAfter
-    const currentYear = new Date().getFullYear();
-    const sessionOptions = useMemo(
-        () => [
-            `${currentYear}-${(currentYear + 1).toString().slice(-2)}`,
-            `${currentYear + 1}-${(currentYear + 2).toString().slice(-2)}`,
-        ],
-        [currentYear]
-    );
+    // Generate session options - only current session since no previous data exists
+    const sessionOptions = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        // Only include current session 2025-26
+        return [`${currentYear}-${(currentYear + 1).toString().slice(-2)}`];
+    }, []);
 
-    // Set default session if not provided - run only once
+    // Set default session when modal opens
     useEffect(() => {
-        if (
-            !hasSetDefaultSession.current &&
-            !session &&
-            sessionOptions.length > 0
-        ) {
-            setSession(sessionOptions[0]);
-            hasSetDefaultSession.current = true;
+        if (open && sessionOptions.length > 0) {
+            setSelectedSession(sessionOptions[0]);
         }
-    }, [session, sessionOptions]);
-
-    // Initialize filters when modal opens - run only once per open
-    useEffect(() => {
-        if (open && !hasInitialized.current) {
-            // Set initial values
-            setSelectedClass(initialClass || "9th");
-            setSelectedExamType(initialExamType || "Monthly Test");
-
-            // Set session appropriately
-            if (initialSession) {
-                setSession(initialSession);
-            } else if (sessionOptions.length > 0 && !session) {
-                setSession(sessionOptions[0]);
-            }
-
-            setSearch("");
-            setSelectedRows([]);
-            setSelectedMonth("");
-            hasInitialized.current = true;
-        }
-
-        // Reset the ref when modal closes
-        if (!open) {
-            hasInitialized.current = false;
-        }
-    }, [
-        open,
-        initialClass,
-        initialExamType,
-        initialSession,
-        sessionOptions,
-        session,
-    ]);
+    }, [open, sessionOptions]);
 
     // Fetch students data when filters change
     const fetchStudentsData = useCallback(async () => {
-        if (!open || !session) return;
+        if (!open || !selectedSession) return;
 
         setLoading(true);
         setError("");
@@ -121,9 +60,9 @@ function ExportDataModal({
             }
 
             // Build API URL with filters
-            let apiUrl = `${API_BASE}/api/students?session=${session}&class=${selectedClass}`;
+            let apiUrl = `${API_BASE}/api/students?session=${selectedSession}&class=${selectedClass}`;
 
-            if (selectedExamType && selectedExamType !== "All") {
+            if (selectedExamType) {
                 apiUrl += `&examType=${selectedExamType}`;
             }
 
@@ -146,7 +85,7 @@ function ExportDataModal({
             // Fetch registry students as well
             try {
                 const registryResponse = await fetch(
-                    `${API_BASE}/api/student-registry?session=${session}&class=${selectedClass}`,
+                    `${API_BASE}/api/student-registry?session=${selectedSession}&class=${selectedClass}`,
                     {
                         headers: { Authorization: `Bearer ${token}` },
                     }
@@ -171,37 +110,45 @@ function ExportDataModal({
         } finally {
             setLoading(false);
         }
-    }, [open, session, selectedClass, selectedExamType, selectedMonth]);
+    }, [open, selectedSession, selectedClass, selectedExamType, selectedMonth]);
 
-    // Fetch data when dependencies change - with proper cleanup
+    // Fetch data when dependencies change
     useEffect(() => {
-        let isMounted = true;
+        if (!open || !selectedSession) return;
 
-        if (!open || !session) return;
-
-        // Use a small delay to prevent excessive API calls
         const handler = setTimeout(() => {
-            if (isMounted) {
-                fetchStudentsData();
-            }
+            fetchStudentsData();
         }, 300);
 
         return () => {
-            isMounted = false;
             clearTimeout(handler);
         };
     }, [fetchStudentsData]);
+
+    // Function to get student name from registry
+    const getStudentNameFromRegistry = useCallback(
+        (rollNo) => {
+            if (!registryStudents || !registryStudents.length) return null;
+            const student = registryStudents.find(
+                (s) =>
+                    s &&
+                    s.rollNo &&
+                    s.rollNo.toLowerCase() === rollNo.toLowerCase()
+            );
+            return student ? student.name : null;
+        },
+        [registryStudents]
+    );
 
     // Ensure students is an array before filtering
     const filtered = useMemo(() => {
         return (students || []).filter(
             (s) =>
                 s && // Check if student object exists
-                s.examType === selectedExamType &&
                 (s.rollNo?.toLowerCase().includes(search.toLowerCase()) ||
                     s.subject?.toLowerCase().includes(search.toLowerCase()))
         );
-    }, [students, selectedExamType, search]);
+    }, [students, search]);
 
     // Group students by rollNo and examType for summary table and sort by roll number
     const studentsByRollNo = useMemo(() => {
@@ -254,21 +201,6 @@ function ExportDataModal({
         return `${stu.rollNo}-${stu.examType}`;
     }, []);
 
-    // Function to get student name from registry
-    const getStudentNameFromRegistry = useCallback(
-        (rollNo) => {
-            if (!registryStudents || !registryStudents.length) return null;
-            const student = registryStudents.find(
-                (s) =>
-                    s &&
-                    s.rollNo &&
-                    s.rollNo.toLowerCase() === rollNo.toLowerCase()
-            );
-            return student ? student.name : null;
-        },
-        [registryStudents]
-    );
-
     const exportCSV = useCallback(() => {
         const studentsToExport = (students || []).map((student) => ({
             ...student,
@@ -280,7 +212,7 @@ function ExportDataModal({
         }));
 
         const headerInfo = [
-            `Session: ${session || "All Sessions"}`,
+            `Session: ${selectedSession || "All Sessions"}`,
             `Class: ${selectedClass}`,
             `Exam Type: ${selectedExamType}`,
             `Export Date: ${new Date().toLocaleDateString()}`,
@@ -316,7 +248,7 @@ function ExportDataModal({
                     stu.subjects?.[subj]?.practical ?? "",
                     stu.subjects?.[subj]?.total ?? "",
                     stu.subjects?.[subj]?.grade ?? "",
-                    stu.session || session || "",
+                    stu.session || selectedSession || "",
                 ])
             ),
         ];
@@ -328,8 +260,8 @@ function ExportDataModal({
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `students_${
-            session || "all"
+        a.download = `previous_years_results_${
+            selectedSession || "all"
         }_${selectedClass}_${selectedExamType}.csv`;
         document.body.appendChild(a);
         a.click();
@@ -342,7 +274,7 @@ function ExportDataModal({
         selectedClass,
         selectedExamType,
         selectedMonth,
-        session,
+        selectedSession,
         getStudentNameFromRegistry,
     ]);
 
@@ -438,20 +370,20 @@ function ExportDataModal({
                 onClick={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="export-modal-title"
+                aria-labelledby="previous-years-modal-title"
             >
                 <button
                     onClick={onClose}
                     style={closeBtnStyle}
-                    aria-label="Close Export Data Modal"
+                    aria-label="Close Previous Years Results Modal"
                 >
                     ×
                 </button>
                 <h2
-                    id="export-modal-title"
+                    id="previous-years-modal-title"
                     style={{ fontWeight: 700, marginBottom: 16 }}
                 >
-                    Export Data
+                    Previous Years Results
                 </h2>
                 <div
                     style={{
@@ -473,9 +405,9 @@ function ExportDataModal({
                             Session
                         </label>
                         <select
-                            value={session}
+                            value={selectedSession}
                             onChange={(e) => {
-                                setSession(e.target.value);
+                                setSelectedSession(e.target.value);
                             }}
                             style={{
                                 width: "100%",
@@ -490,6 +422,7 @@ function ExportDataModal({
                                 marginBottom: 0,
                             }}
                         >
+                            <option value="">Select Session</option>
                             {sessionOptions.map((sess) => (
                                 <option key={sess} value={sess}>
                                     {sess}
@@ -703,7 +636,9 @@ function ExportDataModal({
                                                 background: theme.surface,
                                             }}
                                         >
-                                            No students found.
+                                            No students found. Only the current
+                                            session (2025-26) is available for
+                                            viewing.
                                         </td>
                                     </tr>
                                 ) : (
@@ -798,7 +733,7 @@ function ExportDataModal({
                             cursor: "pointer",
                         }}
                     >
-                        Cancel
+                        Close
                     </button>
                     <button
                         onClick={exportCSV}
@@ -821,4 +756,4 @@ function ExportDataModal({
     );
 }
 
-export default ExportDataModal;
+export default PreviousYearsModal;

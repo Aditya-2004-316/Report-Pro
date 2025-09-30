@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SUBJECTS } from "./subjects";
 import { MdDelete } from "react-icons/md";
+import PreviousYearsModal from "./PreviousYearsModal";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -65,6 +66,7 @@ function StudentList({
     });
     // State for subject-specific selected rows
     const [subjectSelectedRows, setSubjectSelectedRows] = useState({});
+    const [showPreviousYearsModal, setShowPreviousYearsModal] = useState(false);
 
     const currentYear = new Date().getFullYear();
     const sessionOptions = [
@@ -108,7 +110,9 @@ function StudentList({
         }
 
         try {
-            const apiUrl = `${API_BASE}/api/students?session=${session}&class=${selectedClass}&examType=${selectedExamType}&subject=${localSubjectFilter}${
+            // Always fetch all subjects to ensure complete data for subject-specific tables
+            // The localSubjectFilter is only used for UI filtering, not for API calls
+            const apiUrl = `${API_BASE}/api/students?session=${session}&class=${selectedClass}&examType=${selectedExamType}${
                 selectedExamType === "Monthly Test" && selectedMonth
                     ? `&month=${selectedMonth}`
                     : ""
@@ -148,12 +152,9 @@ function StudentList({
                     const rollNoKey = registryStudent.rollNo.toLowerCase();
 
                     if (!studentsWithMarks.has(rollNoKey)) {
-                        const subjectsToAdd =
-                            localSubjectFilter === "All"
-                                ? SUBJECTS
-                                : [localSubjectFilter];
-
-                        subjectsToAdd.forEach((subject) => {
+                        // Always create placeholders for ALL subjects, not just the filtered ones
+                        // This ensures that subject-specific tables have complete data
+                        SUBJECTS.forEach((subject) => {
                             const placeholderStudent = {
                                 rollNo: registryStudent.rollNo,
                                 name: registryStudent.name,
@@ -265,7 +266,7 @@ function StudentList({
 
         if (registryStudents && registryStudents.length > 0) {
             registryStudents.forEach((registryStudent) => {
-                // Check if this student already has marks for this subject
+                // Check if this student already has marks for THIS SPECIFIC subject
                 const existingStudent = filtered.find(
                     (s) =>
                         s.rollNo.toLowerCase() ===
@@ -274,10 +275,10 @@ function StudentList({
                 );
 
                 if (existingStudent) {
-                    // Student has marks, use the existing data
+                    // Student has marks for this specific subject, use the existing data
                     allStudentsForSubject.push(existingStudent);
                 } else {
-                    // Student doesn't have marks, create placeholder
+                    // Student doesn't have marks for this specific subject, create placeholder
                     const placeholderStudent = {
                         rollNo: registryStudent.rollNo,
                         name: registryStudent.name,
@@ -809,6 +810,11 @@ function StudentList({
             // Check if this is a subject-specific marking
             const isSubjectSpecific = absentModal.subject !== undefined;
 
+            // Extract just the rollNo values for the backend
+            const studentRollNos = absentModal.students.map(
+                (student) => student.rollNo
+            );
+
             const response = await fetch(`${API_BASE}/api/students/absent`, {
                 method: "POST",
                 headers: {
@@ -816,7 +822,7 @@ function StudentList({
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    students: absentModal.students,
+                    students: studentRollNos, // Send array of rollNo strings instead of objects
                     session,
                     class: selectedClass,
                     examType: selectedExamType,
@@ -876,6 +882,11 @@ function StudentList({
             // Check if this is a subject-specific marking
             const isSubjectSpecific = presentModal.subject !== undefined;
 
+            // Extract just the rollNo values for the backend
+            const studentRollNos = presentModal.students.map(
+                (student) => student.rollNo
+            );
+
             const response = await fetch(`${API_BASE}/api/students/present`, {
                 method: "POST",
                 headers: {
@@ -883,7 +894,7 @@ function StudentList({
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    students: presentModal.students,
+                    students: studentRollNos, // Send array of rollNo strings instead of objects
                     session,
                     class: selectedClass,
                     examType: selectedExamType,
@@ -1364,26 +1375,53 @@ function StudentList({
                     </div>
                 )}
             </div>
-            <input
-                type="text"
-                placeholder="Search students by roll number, name, or subject..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+            <div
                 style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     marginBottom: 18,
-                    padding: 12,
-                    width: "100%",
-                    borderRadius: 8,
-                    border: `1.5px solid ${accent}`,
-                    fontSize: 16,
-                    boxSizing: "border-box",
-                    outline: "none",
-                    transition: "border 0.2s, box-shadow 0.2s",
-                    boxShadow: theme.shadow,
-                    background: theme.inputBg,
-                    color: theme.text,
+                    gap: 16,
                 }}
-            />
+            >
+                <input
+                    type="text"
+                    placeholder="Search students by roll number, name, or subject..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{
+                        flex: 1,
+                        padding: 12,
+                        borderRadius: 8,
+                        border: `1.5px solid ${accent}`,
+                        fontSize: 16,
+                        boxSizing: "border-box",
+                        outline: "none",
+                        transition: "border 0.2s, box-shadow 0.2s",
+                        boxShadow: theme.shadow,
+                        background: theme.inputBg,
+                        color: theme.text,
+                    }}
+                />
+                <button
+                    onClick={() => setShowPreviousYearsModal(true)}
+                    style={{
+                        padding: "12px 16px",
+                        borderRadius: 8,
+                        border: "none",
+                        background:
+                            theme.surface === "#32353b" ? "#5d5d5d" : "#757575",
+                        color: "#fff",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        boxShadow: theme.shadow,
+                        whiteSpace: "nowrap",
+                        fontSize: 14,
+                    }}
+                >
+                    Previous Years
+                </button>
+            </div>
             {popupMsg && (
                 <div
                     style={{
@@ -1432,19 +1470,17 @@ function StudentList({
                                             cursor: "pointer",
                                             boxShadow:
                                                 "0 2px 4px rgba(76, 175, 80, 0.3)",
-                                            opacity: markingAbsent ? 0.6 : 1,
+                                            whiteSpace: "nowrap",
                                         }}
                                     >
-                                        {markingAbsent
-                                            ? "Marking..."
-                                            : `Mark ${selectedRows.length} as Present`}
+                                        Mark as Present
                                     </button>
                                 ) : (
                                     <button
                                         onClick={handleMarkAsAbsent}
                                         disabled={markingAbsent}
                                         style={{
-                                            background: "#ff9800",
+                                            background: "#f44336", // Red color for absent
                                             color: "#fff",
                                             border: "none",
                                             borderRadius: 8,
@@ -1453,7 +1489,7 @@ function StudentList({
                                             fontWeight: 600,
                                             cursor: "pointer",
                                             boxShadow:
-                                                "0 2px 4px rgba(255, 152, 0, 0.3)",
+                                                "0 2px 4px rgba(76, 175, 80, 0.3)",
                                             opacity: markingAbsent ? 0.6 : 1,
                                         }}
                                     >
@@ -2969,6 +3005,14 @@ function StudentList({
                         </div>
                     </div>
                 </div>
+            )}
+            {showPreviousYearsModal && (
+                <PreviousYearsModal
+                    open={showPreviousYearsModal}
+                    onClose={() => setShowPreviousYearsModal(false)}
+                    theme={theme}
+                    session={session}
+                />
             )}
         </div>
     );
