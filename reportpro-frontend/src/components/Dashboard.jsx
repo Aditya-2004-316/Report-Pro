@@ -627,24 +627,34 @@ function Dashboard({
             }
             
             /* Enhanced responsive styles for better dashboard layout */
-            @media (max-width: 992px) {
+            @media (max-width: 800px) {
                 .dashboard-header {
                     flex-direction: column !important;
                     align-items: center !important;
-                    gap: 16px !important;
-                    position: static !important;
+                    gap: 12px !important;
+                }
+                .dashboard-title {
+                    order: 1 !important;
+                    width: 100% !important;
+                    text-align: center !important;
                 }
                 .dashboard-header-actions {
-                    position: static !important;
-                    width: 100% !important;
-                    justify-content: flex-end !important;
+                    order: 2 !important;
+                    flex-direction: row !important;
                     flex-wrap: wrap !important;
+                    justify-content: center !important;
+                    gap: 12px !important;
                 }
             }
             
-            @media (max-width: 768px) {
+            @media (max-width: 480px) {
+                .dashboard-header {
+                    gap: 10px !important;
+                }
                 .dashboard-header-actions {
-                    justify-content: center !important;
+                    flex-direction: column !important;
+                    width: 100% !important;
+                    align-items: center !important;
                     gap: 8px !important;
                 }
             }
@@ -1351,11 +1361,10 @@ function Dashboard({
                 style={{
                     display: "flex",
                     justifyContent: "center",
-                    alignItems: "flex-start",
+                    alignItems: "center",
                     marginBottom: 24,
                     gap: 20,
                     flexWrap: "wrap",
-                    position: "relative",
                 }}
             >
                 <h2
@@ -1370,7 +1379,8 @@ function Dashboard({
                         margin: 0,
                         letterSpacing: 1,
                         textAlign: "center",
-                        flex: "1 1 auto",
+                        flex: "1 1 100%",
+                        order: 1,
                     }}
                 >
                     School Statistics
@@ -1382,9 +1392,7 @@ function Dashboard({
                         alignItems: "center",
                         gap: 16,
                         flex: "0 0 auto",
-                        position: "absolute",
-                        right: 0,
-                        top: 0,
+                        order: 2,
                     }}
                 >
                     {lastUpdated && (

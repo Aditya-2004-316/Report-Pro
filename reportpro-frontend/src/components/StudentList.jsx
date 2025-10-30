@@ -1192,11 +1192,10 @@ function StudentList({
                 .student-results-header {
                     display: flex;
                     justify-content: center;
-                    align-items: flex-start;
+                    align-items: center;
                     margin-bottom: 24px;
                     gap: 20px;
                     flex-wrap: wrap;
-                    position: relative;
                 }
                 
                 .student-results-title {
@@ -1216,9 +1215,6 @@ function StudentList({
                     align-items: center;
                     gap: 16px;
                     flex: 0 0 auto;
-                    position: absolute;
-                    right: 0;
-                    top: 0;
                 }
                 
                 .student-results-updated-time {
@@ -1262,33 +1258,28 @@ function StudentList({
                 }
                 
                 /* Enhanced responsive styles to match Statistics page exactly */
-                @media (max-width: 992px) {
-                    .student-results-header,
-                    .summary-header-container {
+                @media (max-width: 768px) {
+                    .student-results-header {
                         flex-direction: column !important;
                         align-items: center !important;
-                        gap: 16px !important;
-                        position: static !important;
+                        gap: 12px !important;
                     }
-                    
-                    .student-results-header-actions,
-                    .mark-absent-button-container {
-                        position: static !important;
+                    .student-results-title {
+                        order: 1 !important;
                         width: 100% !important;
-                        justify-content: flex-end !important;
-                        flex-wrap: wrap !important;
+                        text-align: center !important;
+                        font-size: 24px;
                     }
-                }
-                
-                @media (max-width: 768px) {
-                    .student-results-header-actions,
+                    .student-results-header-actions {
+                        order: 2 !important;
+                        flex-direction: row !important;
+                        flex-wrap: wrap !important;
+                        justify-content: center !important;
+                        gap: 12px !important;
+                    }
                     .mark-absent-button-container {
                         justify-content: center !important;
                         gap: 8px !important;
-                    }
-                    
-                    .student-results-title {
-                        font-size: 24px;
                     }
                     
                     .summary-title {
@@ -1318,26 +1309,53 @@ function StudentList({
                 }
                 
                 @media (max-width: 480px) {
-                    .student-results-header-actions,
+                    .student-results-header {
+                        gap: 10px !important;
+                    }
+                    .student-results-header-actions {
+                        flex-direction: column !important;
+                        width: 100% !important;
+                        align-items: center !important;
+                        gap: 8px !important;
+                    }
                     .mark-absent-button-container {
-                        flex-direction: column;
-                        align-items: center;
-                        gap: 8px;
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        gap: 8px !important;
                     }
                     
                     .student-results-updated-time {
                         font-size: 13px;
+                        text-align: center;
                     }
                 }
             `}</style>
-            <div className="student-results-header">
-                <h1 className="student-results-title">Student Results</h1>
-                <div className="student-results-header-actions">
+            <div className="student-results-header" style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: 24, gap: 20, flexWrap: "wrap" }}>
+                <h1 className="student-results-title" style={{ flex: "1 1 100%", textAlign: "center", margin: 0, order: 1 }}>Student Results</h1>
+                <div className="student-results-header-actions" style={{ order: 2 }}>
                     {lastUpdated && (
                         <span className="student-results-updated-time">
                             Updated: {lastUpdated.toLocaleTimeString()}
                         </span>
                     )}
+                    <button
+                        onClick={() => setShowPreviousYearsModal(true)}
+                        style={{
+                            padding: "10px 16px",
+                            borderRadius: 8,
+                            border: "none",
+                            background:
+                                theme.surface === "#32353b" ? "#5d5d5d" : "#757575",
+                            color: "#fff",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                            whiteSpace: "nowrap",
+                            fontSize: 14,
+                        }}
+                    >
+                        Previous Years
+                    </button>
                     <button
                         onClick={exportCSV}
                         style={{
@@ -1550,11 +1568,7 @@ function StudentList({
             </div>
             <div
                 style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
                     marginBottom: 18,
-                    gap: 16,
                 }}
             >
                 <input
@@ -1563,7 +1577,7 @@ function StudentList({
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     style={{
-                        flex: 1,
+                        width: "100%",
                         padding: 12,
                         borderRadius: 8,
                         border: `1.5px solid ${accent}`,
@@ -1576,24 +1590,6 @@ function StudentList({
                         color: theme.text,
                     }}
                 />
-                <button
-                    onClick={() => setShowPreviousYearsModal(true)}
-                    style={{
-                        padding: "12px 16px",
-                        borderRadius: 8,
-                        border: "none",
-                        background:
-                            theme.surface === "#32353b" ? "#5d5d5d" : "#757575",
-                        color: "#fff",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        boxShadow: theme.shadow,
-                        whiteSpace: "nowrap",
-                        fontSize: 14,
-                    }}
-                >
-                    Previous Years
-                </button>
             </div>
             {popupMsg && (
                 <div

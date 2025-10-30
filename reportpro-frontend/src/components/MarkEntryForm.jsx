@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { SUBJECTS } from "./subjects";
 import { safeDivision, validateStudentData, GRADE_COLORS } from "./gradeUtils";
 
@@ -99,6 +99,16 @@ function MarkEntryForm({
             setMonth("");
         }
     }, [examType]);
+
+    const hasNormalizedSubjectRef = useRef(false);
+
+    // Ensure subject defaults to a valid option (handles initial "All" value from parent)
+    useEffect(() => {
+        if (!hasNormalizedSubjectRef.current && !SUBJECTS.includes(subject)) {
+            hasNormalizedSubjectRef.current = true;
+            setSubject(SUBJECTS[0]);
+        }
+    }, [subject, setSubject]);
 
     // Update the useEffect to fetch registry when session or class changes:
     useEffect(() => {
@@ -270,6 +280,10 @@ function MarkEntryForm({
         }
         setValidationError("");
 
+        const normalizedSubject = SUBJECTS.includes(subject)
+            ? subject
+            : SUBJECTS[0];
+
         // Step 2: Prepare data object early
         const data = {
             rollNo:
@@ -279,7 +293,7 @@ function MarkEntryForm({
             name: name.trim(),
             class: studentClass,
             examType: examType.trim(),
-            subject: subject.trim(),
+            subject: normalizedSubject.trim(),
             session: session.trim(),
             theory: Number(theory),
             ...(examType === "Monthly Test"
@@ -296,7 +310,7 @@ function MarkEntryForm({
                 exists = false;
             } else {
                 // Construct API URL with proper filters including class and month
-                let apiUrl = `${API_BASE}/api/students?session=${session}&class=${studentClass}&subject=${subject}&examType=${examType}`;
+                let apiUrl = `${API_BASE}/api/students?session=${session}&class=${studentClass}&subject=${normalizedSubject}&examType=${examType}`;
                 if (examType === "Monthly Test" && month) {
                     apiUrl += `&month=${month}`;
                 }

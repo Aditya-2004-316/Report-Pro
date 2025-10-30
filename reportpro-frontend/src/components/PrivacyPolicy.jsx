@@ -9,13 +9,71 @@ import {
 } from "react-icons/md";
 
 const PrivacyPolicy = ({ theme }) => {
+    const accentGradient =
+        theme.name === "dark"
+            ? `linear-gradient(135deg, ${theme.surface} 0%, #2c3136 100%)`
+            : `linear-gradient(135deg, #fff 0%, #fff0f0 100%)`;
+
     const cardStyle = {
         background: theme.surface,
         color: theme.text,
-        borderRadius: 12,
+        borderRadius: 14,
         border: `1px solid ${theme.border}`,
         boxShadow: theme.shadow,
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
     };
+
+    const sectionCardStyle = {
+        ...cardStyle,
+        padding: 20,
+    };
+
+    const anchorStyle = {
+        color: theme.accent,
+        textDecoration: "none",
+        fontWeight: 600,
+    };
+
+    const actionButtonStyle = {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        padding: "10px 18px",
+        borderRadius: 999,
+        fontWeight: 700,
+        fontSize: 15,
+        textDecoration: "none",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        whiteSpace: "nowrap",
+    };
+
+    const heroHighlights = useMemo(
+        () => [
+            {
+                label: "Encrypted Data",
+                description: "Industry standard safeguards",
+            },
+            {
+                label: "No Resell",
+                description: "We never sell student info",
+            },
+            {
+                label: "Full Control",
+                description: "Admins manage access levels",
+            },
+        ],
+        []
+    );
+
+    const highlightCardWidth = useMemo(() => {
+        const longest = heroHighlights.reduce((max, item) => {
+            const labelLen = item.label.length;
+            const descLen = item.description.length;
+            return Math.max(max, labelLen, descLen);
+        }, 0);
+        return Math.min(240, Math.max(160, longest * 7));
+    }, [heroHighlights]);
 
     const lastUpdatedText = new Date().toLocaleDateString(undefined, {
         year: "numeric",
@@ -175,6 +233,52 @@ const PrivacyPolicy = ({ theme }) => {
             {/* Responsive styles for Privacy Policy page */}
             <style>{`
                 /* Critical fix for the 730px overflow issue */
+                .privacy-policy-container {
+                    max-width: 1100px !important;
+                    width: 100% !important;
+                }
+
+                .privacy-policy-content-grid {
+                    display: grid !important;
+                    gap: 20px !important;
+                    margin-top: 24px !important;
+                }
+
+                .privacy-policy-toc {
+                    position: sticky;
+                    top: 96px;
+                    align-self: flex-start;
+                }
+
+                .privacy-policy-hero-actions {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 12px;
+                    margin-top: 18px;
+                }
+
+                .privacy-policy-sidebar {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                    align-self: flex-start;
+                }
+
+                .privacy-policy-sections {
+                    display: grid;
+                    gap: 18px;
+                }
+
+                @media (min-width: 992px) {
+                    .privacy-policy-content-grid {
+                        grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) !important;
+                        align-items: start !important;
+                    }
+                    .privacy-policy-sections {
+                        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    }
+                }
+
                 @media (max-width: 730px) {
                     .privacy-policy-container {
                         max-width: 98vw !important;
@@ -262,176 +366,262 @@ const PrivacyPolicy = ({ theme }) => {
             <div
                 className="privacy-policy-container"
                 style={{
-                    maxWidth: 1100,
-                    width: "100%",
-                    margin: "2rem auto",
-                    padding: "0 1rem",
+                    margin: "2.5rem auto",
+                    padding: "0 1.25rem 2rem",
                 }}
             >
                 {/* Hero */}
                 <div
                     style={{
                         ...cardStyle,
-                        padding: "1.8rem",
-                        background:
-                            theme.name === "dark"
-                                ? `linear-gradient(135deg, ${theme.surface} 0%, #2b2e33 100%)`
-                                : `linear-gradient(135deg, #fff 0%, #fff6f6 100%)`,
+                        padding: "2rem",
+                        background: accentGradient,
                     }}
                 >
                     <div
                         style={{
                             display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            marginBottom: 8,
+                            flexWrap: "wrap",
+                            gap: 20,
+                            alignItems: "stretch",
                         }}
                     >
-                        <span
+                        <div style={{ flex: "1 1 260px" }}>
+                            <div
+                                style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    padding: "6px 14px",
+                                    borderRadius: 999,
+                                    background:
+                                        theme.name === "dark"
+                                            ? "#232526"
+                                            : "#ffe4e4",
+                                    color: theme.accent,
+                                    fontWeight: 700,
+                                    border: `1px solid ${theme.border}`,
+                                }}
+                            >
+                                <MdPrivacyTip /> Privacy
+                            </div>
+                            <h2
+                                style={{
+                                    marginTop: 14,
+                                    marginBottom: 10,
+                                    fontSize: 30,
+                                    fontWeight: 900,
+                                    color: theme.text,
+                                    letterSpacing: 0.3,
+                                }}
+                            >
+                                Privacy Policy
+                            </h2>
+                            <p
+                                style={{
+                                    marginTop: 0,
+                                    marginBottom: 18,
+                                    color: theme.textSecondary,
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                Learn how Report Pro collects, uses, and safeguards
+                                the information that teachers and schools trust us
+                                with every day.
+                            </p>
+                        </div>
+                        <div
                             style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 8,
-                                padding: "6px 12px",
-                                borderRadius: 999,
-                                background:
-                                    theme.name === "dark"
-                                        ? "#232526"
-                                        : "#ffeaea",
-                                color: theme.accent,
-                                fontWeight: 700,
-                                border: `1px solid ${theme.border}`,
+                                flex: "1 1 260px",
+                                minWidth: 240,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 10,
+                                alignItems: "flex-end",
+                                justifyContent: "flex-start",
+                                marginBottom: 0,
                             }}
                         >
-                            <MdPrivacyTip /> Privacy
-                        </span>
-                    </div>
-                    <h2
-                        style={{
-                            margin: 0,
-                            fontSize: 28,
-                            fontWeight: 900,
-                            color: theme.text,
-                        }}
-                    >
-                        Privacy Policy
-                    </h2>
-                    <p
-                        style={{
-                            marginTop: 8,
-                            marginBottom: 14,
-                            color: theme.textSecondary,
-                        }}
-                    >
-                        This policy explains how Report Pro collects, uses, and
-                        protects your data.
-                    </p>
-                    <div style={{ color: theme.textSecondary, fontSize: 14 }}>
-                        Last updated: {lastUpdatedText}
+                            {heroHighlights.map((fact) => (
+                                <div
+                                    key={fact.label}
+                                    style={{
+                                        width: highlightCardWidth,
+                                        background:
+                                            theme.name === "dark"
+                                                ? "rgba(255,255,255,0.04)"
+                                                : "rgba(229,57,53,0.08)",
+                                        borderRadius: 12,
+                                        padding: "12px 16px",
+                                        border: `1px solid ${theme.border}`,
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: 6,
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            fontWeight: 700,
+                                            color: theme.text,
+                                        }}
+                                    >
+                                        {fact.label}
+                                    </div>
+                                    <div style={{ color: theme.textSecondary, fontSize: 13 }}>
+                                        {fact.description}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div
+                            className="privacy-policy-hero-actions"
+                            style={{
+                                flexBasis: "100%",
+                            }}
+                        >
+                            <Link
+                                to="/dashboard/contact"
+                                style={{
+                                    ...actionButtonStyle,
+                                    background: theme.accent,
+                                    color: "#fff",
+                                    boxShadow: theme.shadow,
+                                }}
+                            >
+                                Contact Data Officer
+                            </Link>
+                            <Link
+                                to="/dashboard/terms"
+                                style={{
+                                    ...actionButtonStyle,
+                                    background:
+                                        theme.name === "dark"
+                                            ? "rgba(255,255,255,0.04)"
+                                            : "rgba(229,57,53,0.12)",
+                                    color: theme.accent,
+                                    border: `1px solid ${theme.border}`,
+                                }}
+                            >
+                                Review Terms of Service
+                            </Link>
+                        </div>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div
-                    className="privacy-policy-content-grid"
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr",
-                        gap: 16,
-                        marginTop: 16,
-                    }}
-                >
-                    {/* TOC */}
-                    <div
-                        className="privacy-policy-toc"
-                        style={{ ...cardStyle, padding: 16 }}
-                    >
-                        <h3
-                            style={{
-                                marginTop: 0,
-                                marginBottom: 10,
-                                fontSize: 18,
-                            }}
-                        >
-                            Contents
-                        </h3>
-                        <ol
-                            style={{
-                                margin: 0,
-                                paddingLeft: 18,
-                                lineHeight: 1.7,
-                            }}
-                        >
-                            {sections.map((s, i) => (
-                                <li key={s.id}>
-                                    <a
-                                        href={`#${s.id}`}
-                                        style={{
-                                            color: theme.accent,
-                                            textDecoration: "none",
-                                        }}
-                                    >
-                                        {s.title}
-                                    </a>
-                                </li>
-                            ))}
-                        </ol>
-                    </div>
-
-                    {/* Sections */}
-                    {sections.map((s) => (
+                <div className="privacy-policy-content-grid">
+                    <div className="privacy-policy-sidebar">
+                        {/* TOC */}
                         <div
-                            id={s.id}
-                            key={s.id}
-                            className="privacy-policy-section"
-                            style={{ ...cardStyle, padding: 16 }}
+                            className="privacy-policy-toc"
+                            style={{
+                                ...cardStyle,
+                                padding: 18,
+                                position: "sticky",
+                                top: 104,
+                            }}
                         >
-                            {sectionTitle(s.title, s.icon)}
+                            <h3
+                                style={{
+                                    marginTop: 0,
+                                    marginBottom: 10,
+                                    fontSize: 18,
+                                }}
+                            >
+                                On this page
+                            </h3>
+                            <ol
+                                style={{
+                                    margin: 0,
+                                    paddingLeft: 18,
+                                    lineHeight: 1.7,
+                                    display: "grid",
+                                    gap: 8,
+                                }}
+                            >
+                                {sections.map((s) => (
+                                    <li key={s.id}>
+                                        <a
+                                            href={`#${s.id}`}
+                                            style={{ ...anchorStyle }}
+                                        >
+                                            {s.title}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+
+                        <div
+                            style={{
+                                ...sectionCardStyle,
+                                borderLeft: `4px solid ${theme.accent}`,
+                                padding: 18,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 10,
+                            }}
+                        >
                             <div
                                 style={{
-                                    marginTop: 10,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    marginBottom: 4,
+                                }}
+                            >
+                                <MdMail color={theme.accent} size={20} />
+                                <strong>Need more help?</strong>
+                            </div>
+                            <p
+                                style={{
+                                    marginTop: 0,
+                                    marginBottom: 12,
                                     color: theme.textSecondary,
                                 }}
                             >
-                                {s.content}
-                            </div>
+                                Have questions about privacy at Report Pro? Reach out to our
+                                compliance team for tailored guidance.
+                            </p>
+                            <Link
+                                to="/dashboard/contact"
+                                style={{ ...anchorStyle }}
+                            >
+                                Contact Support
+                            </Link>
                         </div>
-                    ))}
+                    </div>
 
-                    {/* Contact CTA */}
-                    <div style={{ ...cardStyle, padding: 16 }}>
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                marginBottom: 8,
-                            }}
-                        >
-                            <MdMail color={theme.accent} size={20} />
-                            <strong>Need more help?</strong>
-                        </div>
-                        <p
-                            style={{
-                                marginTop: 0,
-                                marginBottom: 12,
-                                color: theme.textSecondary,
-                            }}
-                        >
-                            Have questions about privacy at Report Pro? Reach
-                            out to our team.
-                        </p>
-                        <Link
-                            to="/dashboard/contact"
-                            style={{ color: theme.accent, fontWeight: 700 }}
-                        >
-                            Contact Support
-                        </Link>
+                    <div className="privacy-policy-sections">
+                        {sections.map((s) => (
+                            <div
+                                id={s.id}
+                                key={s.id}
+                                className="privacy-policy-section"
+                                style={{
+                                    ...sectionCardStyle,
+                                    borderLeft: `4px solid ${theme.accent}`,
+                                }}
+                            >
+                                {sectionTitle(s.title, s.icon)}
+                                <div
+                                    style={{
+                                        marginTop: 10,
+                                        color: theme.textSecondary,
+                                    }}
+                                >
+                                    {s.content}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>
         </>
     );
-};
+}
 
 export default PrivacyPolicy;

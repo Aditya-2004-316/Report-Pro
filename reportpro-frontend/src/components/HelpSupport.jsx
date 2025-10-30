@@ -16,6 +16,33 @@ const HelpSupport = ({ theme }) => {
     const [openFaq, setOpenFaq] = useState(new Set());
     const [openTips, setOpenTips] = useState(new Set());
 
+    const heroHighlights = useMemo(
+        () => [
+            {
+                title: "Response Time",
+                description: "Avg. under 6 hours on weekdays",
+            },
+            {
+                title: "System Status",
+                description: "99.9% uptime with live monitoring",
+            },
+            {
+                title: "Guided Onboarding",
+                description: "Step-by-step videos and docs",
+            },
+        ],
+        []
+    );
+
+    const highlightCardWidth = useMemo(() => {
+        const longest = heroHighlights.reduce((max, item) => {
+            const titleLen = item.title.length;
+            const descLen = item.description.length;
+            return Math.max(max, titleLen, descLen);
+        }, 0);
+        return Math.min(240, Math.max(160, longest * 7));
+    }, [heroHighlights]);
+
     const faqs = useMemo(
         () => [
             {
@@ -99,12 +126,24 @@ const HelpSupport = ({ theme }) => {
         );
     }, [tips, query]);
 
+    const accentGradient =
+        theme.name === "dark"
+            ? `linear-gradient(135deg, ${theme.surface} 0%, #2c3136 100%)`
+            : `linear-gradient(135deg, #fff 0%, #fff0f0 100%)`;
+
     const cardStyle = {
         background: theme.surface,
         color: theme.text,
-        borderRadius: 12,
+        borderRadius: 14,
         border: `1px solid ${theme.border}`,
         boxShadow: theme.shadow,
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    };
+
+    const anchorStyle = {
+        color: theme.accent,
+        textDecoration: "none",
+        fontWeight: 600,
     };
 
     const sectionTitle = (icon, text) => (
@@ -195,6 +234,29 @@ const HelpSupport = ({ theme }) => {
             {/* Responsive styles for Help & Support page */}
             <style>{`
                 /* Critical fix for the 730px overflow issue */
+                .help-support-container {
+                    max-width: 1100px !important;
+                    width: 100% !important;
+                }
+
+                .help-support-content-grid {
+                    display: grid !important;
+                    gap: 18px !important;
+                    margin-top: 20px !important;
+                }
+
+                .help-support-main-grid {
+                    display: grid;
+                    grid-template-columns: 2fr 1fr;
+                    gap: 18px;
+                }
+
+                @media (max-width: 992px) {
+                    .help-support-main-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
                 @media (max-width: 730px) {
                     .help-support-container {
                         max-width: 98vw !important;
@@ -278,47 +340,94 @@ const HelpSupport = ({ theme }) => {
                     overflow-x: hidden !important;
                     box-sizing: border-box !important;
                 }
-            `}</style>
+            }
 
+            /* Tablets and large phones (600px to 767px) */
+            @media (min-width: 600px) and (max-width: 767px) {
+                .help-support-container {
+                    max-width: 98vw !important;
+                    padding: 1.2rem !important;
+                    border-radius: 14px !important;
+                    margin: 1rem auto !important;
+                    overflow-x: hidden !important;
+                }
+                .help-support-contact-grid {
+                    grid-template-columns: 1fr !important;
+                    gap: 14px !important;
+                }
+            }
+
+            /* Small phones (480px to 599px) */
+            @media (min-width: 480px) and (max-width: 599px) {
+                .help-support-container {
+                    padding: 1rem !important;
+                    border-radius: 12px !important;
+                    margin: 0.8rem auto !important;
+                    overflow-x: hidden !important;
+                }
+            }
+
+            /* Extra small phones (360px and below) */
+            @media (max-width: 360px) {
+                .help-support-container {
+                    padding: 0.8rem !important;
+                    margin: 0.5rem auto !important;
+                    overflow-x: hidden !important;
+                }
+            }
+
+            /* Landscape orientation on phones */
+            @media (max-height: 500px) and (orientation: landscape) {
+                .help-support-container {
+                    margin: 0.5rem auto !important;
+                    padding: 1rem !important;
+                    overflow-x: hidden !important;
+                }
+            }
+
+            /* Ensure no horizontal overflow on any screen size */
+            .help-support-container {
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+                box-sizing: border-box !important;
+            }
+        `}</style>
+
+        <div
+            className="help-support-container"
+            style={{
+                margin: "2.5rem auto",
+                padding: "0 1.25rem 2rem",
+            }}
+        >
+            {/* Hero */}
             <div
-                className="help-support-container"
                 style={{
-                    maxWidth: 1100,
-                    width: "100%",
-                    margin: "2rem auto",
-                    padding: "0 1rem",
+                    ...cardStyle,
+                    padding: "2rem",
+                    background: accentGradient,
                 }}
             >
-                {/* Hero */}
                 <div
                     style={{
-                        ...cardStyle,
-                        padding: "1.8rem",
-                        background:
-                            theme.name === "dark"
-                                ? `linear-gradient(135deg, ${theme.surface} 0%, #2b2e33 100%)`
-                                : `linear-gradient(135deg, #fff 0%, #fff6f6 100%)`,
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 20,
+                        alignItems: "stretch",
                     }}
                 >
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 12,
-                            marginBottom: 8,
-                        }}
-                    >
+                    <div style={{ flex: "1 1 260px" }}>
                         <span
                             style={{
                                 display: "inline-flex",
                                 alignItems: "center",
                                 gap: 8,
-                                padding: "6px 12px",
+                                padding: "6px 14px",
                                 borderRadius: 999,
                                 background:
                                     theme.name === "dark"
                                         ? "#232526"
-                                        : "#ffeaea",
+                                        : "#ffe4e4",
                                 color: theme.accent,
                                 fontWeight: 700,
                                 border: `1px solid ${theme.border}`,
@@ -326,98 +435,138 @@ const HelpSupport = ({ theme }) => {
                         >
                             <MdSupportAgent /> Support Center
                         </span>
-                    </div>
-                    <h2
-                        style={{
-                            margin: 0,
-                            fontSize: 28,
-                            fontWeight: 900,
-                            color: theme.text,
-                        }}
-                    >
-                        Help & Support
-                    </h2>
-                    <p
-                        style={{
-                            marginTop: 8,
-                            marginBottom: 14,
-                            color: theme.textSecondary,
-                        }}
-                    >
-                        Find answers, troubleshoot issues, and contact our team.
-                        We’re here to help.
-                    </p>
-
-                    {/* Search */}
-                    <div
-                        className="help-support-search-container"
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                        }}
-                    >
-                        <div
+                        <h2
                             style={{
-                                flex: 1,
+                                marginTop: 14,
+                                marginBottom: 10,
+                                fontSize: 30,
+                                fontWeight: 900,
+                                color: theme.text,
+                            }}
+                        >
+                            Help & Support
+                        </h2>
+                        <p
+                            style={{
+                                marginTop: 0,
+                                marginBottom: 18,
+                                color: theme.textSecondary,
+                                lineHeight: 1.6,
+                            }}
+                        >
+                            Find answers, troubleshoot issues, and reach our
+                            support team. The knowledge base updates alongside
+                            every major release.
+                        </p>
+                        <div
+                            className="help-support-search-container"
+                            style={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 8,
-                                background: theme.inputBg,
-                                border: `1px solid ${
-                                    theme.inputBorder || theme.border
-                                }`,
-                                borderRadius: 10,
-                                padding: "10px 12px",
+                                gap: 10,
                             }}
                         >
-                            <MdSearch size={20} color={theme.textSecondary} />
-                            <input
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                placeholder="Search FAQs and troubleshooting..."
+                            <div
+                                className="help-support-search-input"
                                 style={{
-                                    width: "100%",
-                                    border: "none",
-                                    outline: "none",
-                                    background: "transparent",
-                                    color: theme.text,
-                                    fontSize: 16,
+                                    flex: 1,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    background: theme.inputBg,
+                                    border: `1px solid ${
+                                        theme.inputBorder || theme.border
+                                    }`,
+                                    borderRadius: 10,
+                                    padding: "10px 12px",
                                 }}
-                            />
+                            >
+                                <MdSearch size={20} color={theme.textSecondary} />
+                                <input
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    placeholder="Search FAQs and troubleshooting..."
+                                    style={{
+                                        width: "100%",
+                                        border: "none",
+                                        outline: "none",
+                                        background: "transparent",
+                                        color: theme.text,
+                                        fontSize: 16,
+                                    }}
+                                />
+                            </div>
+                            <Link
+                                to="/dashboard/contact"
+                                style={{
+                                    ...anchorStyle,
+                                    background: theme.accent,
+                                    color: "#fff",
+                                    padding: "10px 16px",
+                                    borderRadius: 10,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    boxShadow: theme.shadow,
+                                }}
+                            >
+                                <MdChat /> Contact Support
+                            </Link>
                         </div>
-                        <Link
-                            to="/dashboard/contact"
-                            style={{
-                                textDecoration: "none",
-                                background: theme.accent,
-                                color: "#fff",
-                                padding: "10px 14px",
-                                borderRadius: 10,
-                                fontWeight: 700,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 8,
-                                boxShadow: theme.shadow,
-                            }}
-                        >
-                            <MdChat /> Contact Support
-                        </Link>
+                    </div>
+
+                    <div
+                        style={{
+                            flex: "1 1 220px",
+                            minWidth: 220,
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 12,
+                            justifyContent: "center",
+                        }}
+                    >
+                        {heroHighlights.map((stat) => (
+                            <div
+                                key={stat.title}
+                                style={{
+                                    width: highlightCardWidth,
+                                    background:
+                                        theme.name === "dark"
+                                            ? "rgba(255,255,255,0.04)"
+                                            : "rgba(229,57,53,0.08)",
+                                    borderRadius: 12,
+                                    padding: "12px 16px",
+                                    border: `1px solid ${theme.border}`,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: 6,
+                                    textAlign: "center",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        fontWeight: 700,
+                                        color: theme.text,
+                                    }}
+                                >
+                                    {stat.title}
+                                </div>
+                                <div style={{ color: theme.textSecondary, fontSize: 13 }}>
+                                    {stat.description}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
+            </div>
 
-                {/* Content Grid */}
-                <div
-                    className="help-support-content-grid"
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr",
-                        gap: 16,
-                        marginTop: 16,
-                    }}
-                >
+            {/* Content Grid */}
+            <div className="help-support-content-grid">
+                <div className="help-support-main-grid">
                     {/* FAQs */}
-                    <div style={{ ...cardStyle, padding: 16 }}>
+                    <div style={{ ...cardStyle, padding: 18 }}>
                         {sectionTitle(
                             <MdQuestionAnswer color={theme.accent} size={22} />,
                             "Frequently Asked Questions"
@@ -448,35 +597,36 @@ const HelpSupport = ({ theme }) => {
                         </div>
                     </div>
 
-                    {/* Troubleshooting */}
-                    <div style={{ ...cardStyle, padding: 16 }}>
-                        {sectionTitle(
-                            <MdBugReport color={theme.accent} size={22} />,
-                            "Troubleshooting Tips"
-                        )}
-                        <div>
-                            {filteredTips.length === 0 ? (
-                                <div style={{ color: theme.textSecondary }}>
-                                    No troubleshooting items match your search.
-                                </div>
-                            ) : (
-                                filteredTips.map((item, idx) => (
-                                    <AccordionItem
-                                        key={idx}
-                                        id={idx}
-                                        title={item.t}
-                                        content={item.d}
-                                        openSet={openTips}
-                                        setOpenSet={setOpenTips}
-                                        icon={
-                                            <MdBugReport
-                                                size={20}
-                                                color={theme.accent}
-                                            />
-                                        }
-                                    />
-                                ))
+                        {/* Troubleshooting */}
+                        <div style={{ ...cardStyle, padding: 18 }}>
+                            {sectionTitle(
+                                <MdBugReport color={theme.accent} size={22} />,
+                                "Troubleshooting Tips"
                             )}
+                            <div>
+                                {filteredTips.length === 0 ? (
+                                    <div style={{ color: theme.textSecondary }}>
+                                        No troubleshooting items match your search.
+                                    </div>
+                                ) : (
+                                    filteredTips.map((item, idx) => (
+                                        <AccordionItem
+                                            key={idx}
+                                            id={idx}
+                                            title={item.t}
+                                            content={item.d}
+                                            openSet={openTips}
+                                            setOpenSet={setOpenTips}
+                                            icon={
+                                                <MdBugReport
+                                                    size={20}
+                                                    color={theme.accent}
+                                                />
+                                            }
+                                        />
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -490,7 +640,7 @@ const HelpSupport = ({ theme }) => {
                             gap: 16,
                         }}
                     >
-                        <div style={{ ...cardStyle, padding: 16 }}>
+                        <div style={{ ...cardStyle, padding: 18 }}>
                             <div
                                 style={{
                                     display: "flex",
@@ -513,12 +663,12 @@ const HelpSupport = ({ theme }) => {
                             </p>
                             <a
                                 href="mailto:support@reportpro.com"
-                                style={{ color: theme.accent, fontWeight: 700 }}
+                                style={{ ...anchorStyle }}
                             >
                                 support@reportpro.com
                             </a>
                         </div>
-                        <div style={{ ...cardStyle, padding: 16 }}>
+                        <div style={{ ...cardStyle, padding: 18 }}>
                             <div
                                 style={{
                                     display: "flex",
@@ -541,12 +691,12 @@ const HelpSupport = ({ theme }) => {
                             </p>
                             <Link
                                 to="/dashboard/contact"
-                                style={{ color: theme.accent, fontWeight: 700 }}
+                                style={{ ...anchorStyle }}
                             >
                                 Open Contact Page
                             </Link>
                         </div>
-                        <div style={{ ...cardStyle, padding: 16 }}>
+                        <div style={{ ...cardStyle, padding: 18 }}>
                             <div
                                 style={{
                                     display: "flex",
