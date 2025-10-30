@@ -1252,6 +1252,84 @@ app.post("/api/students/present", requireAuth, async (req, res) => {
     }
 });
 
+// Bulk delete students completely (marks + registry) - atomic operation
+app.delete("/api/students/bulk-delete", requireAuth, async (req, res) => {
+    try {
+        const { rollNos, session, class: studentClass } = req.body;
+
+        // Validate input
+        if (!rollNos || !Array.isArray(rollNos) || rollNos.length === 0) {
+            return res.status(400).json({
+                error: "Roll numbers array is required and must not be empty.",
+            });
+        }
+        if (!session || !studentClass) {
+            return res.status(400).json({
+                error: "Session and class are required.",
+            });
+        }
+
+        let deletedMarksCount = 0;
+        let registryUpdated = false;
+        const errors = [];
+
+        try {
+            // Step 1: Delete all marks records for these students
+            const deleteFilter = {
+                rollNo: { $in: rollNos },
+                session,
+                class: studentClass,
+                user: req.userId,
+            };
+
+            const marksResult = await Student.deleteMany(deleteFilter);
+            deletedMarksCount = marksResult.deletedCount;
+
+            // Step 2: Update student registry to remove these students
+            try {
+                const registry = await StudentRegistry.findOne({
+                    user: req.userId,
+                    session,
+                    class: studentClass,
+                });
+
+                if (registry) {
+                    // Filter out the students with matching roll numbers
+                    const updatedStudents = registry.students.filter(
+                        (student) => !rollNos.includes(student.rollNo)
+                    );
+
+                    // Update the registry
+                    registry.students = updatedStudents;
+                    await registry.save();
+                    registryUpdated = true;
+                }
+            } catch (registryError) {
+                errors.push(`Registry update failed: ${registryError.message}`);
+            }
+
+            // Return success with details
+            res.json({
+                success: true,
+                deletedMarksCount,
+                registryUpdated,
+                studentsProcessed: rollNos.length,
+                errors: errors.length > 0 ? errors : undefined,
+            });
+        } catch (deleteError) {
+            return res.status(500).json({
+                error: "Failed to delete student records",
+                details: deleteError.message,
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            error: "Server error",
+            details: error.message,
+        });
+    }
+});
+
 app.listen(PORT, () => {
     // Removed console log for production
 });

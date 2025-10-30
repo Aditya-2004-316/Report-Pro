@@ -68,6 +68,12 @@ function StudentList({
     // State for subject-specific selected rows
     const [subjectSelectedRows, setSubjectSelectedRows] = useState({});
     const [showPreviousYearsModal, setShowPreviousYearsModal] = useState(false);
+    const [bulkDeleteModal, setBulkDeleteModal] = useState({
+        open: false,
+        students: [],
+    });
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
 
     const currentYear = new Date().getFullYear();
     const sessionOptions = [
@@ -77,6 +83,15 @@ function StudentList({
 
     useEffect(() => {
         if (!session) setSession(sessionOptions[0]);
+    }, []);
+
+    // Handle window resize for responsive button
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 600);
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
     }, []);
 
     useEffect(() => {
@@ -655,6 +670,100 @@ function StudentList({
             subject: null,
             session: null,
         });
+    }
+
+    // Function to handle bulk delete of selected students
+    async function handleBulkDeleteStudents() {
+        if (selectedRows.length === 0) {
+            alert("Please select at least one student to delete.");
+            return;
+        }
+
+        // Get unique roll numbers from selected rows
+        const selectedRollNos = [...new Set(
+            selectedRows.map((key) => key.split("-")[0])
+        )];
+
+        // Get student information for confirmation
+        const studentsToDelete = selectedRollNos.map((rollNo) => {
+            const registryStudent = registryStudents.find(
+                (s) => s.rollNo === rollNo
+            );
+            return {
+                rollNo,
+                name: registryStudent ? registryStudent.name : "Unknown",
+            };
+        });
+
+        setBulkDeleteModal({
+            open: true,
+            students: studentsToDelete,
+        });
+    }
+
+    // Function to confirm and execute bulk delete
+    async function confirmBulkDelete() {
+        setBulkDeleting(true);
+        const studentsToDelete = bulkDeleteModal.students;
+        const rollNos = studentsToDelete.map((s) => s.rollNo);
+
+        try {
+            // Use new atomic bulk delete endpoint
+            const deleteRes = await fetch(`${API_BASE}/api/students/bulk-delete`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    rollNos: rollNos,
+                    session: session,
+                    class: selectedClass,
+                }),
+            });
+
+            if (deleteRes.ok) {
+                const result = await deleteRes.json();
+                
+                // Show success message
+                setPopupMsg(
+                    `Successfully deleted ${result.studentsProcessed} student${result.studentsProcessed > 1 ? "s" : ""} completely from the system. (${result.deletedMarksCount} marks records removed${result.registryUpdated ? ", registry updated" : ""})`
+                );
+                setTimeout(() => setPopupMsg(""), 4000);
+
+                // Refresh data and registry, then clear selections
+                await fetchStudents();
+                
+                // Force registry refresh
+                const token = sessionStorage.getItem("token");
+                try {
+                    const registryRes = await fetch(
+                        `${API_BASE}/api/student-registry?session=${session}&class=${selectedClass}`,
+                        {
+                            headers: { Authorization: `Bearer ${token}` },
+                        }
+                    );
+                    const registryData = await registryRes.json();
+                    setRegistryStudents(registryData && registryData.students ? registryData.students : []);
+                } catch (err) {
+                    // Registry refresh failed, but marks are deleted
+                }
+                
+                setSelectedRows([]);
+            } else {
+                const error = await deleteRes.json();
+                alert(`Failed to delete students: ${error.error || "Unknown error"}`);
+            }
+        } catch (err) {
+            alert("An error occurred while deleting students. Please try again.");
+        }
+
+        setBulkDeleting(false);
+        setBulkDeleteModal({ open: false, students: [] });
+    }
+
+    function cancelBulkDelete() {
+        setBulkDeleteModal({ open: false, students: [] });
     }
 
     // Function to check if any selected student is already marked as absent
@@ -1498,6 +1607,51 @@ function StudentList({
                     }}
                 >
                     {popupMsg}
+                </div>
+            )}
+            {/* Bulk Actions */}
+            {selectedRows.length > 0 && (
+                <div
+                    style={{
+                        background: theme.surface,
+                        borderRadius: 12,
+                        padding: "16px",
+                        marginBottom: 16,
+                        boxShadow: theme.shadow,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 12,
+                        border: `2px solid ${accent}`,
+                    }}
+                >
+                    <div style={{ fontWeight: 600, color: theme.text, fontSize: isMobile ? 14 : 16 }}>
+                        {selectedRows.length} student{selectedRows.length > 1 ? "s" : ""} selected
+                    </div>
+                    <button
+                        onClick={handleBulkDeleteStudents}
+                        style={{
+                            padding: isMobile ? "8px 14px" : "10px 20px",
+                            borderRadius: 8,
+                            border: "none",
+                            background: "#d32f2f",
+                            color: "#fff",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontSize: isMobile ? 12 : 14,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: isMobile ? 6 : 8,
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                            whiteSpace: isMobile ? "normal" : "nowrap",
+                            textAlign: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <MdDelete size={isMobile ? 16 : 18} />
+                        {isMobile ? "Delete Selected" : "Delete Selected Students Completely"}
+                    </button>
                 </div>
             )}
             {/* Summary Table */}
@@ -2490,29 +2644,6 @@ function StudentList({
                                                             fontStyle: "normal",
                                                         }}
                                                     >
-                                                        {isPlaceholder
-                                                            ? "-"
-                                                            : isAbsent
-                                                            ? student.examType ===
-                                                              "Monthly Test"
-                                                                ? "N/A"
-                                                                : "AB"
-                                                            : student.examType ===
-                                                              "Monthly Test"
-                                                            ? "N/A"
-                                                            : student.practical ??
-                                                              "-"}
-                                                    </td>
-                                                    <td
-                                                        style={{
-                                                            ...getTableCellStyle(
-                                                                idx,
-                                                                isPlaceholder,
-                                                                isAbsent
-                                                            ),
-                                                            fontStyle: "normal",
-                                                        }}
-                                                    >
                                                         <button
                                                             onClick={() =>
                                                                 handleDeleteStudent(
@@ -2692,6 +2823,104 @@ function StudentList({
                                 }}
                             >
                                 Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Bulk Delete Confirmation Modal */}
+            {bulkDeleteModal.open && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "rgba(0,0,0,0.5)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 1000,
+                    }}
+                >
+                    <div
+                        style={{
+                            background: theme.surface,
+                            padding: "24px",
+                            borderRadius: "12px",
+                            maxWidth: "500px",
+                            width: "90%",
+                            maxHeight: "80vh",
+                            overflow: "auto",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+                        }}
+                    >
+                        <h3 style={{ marginTop: 0, color: "#d32f2f", display: "flex", alignItems: "center", gap: 8 }}>
+                            <MdDelete size={24} />
+                            Confirm Bulk Deletion
+                        </h3>
+                        <p style={{ color: theme.text, fontWeight: 600, marginBottom: 16 }}>
+                            ⚠️ WARNING: This action will PERMANENTLY delete ALL records for the following {bulkDeleteModal.students.length} student{bulkDeleteModal.students.length > 1 ? "s" : ""}:
+                        </p>
+                        <ul style={{ color: theme.text, marginBottom: 16, maxHeight: "200px", overflow: "auto", background: theme.inputBg, padding: "12px 12px 12px 32px", borderRadius: 8 }}>
+                            {bulkDeleteModal.students.map((student) => (
+                                <li key={student.rollNo} style={{ marginBottom: 8 }}>
+                                    <strong>Roll No: {student.rollNo}</strong> - {student.name}
+                                </li>
+                            ))}
+                        </ul>
+                        <p style={{ color: theme.text, marginBottom: 16 }}>
+                            This will delete:
+                        </p>
+                        <ul style={{ color: theme.text, marginBottom: 20 }}>
+                            <li>All marks records (all subjects, all exam types)</li>
+                            <li>Student registry entries</li>
+                            <li>All data from statistics</li>
+                        </ul>
+                        <p style={{ color: "#d32f2f", fontWeight: 600, marginBottom: 20 }}>
+                            This action CANNOT be undone!
+                        </p>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "12px",
+                                justifyContent: "flex-end",
+                            }}
+                        >
+                            <button
+                                onClick={cancelBulkDelete}
+                                disabled={bulkDeleting}
+                                style={{
+                                    padding: "10px 20px",
+                                    border: `1px solid ${theme.border}`,
+                                    background: theme.surface,
+                                    color: theme.text,
+                                    borderRadius: "6px",
+                                    cursor: bulkDeleting ? "not-allowed" : "pointer",
+                                    fontWeight: 600,
+                                    opacity: bulkDeleting ? 0.6 : 1,
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmBulkDelete}
+                                disabled={bulkDeleting}
+                                style={{
+                                    padding: "10px 20px",
+                                    border: "none",
+                                    background: bulkDeleting ? "#757575" : "#d32f2f",
+                                    color: "#fff",
+                                    borderRadius: "6px",
+                                    cursor: bulkDeleting ? "not-allowed" : "pointer",
+                                    fontWeight: 600,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                }}
+                            >
+                                {bulkDeleting ? "Deleting..." : "Delete Permanently"}
                             </button>
                         </div>
                     </div>
