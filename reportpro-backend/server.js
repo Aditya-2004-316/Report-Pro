@@ -17,6 +17,7 @@ const corsOptions = {
     origin: [
         "https://report-pro-mm9o.vercel.app",
         "http://localhost:5173",
+        "http://localhost:5174",
         "http://localhost:3000",
     ],
     credentials: true,
@@ -65,7 +66,7 @@ const studentSchema = new mongoose.Schema(
             required: true,
         },
         subject: { type: String, required: true },
-        theory: { type: Number, min: 0, max: 75 },
+        theory: { type: Number, min: 0, max: 75 }, // Will be validated to 0-20 for Monthly Tests
         practical: { type: Number, min: 0, max: 25 },
         total: { type: Number },
         grade: { type: String },
@@ -131,7 +132,20 @@ const StudentRegistry = mongoose.model(
 );
 
 // Helper: Calculate grade based on total marks with theory failure rule
-function calculateGrade(total, theory) {
+function calculateGrade(total, theory, examType) {
+    // Special grading system for Monthly Tests (out of 20)
+    if (examType === "Monthly Test") {
+        // For Monthly Tests, total should be the theory marks (out of 20)
+        // Grading system: 0-3 -> E2, 4-6 -> E1, 7-8 -> D, 9-11 -> C, 12-14 -> B, 15-16 -> A, 17-20 -> A+
+        if (total >= 17) return "A+";
+        if (total >= 15) return "A";
+        if (total >= 12) return "B";
+        if (total >= 9) return "C";
+        if (total >= 7) return "D";
+        if (total >= 4) return "E1";
+        return "E2";
+    }
+
     // Rule 1: If theory marks are less than 25 (failing), grade should be E1
     // unless total marks would result in E2, then it should be E2
     if (theory < 25) {
@@ -288,55 +302,67 @@ app.post("/api/students", requireAuth, async (req, res) => {
                 isNaN(theoryNum)
             ) {
                 return res.status(400).json({
-                    error: "Theory marks must be a number between 0 and 75.",
+                    error:
+                        examType === "Monthly Test"
+                            ? "Theory marks must be a number between 0 and 20."
+                            : "Theory marks must be a number between 0 and 75.",
                 });
             }
-            if (theoryNum < 0 || theoryNum > 75) {
-                return res
-                    .status(400)
-                    .json({ error: "Theory marks must be between 0 and 75." });
+            if (examType === "Monthly Test") {
+                if (theoryNum < 0 || theoryNum > 20) {
+                    return res.status(400).json({
+                        error: "Theory marks for Monthly Test must be between 0 and 20.",
+                    });
+                }
+            } else {
+                if (theoryNum < 0 || theoryNum > 75) {
+                    return res.status(400).json({
+                        error: "Theory marks must be between 0 and 75.",
+                    });
+                }
             }
-            if (
-                practical === undefined ||
-                practical === null ||
-                practical === "" ||
-                isNaN(practicalNum)
-            ) {
-                return res.status(400).json({
-                    error: "Practical marks must be a number between 0 and 25.",
-                });
-            }
-            if (practicalNum < 0 || practicalNum > 25) {
-                return res.status(400).json({
-                    error: "Practical marks must be between 0 and 25.",
-                });
-            }
-        }
 
-        // Basic validation for all students
-        if (
-            examType !== "Monthly Test" &&
-            (!rollNo || typeof rollNo !== "string" || !rollNo.trim())
-        ) {
-            return res.status(400).json({
-                error: "Roll number is required for all exam types except Monthly Test.",
-            });
-        }
-        // For Monthly Test, if rollNo is empty, set it to "N/A"
-        if (examType === "Monthly Test" && (!rollNo || !rollNo.trim())) {
-            rollNo = "N/A";
-        }
-        if (!subject || typeof subject !== "string" || !subject.trim()) {
-            return res.status(400).json({ error: "Subject is required." });
-        }
-        if (!session || typeof session !== "string" || !session.trim()) {
-            return res.status(400).json({ error: "Session is required." });
+            // Skip practical validation for Monthly Tests
+            if (examType !== "Monthly Test") {
+                if (
+                    practical === undefined ||
+                    practical === null ||
+                    practical === "" ||
+                    isNaN(practicalNum)
+                ) {
+                    return res.status(400).json({
+                        error: "Practical marks must be a number between 0 and 25.",
+                    });
+                }
+                if (practicalNum < 0 || practicalNum > 25) {
+                    return res.status(400).json({
+                        error: "Practical marks must be between 0 and 25.",
+                    });
+                }
+            } else {
+                // For Monthly Tests, set practical to 0
+                practical = 0;
+            }
         }
 
         const theoryNum = Number(theory);
         const practicalNum = Number(practical);
-        const total = theoryNum + practicalNum;
-        const grade = isAbsent ? "AB" : calculateGrade(total, theoryNum);
+
+        // Ensure Monthly Tests have correct total calculation
+        let total, grade;
+        if (examType === "Monthly Test") {
+            // For Monthly Tests, total is just the theory marks (0-20)
+            total = theoryNum;
+            grade = isAbsent
+                ? "AB"
+                : calculateGrade(total, theoryNum, examType);
+        } else {
+            // For other exam types, total is theory + practical
+            total = theoryNum + practicalNum;
+            grade = isAbsent
+                ? "AB"
+                : calculateGrade(total, theoryNum, examType);
+        }
 
         // Auto-fetch student name from registry if roll number is provided
         if (rollNo && rollNo.trim() !== "N/A" && rollNo.trim() !== "") {
@@ -378,7 +404,7 @@ app.post("/api/students", requireAuth, async (req, res) => {
             examType,
             subject: subject.trim(),
             theory: theoryNum,
-            practical: practicalNum,
+            practical: examType === "Monthly Test" ? 0 : practicalNum,
             total,
             grade,
             session: session.trim(),
@@ -558,11 +584,98 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
     }
 });
 
+// Endpoint to verify Monthly Test records
+app.get("/api/verify-monthly-tests", requireAuth, async (req, res) => {
+    try {
+        // Find all Monthly Test records
+        const monthlyTestStudents = await Student.find({
+            examType: "Monthly Test",
+            user: req.userId,
+        });
+
+        let incorrectRecords = [];
+
+        // Check each Monthly Test record
+        for (const student of monthlyTestStudents) {
+            // Check if the total is correctly set to just the theory marks
+            if (student.total !== student.theory) {
+                incorrectRecords.push({
+                    rollNo: student.rollNo,
+                    name: student.name,
+                    subject: student.subject,
+                    theory: student.theory,
+                    total: student.total,
+                    grade: student.grade,
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Found ${incorrectRecords.length} incorrect Monthly Test records`,
+            incorrectRecords,
+            totalCount: monthlyTestStudents.length,
+        });
+    } catch (error) {
+        // Removed error log for production
+        res.status(500).json({
+            error: "Server error",
+            details: error.message,
+        });
+    }
+});
+
 // Endpoint to clear all student data (for development/testing)
 app.post("/api/clear-students", requireAuth, async (req, res) => {
     try {
         await Student.deleteMany({ user: req.userId });
         res.json({ success: true });
+    } catch (error) {
+        // Removed error log for production
+        res.status(500).json({
+            error: "Server error",
+            details: error.message,
+        });
+    }
+});
+
+// Endpoint to fix Monthly Test records (database migration)
+app.post("/api/fix-monthly-tests", requireAuth, async (req, res) => {
+    try {
+        // Find all Monthly Test records
+        const monthlyTestStudents = await Student.find({
+            examType: "Monthly Test",
+            user: req.userId,
+        });
+
+        let fixedCount = 0;
+
+        // Fix each Monthly Test record
+        for (const student of monthlyTestStudents) {
+            // Check if the total is correctly set to just the theory marks
+            if (student.total !== student.theory) {
+                // Fix the total to be just the theory marks
+                student.total = student.theory;
+                // Recalculate the grade based on the correct total
+                student.grade = calculateGrade(
+                    student.total,
+                    student.theory,
+                    student.examType
+                );
+                // Ensure practical is set to 0
+                student.practical = 0;
+
+                // Save the corrected record
+                await student.save();
+                fixedCount++;
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Fixed ${fixedCount} Monthly Test records`,
+            fixedCount,
+        });
     } catch (error) {
         // Removed error log for production
         res.status(500).json({

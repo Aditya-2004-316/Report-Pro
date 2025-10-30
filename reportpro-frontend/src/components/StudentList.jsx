@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { SUBJECTS } from "./subjects";
 import { MdDelete } from "react-icons/md";
 import PreviousYearsModal from "./PreviousYearsModal";
+import { calculateSubjectGrade } from "./gradeUtils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -372,17 +373,22 @@ function StudentList({
         } else if (s.isAbsent) {
             studentsByRollNo[key].subjects[s.subject] = {
                 theory: 0,
-                practical: 0,
+                practical: s.examType === "Monthly Test" ? "N/A" : 0,
                 total: 0,
                 grade: "AB",
                 isAbsent: true,
             };
-            studentsByRollNo[key].maxTotal += 100;
+            // For Monthly Tests, max total is 20, otherwise 100
+            studentsByRollNo[key].maxTotal +=
+                s.examType === "Monthly Test" ? 20 : 100;
         } else {
             const theory = s.theory || 0;
-            const practical = s.practical || 0;
+            // For Monthly Tests, practical is N/A
+            const practical =
+                s.examType === "Monthly Test" ? "N/A" : s.practical || 0;
             const total = s.total || 0;
-            const grade = s.grade || "E2";
+            // Recalculate grade based on exam type - for Monthly Tests, use theory marks
+            const grade = calculateSubjectGrade(total, theory, s.examType);
 
             studentsByRollNo[key].subjects[s.subject] = {
                 theory,
@@ -393,17 +399,69 @@ function StudentList({
             if (total > 0) {
                 studentsByRollNo[key].total += total;
             }
-            studentsByRollNo[key].maxTotal += 100;
+            // For Monthly Tests, max total is 20, otherwise 100
+            studentsByRollNo[key].maxTotal +=
+                s.examType === "Monthly Test" ? 20 : 100;
         }
     });
 
-    function getOverallGrade(percentage, studentSubjects) {
+    function getOverallGrade(percentage, studentSubjects, examType) {
         // Check if any subject is marked as absent - if so, treat as E2
         const hasAbsentSubject = Object.values(studentSubjects).some(
             (subject) => subject.isAbsent
         );
 
-        // Original grade logic with custom mark ranges
+        // Special grading system for Monthly Tests
+        if (examType === "Monthly Test") {
+            // Check if any subject has a failing grade (E1 or E2)
+            const hasFailedSubject = Object.values(studentSubjects).some(
+                (subject) =>
+                    subject.grade === "E1" ||
+                    subject.grade === "E2" ||
+                    subject.isAbsent
+            );
+
+            // Calculate the average per subject based on theory marks (out of 20)
+            const subjectCount = Object.values(studentSubjects).filter(
+                (s) => !s.isAbsent && s.total !== null
+            ).length;
+            const actualTotal = Object.values(studentSubjects).reduce(
+                (sum, subject) => {
+                    if (subject.isAbsent) return sum;
+                    return sum + (subject.total || 0);
+                },
+                0
+            );
+            const averagePerSubject =
+                subjectCount > 0 ? actualTotal / subjectCount : 0;
+
+            // If student has failed any subject or is absent, cap at E1 or E2
+            if (hasFailedSubject || hasAbsentSubject) {
+                // Calculate what the normal grade would be
+                let normalGrade;
+                if (averagePerSubject >= 17) normalGrade = "A+";
+                else if (averagePerSubject >= 15) normalGrade = "A";
+                else if (averagePerSubject >= 12) normalGrade = "B";
+                else if (averagePerSubject >= 9) normalGrade = "C";
+                else if (averagePerSubject >= 7) normalGrade = "D";
+                else if (averagePerSubject >= 4) normalGrade = "E1";
+                else normalGrade = "E2";
+
+                // Return E2 if absent or normal grade is E2, otherwise E1
+                return normalGrade === "E2" || hasAbsentSubject ? "E2" : "E1";
+            }
+
+            // If no failed subjects, apply normal Monthly Test grading
+            if (averagePerSubject >= 17) return "A+";
+            if (averagePerSubject >= 15) return "A";
+            if (averagePerSubject >= 12) return "B";
+            if (averagePerSubject >= 9) return "C";
+            if (averagePerSubject >= 7) return "D";
+            if (averagePerSubject >= 4) return "E1";
+            return "E2";
+        }
+
+        // Original grade logic with custom mark ranges for other exam types
         const hasFailedSubject = Object.values(studentSubjects).some(
             (subject) =>
                 subject.grade === "E1" ||
@@ -425,7 +483,7 @@ function StudentList({
             return normalGrade === "E2" || hasAbsentSubject ? "E2" : "E1";
         }
 
-        // Original custom mark ranges
+        // Original custom mark ranges for other exam types
         if (percentage >= 91) return "A1";
         if (percentage >= 81) return "A2";
         if (percentage >= 71) return "B1";
@@ -447,7 +505,7 @@ function StudentList({
             `Class: ${selectedClass}`,
             `Subject: ${localSubjectFilter}`,
             `Exam Type: ${selectedExamType}`,
-            ...(selectedExamType === "Monthly Test" && selectedMonth
+            ...(selectedExamType === "Monthly Test"
                 ? [`Month: ${selectedMonth}`]
                 : []),
             `Export Date: ${new Date().toLocaleDateString()}`,
@@ -495,6 +553,12 @@ function StudentList({
                     return subjectData && !subjectData.isPlaceholder;
                 }).map((subj) => {
                     const subjectData = stu.subjects[subj] || {};
+                    // For Monthly Tests, show "N/A" for practical marks
+                    const practicalValue =
+                        stu.examType === "Monthly Test"
+                            ? "N/A"
+                            : subjectData.practical ?? "";
+
                     return [
                         stu.rollNo || "",
                         stu.name || "",
@@ -505,7 +569,7 @@ function StudentList({
                             ? [selectedMonth || ""]
                             : []),
                         subjectData.theory ?? "",
-                        subjectData.practical ?? "",
+                        practicalValue,
                         subjectData.total ?? "",
                         subjectData.grade ?? "",
                         session || "",
@@ -1924,7 +1988,13 @@ function StudentList({
                                                                 {isPlaceholder
                                                                     ? "-"
                                                                     : isAbsent
-                                                                    ? "AB"
+                                                                    ? stu.examType ===
+                                                                      "Monthly Test"
+                                                                        ? "N/A"
+                                                                        : "AB"
+                                                                    : stu.examType ===
+                                                                      "Monthly Test"
+                                                                    ? "N/A"
                                                                     : subjectData?.practical ??
                                                                       "-"}
                                                             </td>,
@@ -1984,7 +2054,8 @@ function StudentList({
                                                     >
                                                         {getOverallGrade(
                                                             percentage,
-                                                            stu.subjects
+                                                            stu.subjects,
+                                                            stu.examType
                                                         )}
                                                     </td>
                                                     <td
@@ -1994,57 +2065,23 @@ function StudentList({
                                                     >
                                                         <button
                                                             onClick={() =>
-                                                                setDeleteStudentModal(
-                                                                    {
-                                                                        open: true,
-                                                                        rollNo: stu.rollNo,
-                                                                    }
+                                                                handleDeleteStudent(
+                                                                    stu.rollNo,
+                                                                    stu.subject,
+                                                                    stu.session
                                                                 )
                                                             }
                                                             style={{
                                                                 background:
                                                                     "transparent",
-                                                                color:
-                                                                    theme.name ===
-                                                                    "dark"
-                                                                        ? "#ff6f61"
-                                                                        : "#e53935",
                                                                 border: "none",
-                                                                borderRadius: 0,
-                                                                padding: "8px",
-                                                                fontWeight: 400,
-                                                                fontSize: 16,
                                                                 cursor: "pointer",
-                                                                boxShadow:
-                                                                    "none",
-                                                                minWidth:
-                                                                    "auto",
-                                                                minHeight:
-                                                                    "auto",
-                                                                display:
-                                                                    "inline-flex",
-                                                                alignItems:
-                                                                    "center",
-                                                                justifyContent:
-                                                                    "center",
-                                                                marginLeft: 4,
-                                                                letterSpacing: 0,
-                                                                transition:
-                                                                    "color 0.2s",
-                                                                whiteSpace:
-                                                                    "nowrap",
+                                                                color: "#e53935",
+                                                                fontSize: 18,
                                                             }}
-                                                            aria-label="Delete all marks for this student"
+                                                            aria-label="Delete student"
                                                         >
-                                                            <MdDelete
-                                                                size={22}
-                                                                color={
-                                                                    theme.name ===
-                                                                    "dark"
-                                                                        ? "#ff6f60"
-                                                                        : "#e53935"
-                                                                }
-                                                            />
+                                                            <MdDelete />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -2441,6 +2478,29 @@ function StudentList({
                                                             : isAbsent
                                                             ? "AB"
                                                             : student.grade ??
+                                                              "-"}
+                                                    </td>
+                                                    <td
+                                                        style={{
+                                                            ...getTableCellStyle(
+                                                                idx,
+                                                                isPlaceholder,
+                                                                isAbsent
+                                                            ),
+                                                            fontStyle: "normal",
+                                                        }}
+                                                    >
+                                                        {isPlaceholder
+                                                            ? "-"
+                                                            : isAbsent
+                                                            ? student.examType ===
+                                                              "Monthly Test"
+                                                                ? "N/A"
+                                                                : "AB"
+                                                            : student.examType ===
+                                                              "Monthly Test"
+                                                            ? "N/A"
+                                                            : student.practical ??
                                                               "-"}
                                                     </td>
                                                     <td

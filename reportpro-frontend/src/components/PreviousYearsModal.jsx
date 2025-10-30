@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { SUBJECTS } from "./subjects";
+import { calculateSubjectGrade } from "./gradeUtils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -173,14 +174,17 @@ function PreviousYearsModal({ open, onClose, theme, session }) {
 
             // Safely add subject data
             if (s.subject) {
+                // Recalculate grade based on exam type - for Monthly Tests, use theory marks
+                const grade = calculateSubjectGrade(s.total, s.theory, s.examType);
                 result[key].subjects[s.subject] = {
                     theory: s.theory,
                     practical: s.practical,
                     total: s.total,
-                    grade: s.grade,
+                    grade: grade,
                 };
                 result[key].total += s.total || 0;
-                result[key].maxTotal += 100; // Each subject max 100
+                // For Monthly Tests, max total is 20, otherwise 100
+                result[key].maxTotal += s.examType === "Monthly Test" ? 20 : 100;
             }
         });
         return result;

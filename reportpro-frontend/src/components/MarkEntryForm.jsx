@@ -53,41 +53,9 @@ function MarkEntryForm({
     const [autoAddToRegistry, setAutoAddToRegistry] = useState(
         () => localStorage.getItem("markentry_autoAddToRegistry") === "true"
     );
-    // Add function to calculate total and grade
-    const calculateTotalAndGrade = (theoryMarks, practicalMarks) => {
-        // Validate input values
-        const theory =
-            typeof theoryMarks === "number" ? theoryMarks : Number(theoryMarks);
-        const practical =
-            typeof practicalMarks === "number"
-                ? practicalMarks
-                : Number(practicalMarks);
-
-        // Check for valid numbers
-        if (isNaN(theory) || isNaN(practical)) {
-            return { total: 0, grade: "E2" };
-        }
-
-        // Calculate total
-        const total = theory + practical;
-
-        // Calculate grade based on percentage (total out of 100)
-        const percentage = safeDivision(total, 100, 0) * 100;
-
-        // Grade assignment logic matching StudentList component
-        let grade;
-        if (percentage >= 91) grade = "A+";
-        else if (percentage >= 81) grade = "A";
-        else if (percentage >= 71) grade = "B+";
-        else if (percentage >= 61) grade = "B";
-        else if (percentage >= 51) grade = "C+";
-        else if (percentage >= 41) grade = "C";
-        else if (percentage >= 33) grade = "D";
-        else if (percentage >= 21) grade = "E1";
-        else grade = "E2";
-
-        return { total: Math.round(total), grade };
-    };
+    // Note: Grade calculation is handled by the backend using calculateGrade() function
+    // Backend applies correct logic: Monthly Tests graded on theory (out of 20),
+    // Other exams include theory failure rule (theory < 25) and normal grading
 
     // Responsive: update isMobile and isTablet on window resize (same pattern as DashboardLayout)
     const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
@@ -274,19 +242,28 @@ function MarkEntryForm({
             !subject ||
             !session ||
             theory === "" ||
-            practical === "" ||
             isNaN(Number(theory)) ||
-            isNaN(Number(practical)) ||
             Number(theory) < 0 ||
-            Number(theory) > 75 ||
-            Number(practical) < 0 ||
-            Number(practical) > 25 ||
+            (examType === "Monthly Test" && Number(theory) > 20) ||
+            (examType !== "Monthly Test" &&
+                (practical === "" ||
+                    isNaN(Number(practical)) ||
+                    Number(practical) < 0 ||
+                    Number(practical) > 25)) ||
             (examType === "Monthly Test" && !month)
         ) {
             setValidationError(
                 "Please fill all fields with valid marks." +
                     (examType === "Monthly Test" && !month
                         ? " (Select month)"
+                        : "") +
+                    (examType === "Monthly Test" &&
+                    (Number(theory) < 0 || Number(theory) > 20)
+                        ? " (Theory marks for Monthly Test must be between 0 and 20)"
+                        : "") +
+                    (examType !== "Monthly Test" &&
+                    (Number(practical) < 0 || Number(practical) > 25)
+                        ? " (Practical marks must be between 0 and 25)"
                         : "")
             );
             return;
@@ -305,7 +282,9 @@ function MarkEntryForm({
             subject: subject.trim(),
             session: session.trim(),
             theory: Number(theory),
-            practical: Number(practical),
+            ...(examType === "Monthly Test"
+                ? { practical: 0 } // Set practical to 0 for Monthly Tests
+                : { practical: Number(practical) }),
             ...(examType === "Monthly Test" ? { month } : {}),
         };
 
@@ -1710,7 +1689,9 @@ function MarkEntryForm({
                                 className="markentry-label"
                                 style={labelStyle}
                             >
-                                Theory (out of 75)
+                                {examType === "Monthly Test"
+                                    ? "Theory (out of 20)"
+                                    : "Theory (out of 75)"}
                             </label>
                             <input
                                 type="number"
@@ -1731,42 +1712,46 @@ function MarkEntryForm({
                                 }}
                                 required
                                 min={0}
-                                max={75}
+                                max={examType === "Monthly Test" ? 20 : 75}
                                 className="markentry-input"
                                 style={inputStyle}
                             />
                         </div>
-                        <div style={{ flex: 1 }}>
-                            <label
-                                className="markentry-label"
-                                style={labelStyle}
-                            >
-                                Practical (out of 25)
-                            </label>
-                            <input
-                                type="number"
-                                inputMode="numeric"
-                                step={1}
-                                value={practical}
-                                onChange={(e) => setPractical(e.target.value)}
-                                onWheel={(e) => e.preventDefault()}
-                                onKeyDown={(e) => {
-                                    if (
-                                        e.key === "ArrowUp" ||
-                                        e.key === "ArrowDown" ||
-                                        e.key === "PageUp" ||
-                                        e.key === "PageDown"
-                                    ) {
-                                        e.preventDefault();
+                        {examType !== "Monthly Test" && (
+                            <div style={{ flex: 1 }}>
+                                <label
+                                    className="markentry-label"
+                                    style={labelStyle}
+                                >
+                                    Practical (out of 25)
+                                </label>
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    step={1}
+                                    value={practical}
+                                    onChange={(e) =>
+                                        setPractical(e.target.value)
                                     }
-                                }}
-                                required
-                                min={0}
-                                max={25}
-                                className="markentry-input"
-                                style={inputStyle}
-                            />
-                        </div>
+                                    onWheel={(e) => e.preventDefault()}
+                                    onKeyDown={(e) => {
+                                        if (
+                                            e.key === "ArrowUp" ||
+                                            e.key === "ArrowDown" ||
+                                            e.key === "PageUp" ||
+                                            e.key === "PageDown"
+                                        ) {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    required
+                                    min={0}
+                                    max={25}
+                                    className="markentry-input"
+                                    style={inputStyle}
+                                />
+                            </div>
+                        )}
                     </div>
                     {validationError && (
                         <div

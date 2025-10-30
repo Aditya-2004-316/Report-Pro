@@ -113,6 +113,48 @@ export function getGradeColor(grade, fallback = "#bdbdbd") {
     return GRADE_COLORS[normalizedGrade] || fallback;
 }
 
+// Calculate grade for a subject based on marks and exam type
+export function calculateSubjectGrade(total, theory, examType) {
+    // Special grading system for Monthly Tests (out of 20)
+    if (examType === "Monthly Test") {
+        // For Monthly Tests, grade based on theory marks (out of 20)
+        const marks = theory ?? total ?? 0;
+        if (marks >= 17) return "A+";
+        if (marks >= 15) return "A";
+        if (marks >= 12) return "B";
+        if (marks >= 9) return "C";
+        if (marks >= 7) return "D";
+        if (marks >= 4) return "E1";
+        return "E2";
+    }
+
+    // For other exam types, check theory failure rule first
+    const theoryMarks = theory ?? 0;
+    if (theoryMarks < 25) {
+        // If theory marks are less than 25 (failing), grade should be E1
+        // unless total marks would result in E2
+        let normalGrade;
+        if (total >= 85) normalGrade = "A+";
+        else if (total >= 75) normalGrade = "A";
+        else if (total >= 60) normalGrade = "B";
+        else if (total >= 45) normalGrade = "C";
+        else if (total >= 33) normalGrade = "D";
+        else if (total >= 20) normalGrade = "E1";
+        else normalGrade = "E2";
+
+        return normalGrade === "E2" ? "E2" : "E1";
+    }
+
+    // Normal grading if theory is not failing
+    if (total >= 85) return "A+";
+    if (total >= 75) return "A";
+    if (total >= 60) return "B";
+    if (total >= 45) return "C";
+    if (total >= 33) return "D";
+    if (total >= 20) return "E1";
+    return "E2";
+}
+
 // Filter students by current selections
 export function filterStudents(students, filters) {
     if (!Array.isArray(students)) return [];
