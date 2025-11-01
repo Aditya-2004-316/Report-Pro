@@ -524,7 +524,7 @@ function Signup({ onSignup, switchToLogin }) {
                         {loading ? "Signing up..." : "Sign Up"}
                     </button>
                 </form>
-                <div style={{ textAlign: "center", marginTop: 18 }}>
+                <div style={{ textAlign: "center", marginTop: 18, color: "#000" }}>
                     Already have an account?{" "}
                     <button
                         onClick={switchToLogin}

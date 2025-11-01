@@ -42,7 +42,7 @@ const CustomActiveBar = (props) => {
     return <Rectangle {...props} fill={props.fill} />;
 };
 
-function Dashboard({
+function Statistics({
     accent = "#e53935",
     accentDark = "#b71c1c",
     session,
@@ -1383,7 +1383,7 @@ function Dashboard({
                         order: 1,
                     }}
                 >
-                    School Statistics
+                    {selectedSubject === "All" ? "School Statistics" : `${selectedSubject} Statistics`}
                 </h2>
                 <div
                     className="dashboard-header-actions"
@@ -1640,13 +1640,13 @@ function Dashboard({
                     <MdPeople
                         className="summary-icon"
                         style={summaryIcon}
-                        title="Total Students"
+                        title={selectedSubject === "All" ? "Total Students" : "Students Enrolled"}
                     />
                     <span className="summary-value" style={summaryValue}>
                         {totalStudents}
                     </span>
                     <span className="summary-label" style={summaryLabel}>
-                        Total Students
+                        {selectedSubject === "All" ? "Total Students" : "Students Enrolled"}
                     </span>
                 </div>
                 <div className="dashboard-card" style={summaryCard}>
@@ -1659,7 +1659,7 @@ function Dashboard({
                         {overallAvg.toFixed(2)}%
                     </span>
                     <span className="summary-label" style={summaryLabel}>
-                        Overall Average
+                        {selectedSubject === "All" ? "Overall Average" : `${selectedSubject} Average`}
                     </span>
                 </div>
                 <div className="dashboard-card" style={summaryCard}>
@@ -1702,8 +1702,93 @@ function Dashboard({
                     </span>
                 </div>
             </div>
-            <div className="summary-grid" style={summaryGrid}>
-                <div className="chart-card" style={chartCard}>
+            {/* Additional Subject-Specific Stats */}
+            {selectedSubject !== "All" && totalStudents > 0 && (
+                <div style={{
+                    background: theme.surface,
+                    borderRadius: 14,
+                    boxShadow: theme.shadow,
+                    padding: "1.5rem 1.2rem",
+                    marginBottom: 28,
+                    border: `2px solid ${theme.border}`,
+                    maxWidth: 1400,
+                    margin: "0 auto 28px auto",
+                }}>
+                    <h3 style={{
+                        fontWeight: 700,
+                        color: accentDark,
+                        marginBottom: 16,
+                        fontSize: 20,
+                        textAlign: "center",
+                    }}>
+                        Detailed {selectedSubject} Statistics
+                    </h3>
+                    <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                        gap: 16,
+                    }}>
+                        <div style={{
+                            background: theme.inputBg,
+                            padding: "12px 16px",
+                            borderRadius: 8,
+                            border: `1px solid ${theme.border}`,
+                        }}>
+                            <div style={{ fontSize: 13, color: accentDark, fontWeight: 600, marginBottom: 4 }}>
+                                Pass Percentage
+                            </div>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: passCount > failCount ? "#43ea7b" : accent }}>
+                                {overallPassRate.toFixed(1)}%
+                            </div>
+                        </div>
+                        <div style={{
+                            background: theme.inputBg,
+                            padding: "12px 16px",
+                            borderRadius: 8,
+                            border: `1px solid ${theme.border}`,
+                        }}>
+                            <div style={{ fontSize: 13, color: accentDark, fontWeight: 600, marginBottom: 4 }}>
+                                Grade Distribution
+                            </div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: theme.text, display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+                                {Object.entries(gradeDist).map(([grade, count]) => (
+                                    <span key={grade} style={{
+                                        background: getGradeColor(grade),
+                                        color: "#fff",
+                                        padding: "2px 8px",
+                                        borderRadius: 4,
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                    }}>
+                                        {grade}: {count}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                        {stats.topScorer && (
+                            <div style={{
+                                background: theme.inputBg,
+                                padding: "12px 16px",
+                                borderRadius: 8,
+                                border: `1px solid ${theme.border}`,
+                            }}>
+                                <div style={{ fontSize: 13, color: accentDark, fontWeight: 600, marginBottom: 4 }}>
+                                    Highest Marks
+                                </div>
+                                <div style={{ fontSize: 18, fontWeight: 700, color: "#43ea7b" }}>
+                                    {stats.topScorer.total} / 100
+                                </div>
+                                <div style={{ fontSize: 11, color: theme.textSecondary || "#666", marginTop: 2 }}>
+                                    by {stats.topScorer.rollNo}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+            {selectedSubject === "All" && (
+                <div className="summary-grid" style={summaryGrid}>
+                    <div className="chart-card" style={chartCard}>
                     <h4
                         style={{
                             fontWeight: 700,
@@ -1815,8 +1900,9 @@ function Dashboard({
                             <RechartsTooltip />
                         </PieChart>
                     </ResponsiveContainer>
+                    </div>
                 </div>
-            </div>
+            )}
             <div className="subject-grid" style={subjectGrid}>
                 {/* Show only the selected subject if a specific subject is chosen, otherwise show all */}
                 {(selectedSubject === "All" ? SUBJECTS : [selectedSubject]).map(
@@ -1868,7 +1954,7 @@ function Dashboard({
                                     minWidth: 380,
                                     maxWidth: "100%",
                                     height: "auto",
-                                    minHeight: 420, // Set consistent minimum height for all cards
+                                    minHeight: 480, // Set consistent minimum height for all cards with fixed chart
                                     padding: "24px 28px 28px 28px",
                                     display: "flex",
                                     flexDirection: "column",
@@ -2097,19 +2183,12 @@ function Dashboard({
                                         Grade Distribution
                                     </span>
                                     {hasStudents ? (
-                                        <ResponsiveContainer
-                                            width="100%"
-                                            height={Math.max(
-                                                120,
-                                                Math.min(
-                                                    300,
-                                                    gradePassFailData.length *
-                                                        40 +
-                                                        60
-                                                )
-                                            )}
-                                        >
-                                            <BarChart
+                                        <>
+                                            <ResponsiveContainer
+                                                width="100%"
+                                                height={220}
+                                            >
+                                                <BarChart
                                                 data={gradePassFailData}
                                                 margin={{
                                                     top: 15,
@@ -2167,17 +2246,18 @@ function Dashboard({
                                                 </Bar>
                                                 {/* <RechartsTooltip /> */}
                                             </BarChart>
-                                            <div
-                                                className="bar-chart-legend"
-                                                style={{
-                                                    display: "flex",
-                                                    gap: 12,
-                                                    marginTop: -16,
-                                                    fontSize: 13,
-                                                    alignItems: "center",
-                                                    padding: "0 8px",
-                                                }}
-                                            >
+                                        </ResponsiveContainer>
+                                        <div
+                                            className="bar-chart-legend"
+                                            style={{
+                                                display: "flex",
+                                                gap: 12,
+                                                marginTop: 8,
+                                                fontSize: 13,
+                                                alignItems: "center",
+                                                padding: "0 8px",
+                                            }}
+                                        >
                                                 <span
                                                     style={{
                                                         display: "flex",
@@ -2230,13 +2310,13 @@ function Dashboard({
                                                     ></span>
                                                     Fail
                                                 </span>
-                                            </div>
-                                        </ResponsiveContainer>
+                                        </div>
+                                        </>
                                     ) : (
                                         // No data message with filter information
                                         <div
                                             style={{
-                                                height: 180, // Fixed height to match chart area
+                                                height: 220, // Fixed height to match chart area
                                                 display: "flex",
                                                 flexDirection: "column",
                                                 alignItems: "center",
@@ -2295,4 +2375,4 @@ function Dashboard({
     );
 }
 
-export default Dashboard;
+export default Statistics;

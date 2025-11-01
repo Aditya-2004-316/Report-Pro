@@ -2592,9 +2592,8 @@ function StudentList({
                                                         {isPlaceholder
                                                             ? "-"
                                                             : isAbsent
-                                                            ? "AB"
-                                                            : student.practical ??
-                                                              "-"}
+                                                            ? (student.examType === "Monthly Test" ? "N/A" : "AB")
+                                                            : (student.examType === "Monthly Test" ? "N/A" : (student.practical ?? "-"))}
                                                     </td>
                                                     <td
                                                         style={{

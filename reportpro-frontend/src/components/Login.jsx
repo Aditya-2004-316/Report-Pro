@@ -571,7 +571,7 @@ function Login({ onLogin, switchToSignup }) {
                                 </div>
                             )}
                         </form>
-                        <div style={{ textAlign: "center", marginTop: 18 }}>
+                        <div style={{ textAlign: "center", marginTop: 18, color: "#000" }}>
                             <div>
                                 Don't have an account?{" "}
                                 <button
@@ -585,7 +585,7 @@ function Login({ onLogin, switchToSignup }) {
                                         cursor: "pointer",
                                         textDecoration: "underline",
                                         fontSize: 15,
-                                        marginLeft: -20,
+                                        marginLeft: -10,
                                     }}
                                 >
                                     Sign up

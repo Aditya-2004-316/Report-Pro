@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import ExportDataModal from "./ExportDataModal";
 import Settings from "./Settings";
 import PreviousYearsModal from "./PreviousYearsModal";
@@ -24,6 +24,7 @@ function Footer({
     }, []);
 
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Fix: Use a gradient directly for light mode, solid color for dark mode
     const isDark = theme.name === "dark";
@@ -179,6 +180,7 @@ function Footer({
     const footerLinkHoverStyle = {
         color: theme.accent,
         transform: "translateX(4px)",
+        background: `${theme.accent}10`,
     };
 
     const statusContainerStyle = {
@@ -292,6 +294,69 @@ function Footer({
         boxShadow: `0 4px 12px ${theme.accent}40`,
     };
 
+    const activeLinkStyle = {
+        color: theme.accent,
+        background: `${theme.accent}15`,
+        border: `1px solid ${theme.accent}30`,
+        paddingLeft: "0.6rem",
+        paddingRight: "0.6rem",
+        boxShadow: `0 6px 18px ${theme.accent}1f`,
+    };
+
+    const activeButtonStyle = {
+        background: theme.accent,
+        borderColor: theme.accent,
+        color: "#fff",
+        boxShadow: `0 6px 18px ${theme.accent}35`,
+    };
+
+    const getLinkStyle = (isActive) => ({
+        ...footerLinkStyle,
+        ...(isActive ? activeLinkStyle : {}),
+    });
+
+    const getButtonStyle = (isActive) => ({
+        ...actionButtonStyle,
+        ...(isActive ? activeButtonStyle : {}),
+    });
+
+    const handleLinkHover = (event, isHovering, isActive) => {
+        const target = event.currentTarget;
+        if (isHovering) {
+            Object.assign(target.style, footerLinkHoverStyle);
+        } else {
+            target.style.transform = "translateX(0)";
+            target.style.background = isActive ? activeLinkStyle.background : "transparent";
+            target.style.border = isActive ? activeLinkStyle.border : "none";
+            target.style.color = isActive ? activeLinkStyle.color : theme.textSecondary;
+        }
+    };
+
+    const handleButtonHover = (event, isHovering, isActive) => {
+        const target = event.currentTarget;
+        if (isHovering) {
+            Object.assign(target.style, actionButtonHoverStyle);
+        } else {
+            if (isActive) {
+                Object.assign(target.style, activeButtonStyle);
+            } else {
+                target.style.background = "none";
+                target.style.borderColor = theme.border;
+                target.style.color = theme.textSecondary;
+                target.style.transform = "translateY(0)";
+                target.style.boxShadow = "none";
+            }
+        }
+    };
+
+    const helpActive = location.pathname.startsWith("/dashboard/help");
+    const contactActive = location.pathname.startsWith("/dashboard/contact");
+    const privacyActive = location.pathname.startsWith("/dashboard/privacy");
+    const termsActive = location.pathname.startsWith("/dashboard/terms");
+    const previousYearsActive = showPreviousYearsModal;
+    const exportActive = showExportModal;
+    const settingsActive = location.pathname.startsWith("/dashboard/settings");
+
     return (
         <footer style={footerStyle} className="footer">
             {/* Decorative overlay */}
@@ -358,68 +423,52 @@ function Footer({
                         </h4>
                         <Link
                             to="/dashboard/help"
-                            style={footerLinkStyle}
+                            style={getLinkStyle(helpActive)}
                             className="footer-link"
                             onMouseEnter={(e) => {
-                                Object.assign(
-                                    e.target.style,
-                                    footerLinkHoverStyle
-                                );
+                                handleLinkHover(e, true, helpActive);
                             }}
                             onMouseLeave={(e) => {
-                                e.target.style.color = theme.textSecondary;
-                                e.target.style.transform = "translateX(0)";
+                                handleLinkHover(e, false, helpActive);
                             }}
                         >
                             <span>📚</span> Help & Support
                         </Link>
                         <Link
                             to="/dashboard/contact"
-                            style={footerLinkStyle}
+                            style={getLinkStyle(contactActive)}
                             className="footer-link"
                             onMouseEnter={(e) => {
-                                Object.assign(
-                                    e.target.style,
-                                    footerLinkHoverStyle
-                                );
+                                handleLinkHover(e, true, contactActive);
                             }}
                             onMouseLeave={(e) => {
-                                e.target.style.color = theme.textSecondary;
-                                e.target.style.transform = "translateX(0)";
+                                handleLinkHover(e, false, contactActive);
                             }}
                         >
                             <span>📧</span> Contact Us
                         </Link>
                         <Link
                             to="/dashboard/privacy"
-                            style={footerLinkStyle}
+                            style={getLinkStyle(privacyActive)}
                             className="footer-link"
                             onMouseEnter={(e) => {
-                                Object.assign(
-                                    e.target.style,
-                                    footerLinkHoverStyle
-                                );
+                                handleLinkHover(e, true, privacyActive);
                             }}
                             onMouseLeave={(e) => {
-                                e.target.style.color = theme.textSecondary;
-                                e.target.style.transform = "translateX(0)";
+                                handleLinkHover(e, false, privacyActive);
                             }}
                         >
                             <span>🔒</span> Privacy Policy
                         </Link>
                         <Link
                             to="/dashboard/terms"
-                            style={footerLinkStyle}
+                            style={getLinkStyle(termsActive)}
                             className="footer-link"
                             onMouseEnter={(e) => {
-                                Object.assign(
-                                    e.target.style,
-                                    footerLinkHoverStyle
-                                );
+                                handleLinkHover(e, true, termsActive);
                             }}
                             onMouseLeave={(e) => {
-                                e.target.style.color = theme.textSecondary;
-                                e.target.style.transform = "translateX(0)";
+                                handleLinkHover(e, false, termsActive);
                             }}
                         >
                             <span>📄</span> Terms of Service
@@ -619,20 +668,13 @@ function Footer({
                     </p>
                     <div style={footerActionsStyle} className="footer-actions">
                         <button
-                            style={actionButtonStyle}
+                            style={getButtonStyle(previousYearsActive)}
                             className="action-button"
                             onMouseEnter={(e) => {
-                                Object.assign(
-                                    e.target.style,
-                                    actionButtonHoverStyle
-                                );
+                                handleButtonHover(e, true, previousYearsActive);
                             }}
                             onMouseLeave={(e) => {
-                                e.target.style.background = "none";
-                                e.target.style.borderColor = theme.border;
-                                e.target.style.color = theme.textSecondary;
-                                e.target.style.transform = "translateY(0)";
-                                e.target.style.boxShadow = "none";
+                                handleButtonHover(e, false, previousYearsActive);
                             }}
                             onClick={() => setShowPreviousYearsModal(true)}
                         >
@@ -642,20 +684,13 @@ function Footer({
                             Previous Years
                         </button>
                         <button
-                            style={actionButtonStyle}
+                            style={getButtonStyle(exportActive)}
                             className="action-button"
                             onMouseEnter={(e) => {
-                                Object.assign(
-                                    e.target.style,
-                                    actionButtonHoverStyle
-                                );
+                                handleButtonHover(e, true, exportActive);
                             }}
                             onMouseLeave={(e) => {
-                                e.target.style.background = "none";
-                                e.target.style.borderColor = theme.border;
-                                e.target.style.color = theme.textSecondary;
-                                e.target.style.transform = "translateY(0)";
-                                e.target.style.boxShadow = "none";
+                                handleButtonHover(e, false, exportActive);
                             }}
                             onClick={() => setShowExportModal(true)}
                         >
@@ -665,20 +700,13 @@ function Footer({
                             Export Data
                         </button>
                         <button
-                            style={actionButtonStyle}
+                            style={getButtonStyle(settingsActive)}
                             className="action-button"
                             onMouseEnter={(e) => {
-                                Object.assign(
-                                    e.target.style,
-                                    actionButtonHoverStyle
-                                );
+                                handleButtonHover(e, true, settingsActive);
                             }}
                             onMouseLeave={(e) => {
-                                e.target.style.background = "none";
-                                e.target.style.borderColor = theme.border;
-                                e.target.style.color = theme.textSecondary;
-                                e.target.style.transform = "translateY(0)";
-                                e.target.style.boxShadow = "none";
+                                handleButtonHover(e, false, settingsActive);
                             }}
                             onClick={() => navigate("/dashboard/settings")}
                         >

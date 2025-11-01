@@ -485,6 +485,23 @@ app.get("/api/students/:rollNo", requireAuth, async (req, res) => {
     }
 });
 
+// Helper function to check if a student failed based on exam type
+function isStudentFailed(student) {
+    // Check if student is absent
+    if (student.isAbsent || student.grade === "AB") {
+        return true;
+    }
+    
+    // For Monthly Tests, check if theory marks result in E1 or E2
+    if (student.examType === "Monthly Test") {
+        // Theory marks < 7 means E1 or E2 grade
+        return student.theory < 7;
+    }
+    
+    // For other exam types, check if theory marks < 25 (failing in theory)
+    return student.theory < 25;
+}
+
 // Get school statistics
 app.get("/api/statistics", requireAuth, async (req, res) => {
     try {
@@ -495,9 +512,7 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
         if (subject && subject !== "All") filter.subject = subject;
         if (examType === "Monthly Test" && month) filter.month = month;
 
-        // Removed debug log for production
         const students = await Student.find(filter);
-        // Removed debug log for production
 
         if (!students.length) {
             return res.json({
@@ -510,7 +525,46 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
             });
         }
 
-        // Group by rollNo to get unique students
+        // If filtering by specific subject, handle differently
+        if (subject && subject !== "All") {
+            // Subject-specific statistics
+            let pass = 0, fail = 0;
+            let totalMarks = 0, validCount = 0;
+            let topScorer = null;
+            let gradeDist = {};
+
+            students.forEach((s) => {
+                // Grade distribution
+                gradeDist[s.grade] = (gradeDist[s.grade] || 0) + 1;
+
+                // Pass/fail based on fail criteria
+                if (isStudentFailed(s)) {
+                    fail++;
+                } else {
+                    pass++;
+                }
+
+                // Average and top scorer (exclude absent)
+                if (s.grade !== "AB") {
+                    totalMarks += s.total;
+                    validCount++;
+                    if (!topScorer || s.total > topScorer.total) {
+                        topScorer = s;
+                    }
+                }
+            });
+
+            return res.json({
+                topScorer,
+                classAverage: validCount > 0 ? Math.round((totalMarks / validCount) * 100) / 100 : 0,
+                gradeDist,
+                passFail: { pass, fail },
+                totalStudents: students.length,
+                totalSubjectRecords: students.length,
+            });
+        }
+
+        // "All Subjects" view - group by unique students
         const studentsByRollNo = {};
         students.forEach((s) => {
             const key = `${s.rollNo}_${s.examType}_${s.session}_${s.class}`;
@@ -522,6 +576,7 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
                     examType: s.examType,
                     session: s.session,
                     subjects: [],
+                    hasFailed: false,
                     totalMarks: 0,
                     subjectCount: 0,
                 };
@@ -529,54 +584,67 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
             studentsByRollNo[key].subjects.push(s);
             studentsByRollNo[key].totalMarks += s.total;
             studentsByRollNo[key].subjectCount++;
+            
+            // Check if student failed this subject
+            if (isStudentFailed(s)) {
+                studentsByRollNo[key].hasFailed = true;
+            }
         });
 
         const uniqueStudents = Object.values(studentsByRollNo);
-        // Removed debug log for production
 
         // Calculate pass/fail based on unique students
-        let pass = 0,
-            fail = 0;
+        let pass = 0, fail = 0;
         uniqueStudents.forEach((student) => {
-            // A student fails if they have any E1 or E2 grade in any subject
-            const hasFail = student.subjects.some(
-                (s) => s.grade === "E1" || s.grade === "E2"
-            );
-            if (hasFail) {
+            if (student.hasFailed) {
                 fail++;
             } else {
                 pass++;
             }
         });
 
-        // Find top scorer from all subject records
-        let topScorer = students[0];
-        let totalMarks = 0;
+        // For "All Subjects" view, grade distribution should be based on student's worst grade
         let gradeDist = {};
-
-        students.forEach((s) => {
-            totalMarks += s.total;
-            gradeDist[s.grade] = (gradeDist[s.grade] || 0) + 1;
-            if (s.total > topScorer.total) topScorer = s;
+        uniqueStudents.forEach((student) => {
+            // Find the worst grade among all subjects for this student
+            let worstGrade = "A+";
+            const gradeOrder = ["A+", "A", "B", "C", "D", "E1", "E2", "AB"];
+            
+            student.subjects.forEach((s) => {
+                const gradeIndex = gradeOrder.indexOf(s.grade);
+                const worstIndex = gradeOrder.indexOf(worstGrade);
+                if (gradeIndex > worstIndex) {
+                    worstGrade = s.grade;
+                }
+            });
+            
+            gradeDist[worstGrade] = (gradeDist[worstGrade] || 0) + 1;
         });
 
-        const classAverage =
-            students.length > 0 ? totalMarks / students.length : 0;
+        // Find top scorer and calculate average (across all subjects)
+        let topScorer = null;
+        let totalMarks = 0;
+        let validCount = 0;
 
-        const result = {
+        students.forEach((s) => {
+            if (s.grade !== "AB") {
+                totalMarks += s.total;
+                validCount++;
+                if (!topScorer || s.total > topScorer.total) {
+                    topScorer = s;
+                }
+            }
+        });
+
+        res.json({
             topScorer,
-            classAverage: Math.round(classAverage * 100) / 100, // Round to 2 decimal places
+            classAverage: validCount > 0 ? Math.round((totalMarks / validCount) * 100) / 100 : 0,
             gradeDist,
             passFail: { pass, fail },
             totalStudents: uniqueStudents.length,
             totalSubjectRecords: students.length,
-        };
-
-        // Removed debug log for production
-
-        res.json(result);
+        });
     } catch (error) {
-        // Removed error log for production
         res.status(500).json({
             error: "Server error",
             details: error.message,

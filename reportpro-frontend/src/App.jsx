@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import MarkEntryForm from "./components/MarkEntryForm";
 import StudentList from "./components/StudentList";
-import Dashboard from "./components/Dashboard";
+import Statistics from "./components/Statistics";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
 import ProfileModal from "./components/ProfileModal";
@@ -676,7 +676,7 @@ function App() {
                 <Route
                     path="statistics"
                     element={
-                        <Dashboard
+                        <Statistics
                             accent={themeObj.accent}
                             accentDark={themeObj.accentHover}
                             session={session}

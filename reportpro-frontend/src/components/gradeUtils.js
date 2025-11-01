@@ -11,6 +11,7 @@ export const GRADE_COLORS = {
     D: "#ba68c8", // purple
     E1: "#e57373", // light red
     E2: "#b71c1c", // dark red
+    AB: "#757575", // gray for absent
     // Add legacy support for alternative naming
     A1: "#43ea7b",
     A2: "#4fc3f7",
@@ -20,11 +21,30 @@ export const GRADE_COLORS = {
     C2: "#ff7043",
 };
 
-// Centralized pass/fail determination function
+// Helper function to check if student failed based on theory marks and exam type
+export function isStudentFailed(student) {
+    if (!student) return true;
+    
+    // Check if student is absent
+    if (student.isAbsent || student.grade === "AB") {
+        return true;
+    }
+    
+    // For Monthly Tests, check if theory marks < 7 (E1 or E2)
+    if (student.examType === "Monthly Test") {
+        return (student.theory || 0) < 7;
+    }
+    
+    // For other exam types, check if theory marks < 25 (failing in theory)
+    return (student.theory || 0) < 25;
+}
+
+// Centralized pass/fail determination function (for display purposes)
 export function isPassingGrade(grade) {
     if (!grade || typeof grade !== "string") return false;
     const normalizedGrade = grade.trim().toUpperCase();
-    return normalizedGrade !== "E1" && normalizedGrade !== "E2";
+    // E1, E2, and AB (absent) are all failing grades
+    return normalizedGrade !== "E1" && normalizedGrade !== "E2" && normalizedGrade !== "AB";
 }
 
 // Centralized statistics calculation function
@@ -39,9 +59,10 @@ export function calculateStats(students) {
         };
     }
 
-    let topScorer = students[0];
+    let topScorer = null;
     let totalMarks = 0;
-    let validStudents = 0;
+    let validStudents = 0; // Non-absent students for average calculation
+    let totalStudentsCount = 0; // All students including absent
     let gradeDist = {};
     let pass = 0;
     let fail = 0;
@@ -56,25 +77,30 @@ export function calculateStats(students) {
             return; // Skip invalid students
         }
 
-        validStudents++;
-        totalMarks += student.total;
+        totalStudentsCount++;
 
-        // Grade distribution
+        // Grade distribution (include all students including absent)
         const grade = student.grade
             ? student.grade.trim().toUpperCase()
             : "UNKNOWN";
         gradeDist[grade] = (gradeDist[grade] || 0) + 1;
 
-        // Pass/fail counting
-        if (isPassingGrade(student.grade)) {
-            pass++;
-        } else {
+        // Pass/fail counting using proper fail criteria
+        if (isStudentFailed(student)) {
             fail++;
+        } else {
+            pass++;
         }
 
-        // Top scorer determination
-        if (!topScorer || student.total > topScorer.total) {
-            topScorer = student;
+        // Only include non-absent students in average and top scorer calculations
+        if (grade !== "AB") {
+            validStudents++;
+            totalMarks += student.total;
+
+            // Top scorer determination
+            if (!topScorer || student.total > topScorer.total) {
+                topScorer = student;
+            }
         }
     });
 
@@ -83,7 +109,7 @@ export function calculateStats(students) {
         classAverage: validStudents > 0 ? totalMarks / validStudents : 0,
         gradeDist,
         passFail: { pass, fail },
-        totalStudents: validStudents,
+        totalStudents: totalStudentsCount,
     };
 }
 

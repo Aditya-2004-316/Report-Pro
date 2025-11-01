@@ -307,21 +307,25 @@ function ExportDataModal({
                 "Session",
             ],
             ...studentsToExport.flatMap((stu) =>
-                SUBJECTS.map((subj) => [
-                    stu.rollNo || "",
-                    stu.name || "", // This will now use registry name if available
-                    stu.class || selectedClass || "",
-                    subj,
-                    stu.examType || "",
-                    ...(selectedExamType === "Monthly Test"
-                        ? [stu.subjects?.[subj]?.month || ""]
-                        : []),
-                    stu.subjects?.[subj]?.theory ?? "",
-                    stu.subjects?.[subj]?.practical ?? "",
-                    stu.subjects?.[subj]?.total ?? "",
-                    stu.subjects?.[subj]?.grade ?? "",
-                    stu.session || session || "",
-                ])
+                SUBJECTS.map((subj) => {
+                    const subjectData = stu.subjects?.[subj];
+                    const isAbsent = stu.isAbsent || (subjectData && subjectData.grade === "AB");
+                    return [
+                        stu.rollNo || "",
+                        stu.name || "",
+                        stu.class || selectedClass || "",
+                        subj,
+                        stu.examType || "",
+                        ...(selectedExamType === "Monthly Test"
+                            ? [subjectData?.month || ""]
+                            : []),
+                        isAbsent ? "AB" : (subjectData?.theory ?? ""),
+                        isAbsent ? (stu.examType === "Monthly Test" ? "N/A" : "AB") : (subjectData?.practical ?? ""),
+                        isAbsent ? "AB" : (subjectData?.total ?? ""),
+                        isAbsent ? "AB" : (subjectData?.grade ?? ""),
+                        stu.session || session || "",
+                    ];
+                })
             ),
         ];
         const csvContent = [
@@ -382,17 +386,17 @@ function ExportDataModal({
     const modalStyle = {
         background: theme.surface,
         borderRadius: 16,
-        boxShadow: theme.shadow,
-        padding: "2.5rem 2rem 2rem 2rem",
-        minWidth: 320,
-        maxWidth: 900,
-        width: "95vw",
+        padding: "1.5rem",
+        width: "90%",
+        maxWidth: 1200,
+        boxShadow: `0 10px 40px ${theme.shadow || "rgba(0,0,0,0.3)"}`,
         position: "relative",
-        margin: "3rem auto",
+        margin: "2rem auto",
         boxSizing: "border-box",
         color: theme.text,
         maxHeight: "90vh",
-        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
     };
     const closeBtnStyle = {
         position: "absolute",
@@ -662,8 +666,9 @@ function ExportDataModal({
                     <div
                         style={{
                             overflowX: "auto",
-                            maxHeight: 350,
-                            marginBottom: 18,
+                            overflowY: "auto",
+                            maxHeight: 450,
+                            marginBottom: 16,
                         }}
                     >
                         <table
@@ -680,7 +685,7 @@ function ExportDataModal({
                         >
                             <thead>
                                 <tr>
-                                    <th style={summaryThStyle}>
+                                    <th rowSpan={2} style={summaryThStyle}>
                                         <input
                                             type="checkbox"
                                             checked={selectAllChecked}
@@ -688,18 +693,32 @@ function ExportDataModal({
                                             aria-label="Select all students"
                                         />
                                     </th>
-                                    <th style={summaryThStyle}>Roll No</th>
-                                    <th style={summaryThStyle}>Name</th>
-                                    <th style={summaryThStyle}>Exam Type</th>
-                                    <th style={summaryThStyle}>Total</th>
-                                    <th style={summaryThStyle}>Grade</th>
+                                    <th rowSpan={2} style={summaryThStyle}>Roll No</th>
+                                    <th rowSpan={2} style={summaryThStyle}>Name</th>
+                                    <th rowSpan={2} style={summaryThStyle}>Exam Type</th>
+                                    {SUBJECTS.map((subj) => (
+                                        <th key={`${subj}-header`} colSpan={4} style={summaryThStyle}>
+                                            {subj}
+                                        </th>
+                                    ))}
+                                    <th rowSpan={2} style={summaryThStyle}>Overall Total</th>
+                                    <th rowSpan={2} style={summaryThStyle}>Percentage</th>
+                                    <th rowSpan={2} style={summaryThStyle}>Actions</th>
+                                </tr>
+                                <tr>
+                                    {SUBJECTS.map((subj) => [
+                                        <th key={`${subj}-theory`} style={summaryThStyle}>Theory</th>,
+                                        <th key={`${subj}-practical`} style={summaryThStyle}>Practical</th>,
+                                        <th key={`${subj}-total`} style={summaryThStyle}>Total</th>,
+                                        <th key={`${subj}-grade`} style={summaryThStyle}>Grade</th>,
+                                    ])}
                                 </tr>
                             </thead>
                             <tbody>
                                 {sortedStudents.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={6}
+                                            colSpan={31}
                                             style={{
                                                 textAlign: "center",
                                                 padding: 16,
@@ -769,11 +788,54 @@ function ExportDataModal({
                                                 <td style={summaryTdStyle}>
                                                     {stu.examType}
                                                 </td>
+                                                {SUBJECTS.map((subj) => {
+                                                    const subjectData = stu.subjects[subj];
+                                                    const isAbsent = subjectData?.grade === "AB";
+                                                    return [
+                                                        <td key={`${key}-${subj}-theory`} style={summaryTdStyle}>
+                                                            {isAbsent ? "AB" : (subjectData?.theory ?? "-")}
+                                                        </td>,
+                                                        <td key={`${key}-${subj}-practical`} style={summaryTdStyle}>
+                                                            {isAbsent
+                                                                ? (stu.examType === "Monthly Test" ? "N/A" : "AB")
+                                                                : (stu.examType === "Monthly Test" ? "N/A" : (subjectData?.practical ?? "-"))}
+                                                        </td>,
+                                                        <td key={`${key}-${subj}-total`} style={summaryTdStyle}>
+                                                            {isAbsent ? "AB" : (subjectData?.total ?? "-")}
+                                                        </td>,
+                                                        <td key={`${key}-${subj}-grade`} style={summaryTdStyle}>
+                                                            {isAbsent ? "AB" : (subjectData?.grade ?? "-")}
+                                                        </td>,
+                                                    ];
+                                                })}
                                                 <td style={summaryTdStyle}>
                                                     {stu.total}
                                                 </td>
                                                 <td style={summaryTdStyle}>
-                                                    {percentage.toFixed(2)}%
+                                                    {stu.total === 0 && Object.values(stu.subjects || {}).some(s => s.grade === "AB") ? "AB" : `${percentage.toFixed(2)}%`}
+                                                </td>
+                                                <td style={summaryTdStyle}>
+                                                    <button
+                                                        style={{
+                                                            padding: "4px 8px",
+                                                            fontSize: "12px",
+                                                            borderRadius: 4,
+                                                            border: "none",
+                                                            background: theme.accent,
+                                                            color: "#fff",
+                                                            cursor: "pointer",
+                                                        }}
+                                                        onClick={() => {
+                                                            const isSelected = selectedRows.includes(key);
+                                                            if (isSelected) {
+                                                                setSelectedRows(prev => prev.filter(k => k !== key));
+                                                            } else {
+                                                                setSelectedRows(prev => [...prev, key]);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {selectedRows.includes(key) ? "Deselect" : "Select"}
+                                                    </button>
                                                 </td>
                                             </tr>
                                         );
