@@ -574,9 +574,22 @@ function Statistics({
         },
     };
 
-    // Group students by subject
+    // Group students by subject - for subject-specific cards, show ALL months if Monthly Test
     const studentsBySubject = SUBJECTS.reduce((acc, subj) => {
-        acc[subj] = filteredStudents.filter((s) => s.subject === subj);
+        // Filter students for this subject with the selected exam type
+        // BUT ignore month filter for subject-specific breakdown
+        const subjectStudents = students
+            .map((student) => ({
+                ...student,
+                name: getStudentNameFromRegistry(student.rollNo) || student.name || "Unknown",
+            }))
+            .filter((s) => {
+                if (!validateStudentData(s)) return false;
+                if (s.subject !== subj) return false;
+                if (selectedExamType && selectedExamType !== "All" && s.examType !== selectedExamType) return false;
+                return true;
+            });
+        acc[subj] = subjectStudents;
         return acc;
     }, {});
 
@@ -1728,29 +1741,58 @@ function Statistics({
                         gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                         gap: 16,
                     }}>
-                        <div style={{
-                            background: theme.inputBg,
-                            padding: "12px 16px",
-                            borderRadius: 8,
-                            border: `1px solid ${theme.border}`,
-                        }}>
-                            <div style={{ fontSize: 13, color: accentDark, fontWeight: 600, marginBottom: 4 }}>
-                                Pass Percentage
+                        <div
+                            style={{
+                                background: theme.inputBg,
+                                padding: "16px 18px",
+                                borderRadius: 8,
+                                border: `1px solid ${theme.border}`,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                textAlign: "center",
+                                gap: 6,
+                                minHeight: 110,
+                            }}
+                        >
+                            <div style={{ fontSize: 16, color: accentDark, fontWeight: 700, marginBottom: 6 }}>
+                                ✅ Pass Percentage
                             </div>
-                            <div style={{ fontSize: 20, fontWeight: 700, color: passCount > failCount ? "#43ea7b" : accent }}>
+                            <div style={{ fontSize: 26, fontWeight: 800, color: passCount > failCount ? "#43ea7b" : accent }}>
                                 {overallPassRate.toFixed(1)}%
                             </div>
                         </div>
-                        <div style={{
-                            background: theme.inputBg,
-                            padding: "12px 16px",
-                            borderRadius: 8,
-                            border: `1px solid ${theme.border}`,
-                        }}>
-                            <div style={{ fontSize: 13, color: accentDark, fontWeight: 600, marginBottom: 4 }}>
-                                Grade Distribution
+                        <div
+                            style={{
+                                background: theme.inputBg,
+                                padding: "16px 18px",
+                                borderRadius: 8,
+                                border: `1px solid ${theme.border}`,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                textAlign: "center",
+                                gap: 6,
+                                minHeight: 110,
+                            }}
+                        >
+                            <div style={{ fontSize: 16, color: accentDark, fontWeight: 700, marginBottom: 6 }}>
+                                📊 Grade Distribution
                             </div>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: theme.text, display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+                            <div
+                                style={{
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                    color: theme.text,
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: 8,
+                                    marginTop: 6,
+                                    justifyContent: "center",
+                                }}
+                            >
                                 {Object.entries(gradeDist).map(([grade, count]) => (
                                     <span key={grade} style={{
                                         background: getGradeColor(grade),
@@ -1766,19 +1808,28 @@ function Statistics({
                             </div>
                         </div>
                         {stats.topScorer && (
-                            <div style={{
-                                background: theme.inputBg,
-                                padding: "12px 16px",
-                                borderRadius: 8,
-                                border: `1px solid ${theme.border}`,
-                            }}>
-                                <div style={{ fontSize: 13, color: accentDark, fontWeight: 600, marginBottom: 4 }}>
-                                    Highest Marks
+                            <div
+                                style={{
+                                    background: theme.inputBg,
+                                    padding: "16px 18px",
+                                    borderRadius: 8,
+                                    border: `1px solid ${theme.border}`,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    textAlign: "center",
+                                    gap: 6,
+                                    minHeight: 110,
+                                }}
+                            >
+                                <div style={{ fontSize: 16, color: accentDark, fontWeight: 700, marginBottom: 6 }}>
+                                    🏆 Highest Marks
                                 </div>
-                                <div style={{ fontSize: 18, fontWeight: 700, color: "#43ea7b" }}>
+                                <div style={{ fontSize: 24, fontWeight: 800, color: "#43ea7b" }}>
                                     {stats.topScorer.total} / 100
                                 </div>
-                                <div style={{ fontSize: 11, color: theme.textSecondary || "#666", marginTop: 2 }}>
+                                <div style={{ fontSize: 13, color: theme.textSecondary || "#666", marginTop: 2 }}>
                                     by {stats.topScorer.rollNo}
                                 </div>
                             </div>
@@ -1924,28 +1975,31 @@ function Statistics({
                         // Handle edge case: no students for this subject
                         const hasStudents = subjectStudents.length > 0;
 
-                        // Grouped bar chart data: for each grade, count pass/fail with null checks
-                        const gradePassFailData = gradeDistData.map(
-                            ({ name }) => {
-                                const grade = (name || "").trim().toUpperCase();
-                                const studentsForGrade = subjectStudents.filter(
-                                    (s) =>
-                                        (s.grade || "").trim().toUpperCase() ===
-                                        grade
-                                );
-                                const passCount = studentsForGrade.filter(
-                                    (s) => isPassingGrade(s.grade) // Use centralized function
-                                ).length;
-                                const failCount = studentsForGrade.filter(
-                                    (s) => !isPassingGrade(s.grade) // Use centralized function
-                                ).length;
+                        // Grouped bar chart data: Build from ACTUAL grade distribution to show all grades
+                        const gradeOrder = ["A+", "A", "B+", "B", "C+", "C", "D", "E1", "E2", "AB"];
+                        
+                        // Get all grades that actually exist in the data
+                        const gradesInData = Object.keys(stats.gradeDist || {});
+                        
+                        const gradePassFailData = gradesInData
+                            .sort((a, b) => {
+                                const aIdx = gradeOrder.indexOf(a);
+                                const bIdx = gradeOrder.indexOf(b);
+                                // If grade not in order list, put at end
+                                const safeA = aIdx === -1 ? 999 : aIdx;
+                                const safeB = bIdx === -1 ? 999 : bIdx;
+                                return safeA - safeB;
+                            })
+                            .map((grade) => {
+                                const count = stats.gradeDist[grade] || 0;
+                                const passing = isPassingGrade(grade);
                                 return {
                                     name: grade,
-                                    Pass: passCount,
-                                    Fail: failCount,
+                                    Pass: passing ? count : 0,
+                                    Fail: passing ? 0 : count,
                                 };
-                            }
-                        );
+                            });
+
                         return (
                             <div
                                 className="dashboard-card subject-card"
@@ -1993,6 +2047,8 @@ function Statistics({
                                         flexWrap: "wrap",
                                         gap: 18,
                                         alignItems: "center",
+                                        justifyContent: "space-around",
+                                        textAlign: "center",
                                         marginBottom: 10,
                                     }}
                                 >
@@ -2008,11 +2064,12 @@ function Statistics({
                                                 color: accentDark,
                                             }}
                                         >
-                                            Class Avg
+                                            📊 Class Avg
                                         </span>
                                         <ResponsiveContainer
                                             width="100%"
                                             height={60}
+                                            style={{ marginTop: 8 }}
                                         >
                                             <PieChart>
                                                 <Pie
@@ -2052,6 +2109,7 @@ function Statistics({
                                                 color: accentDark,
                                                 fontSize: 18,
                                                 textAlign: "center",
+                                                marginTop: -4,
                                             }}
                                         >
                                             {classAvg.toFixed(2)}%
@@ -2109,6 +2167,7 @@ function Statistics({
                                             style={{
                                                 display: "flex",
                                                 alignItems: "center",
+                                                justifyContent: "center",
                                                 gap: 18,
                                                 margin: "10px 0 10px 0",
                                             }}
@@ -2180,7 +2239,7 @@ function Statistics({
                                             color: accentDark,
                                         }}
                                     >
-                                        Grade Distribution
+                                        📊 Grade Distribution
                                     </span>
                                     {hasStudents ? (
                                         <>
@@ -2196,8 +2255,8 @@ function Statistics({
                                                     left: 10,
                                                     bottom: 5,
                                                 }}
-                                                barGap={6}
-                                                maxBarSize={60}
+                                                barGap={4}
+                                                maxBarSize={35}
                                             >
                                                 <XAxis
                                                     dataKey="name"

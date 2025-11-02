@@ -135,14 +135,15 @@ const StudentRegistry = mongoose.model(
 function calculateGrade(total, theory, examType) {
     // Special grading system for Monthly Tests (out of 20)
     if (examType === "Monthly Test") {
-        // For Monthly Tests, total should be the theory marks (out of 20)
+        // For Monthly Tests, ALWAYS use theory marks (out of 20) when available
         // Grading system: 0-3 -> E2, 4-6 -> E1, 7-8 -> D, 9-11 -> C, 12-14 -> B, 15-16 -> A, 17-20 -> A+
-        if (total >= 17) return "A+";
-        if (total >= 15) return "A";
-        if (total >= 12) return "B";
-        if (total >= 9) return "C";
-        if (total >= 7) return "D";
-        if (total >= 4) return "E1";
+        const marks = typeof theory === "number" && !isNaN(theory) ? theory : total;
+        if (marks >= 17) return "A+";
+        if (marks >= 15) return "A";
+        if (marks >= 12) return "B";
+        if (marks >= 9) return "C";
+        if (marks >= 7) return "D";
+        if (marks >= 4) return "E1";
         return "E2";
     }
 
@@ -486,9 +487,17 @@ app.get("/api/students/:rollNo", requireAuth, async (req, res) => {
 });
 
 // Helper function to check if a student failed based on exam type
+// List of all required subjects
+const ALL_SUBJECTS = ["Hindi", "English", "Sanskrit", "Mathematics", "Science", "Social Science"];
+
 function isStudentFailed(student) {
     // Check if student is absent
     if (student.isAbsent || student.grade === "AB") {
+        return true;
+    }
+    
+    // If theory marks are not entered (null, undefined, or NaN), consider as failed
+    if (student.theory == null || isNaN(student.theory)) {
         return true;
     }
     
@@ -534,8 +543,22 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
             let gradeDist = {};
 
             students.forEach((s) => {
-                // Grade distribution
-                gradeDist[s.grade] = (gradeDist[s.grade] || 0) + 1;
+                // Normalize/derive grade for distribution
+                let normalizedGrade;
+                const rawGrade = (s.grade || "").trim().toUpperCase();
+                if (s.isAbsent || rawGrade === "AB") {
+                    normalizedGrade = "AB";
+                } else if (rawGrade) {
+                    normalizedGrade = rawGrade;
+                } else {
+                    normalizedGrade = calculateGrade(
+                        typeof s.total === "number" ? s.total : Number(s.total) || 0,
+                        typeof s.theory === "number" ? s.theory : Number(s.theory) || 0,
+                        s.examType
+                    );
+                }
+
+                gradeDist[normalizedGrade] = (gradeDist[normalizedGrade] || 0) + 1;
 
                 // Pass/fail based on fail criteria
                 if (isStudentFailed(s)) {
@@ -544,8 +567,9 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
                     pass++;
                 }
 
-                // Average and top scorer (exclude absent)
-                if (s.grade !== "AB") {
+                // Average and top scorer (exclude absent, require valid total)
+                const hasValidTotal = typeof s.total === "number" && !isNaN(s.total);
+                if (normalizedGrade !== "AB" && hasValidTotal) {
                     totalMarks += s.total;
                     validCount++;
                     if (!topScorer || s.total > topScorer.total) {
@@ -576,12 +600,14 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
                     examType: s.examType,
                     session: s.session,
                     subjects: [],
+                    subjectsMap: {}, // Track which subjects have been entered
                     hasFailed: false,
                     totalMarks: 0,
                     subjectCount: 0,
                 };
             }
             studentsByRollNo[key].subjects.push(s);
+            studentsByRollNo[key].subjectsMap[s.subject] = s;
             studentsByRollNo[key].totalMarks += s.total;
             studentsByRollNo[key].subjectCount++;
             
@@ -594,12 +620,19 @@ app.get("/api/statistics", requireAuth, async (req, res) => {
         const uniqueStudents = Object.values(studentsByRollNo);
 
         // Calculate pass/fail based on unique students
+        // A student only passes if:
+        // 1. They have marks entered for ALL required subjects
+        // 2. They passed in ALL subjects
         let pass = 0, fail = 0;
         uniqueStudents.forEach((student) => {
-            if (student.hasFailed) {
-                fail++;
-            } else {
+            // Check if student has all required subjects
+            const hasAllSubjects = ALL_SUBJECTS.every(subject => student.subjectsMap[subject]);
+            
+            // Student passes only if they have all subjects AND didn't fail any
+            if (hasAllSubjects && !student.hasFailed) {
                 pass++;
+            } else {
+                fail++;
             }
         });
 

@@ -3,14 +3,65 @@
     line-height: 1.5;
     font-weight: 400;
 
-    color-scheme: light dark;
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #242424;
+    color-scheme: light;
+    color: #213547;
+    background-color: #ffffff;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+input,
+textarea,
+select {
+    background-color: #ffffff;
+    color: #213547;
+    border: 1px solid #d7d7d7;
+    font-family: inherit;
+}
+
+/* Global scrollbar styling to match summary tables */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #e91e63 #f8d7da;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f8d7da;
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #e91e63;
+    border-radius: 6px;
+    border: 2px solid #f8d7da;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #c2185b;
+}
+
+::-webkit-scrollbar-corner {
+    background: #f8d7da;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+    background-color: #f3f3f3;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: #e53935;
+    background-color: #ffffff;
 }
 
 a {
@@ -43,7 +94,8 @@ button {
     font-size: 1em;
     font-weight: 500;
     font-family: inherit;
-    background-color: #1a1a1a;
+    background-color: #ffffff;
+    color: inherit;
     cursor: pointer;
     transition: border-color 0.25s;
 }
@@ -76,18 +128,7 @@ button:focus-visible {
     min-width: 0;
 }
 
-@media (prefers-color-scheme: light) {
-    :root {
-        color: #213547;
-        background-color: #ffffff;
-    }
-    a:hover {
-        color: #747bff;
-    }
-    button {
-        background-color: #f9f9f9;
-    }
-}
+
 
 /* --- Mobile header responsiveness (do not affect desktop/tablet) --- */
 @media (max-width: 600px) {

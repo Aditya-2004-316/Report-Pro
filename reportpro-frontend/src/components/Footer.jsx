@@ -423,6 +423,7 @@ function Footer({
                         </h4>
                         <Link
                             to="/dashboard/help"
+                            reloadDocument
                             style={getLinkStyle(helpActive)}
                             className="footer-link"
                             onMouseEnter={(e) => {
@@ -436,6 +437,7 @@ function Footer({
                         </Link>
                         <Link
                             to="/dashboard/contact"
+                            reloadDocument
                             style={getLinkStyle(contactActive)}
                             className="footer-link"
                             onMouseEnter={(e) => {
@@ -449,6 +451,7 @@ function Footer({
                         </Link>
                         <Link
                             to="/dashboard/privacy"
+                            reloadDocument
                             style={getLinkStyle(privacyActive)}
                             className="footer-link"
                             onMouseEnter={(e) => {
@@ -462,6 +465,7 @@ function Footer({
                         </Link>
                         <Link
                             to="/dashboard/terms"
+                            reloadDocument
                             style={getLinkStyle(termsActive)}
                             className="footer-link"
                             onMouseEnter={(e) => {

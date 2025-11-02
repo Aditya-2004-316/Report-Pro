@@ -30,13 +30,18 @@ export function isStudentFailed(student) {
         return true;
     }
     
+    // If theory marks are not entered (null, undefined, or NaN), consider as failed
+    if (student.theory == null || isNaN(student.theory)) {
+        return true;
+    }
+    
     // For Monthly Tests, check if theory marks < 7 (E1 or E2)
     if (student.examType === "Monthly Test") {
-        return (student.theory || 0) < 7;
+        return student.theory < 7;
     }
     
     // For other exam types, check if theory marks < 25 (failing in theory)
-    return (student.theory || 0) < 25;
+    return student.theory < 25;
 }
 
 // Centralized pass/fail determination function (for display purposes)
@@ -68,21 +73,23 @@ export function calculateStats(students) {
     let fail = 0;
 
     students.forEach((student) => {
-        // Null checks for critical fields
-        if (
-            !student ||
-            typeof student.total !== "number" ||
-            isNaN(student.total)
-        ) {
-            return; // Skip invalid students
+        // Basic validation
+        if (!student) {
+            return;
         }
 
         totalStudentsCount++;
 
-        // Grade distribution (include all students including absent)
-        const grade = student.grade
-            ? student.grade.trim().toUpperCase()
-            : "UNKNOWN";
+        // Grade distribution (include all students including absent); derive grade if missing
+        let grade;
+        if (student.isAbsent || (student.grade || "").trim().toUpperCase() === "AB") {
+            grade = "AB";
+        } else if (student.grade && typeof student.grade === "string") {
+            grade = student.grade.trim().toUpperCase();
+        } else {
+            grade = calculateSubjectGrade(student.total, student.theory, student.examType);
+        }
+        grade = (grade || "UNKNOWN").trim().toUpperCase();
         gradeDist[grade] = (gradeDist[grade] || 0) + 1;
 
         // Pass/fail counting using proper fail criteria
@@ -92,13 +99,15 @@ export function calculateStats(students) {
             pass++;
         }
 
-        // Only include non-absent students in average and top scorer calculations
-        if (grade !== "AB") {
+        // Only include non-absent students with valid totals in average and top scorer calculations
+        const totalNum = Number(student.total);
+        const hasValidTotal = !isNaN(totalNum);
+        if (grade !== "AB" && hasValidTotal) {
             validStudents++;
-            totalMarks += student.total;
+            totalMarks += totalNum;
 
             // Top scorer determination
-            if (!topScorer || student.total > topScorer.total) {
+            if (!topScorer || totalNum > Number(topScorer.total || 0)) {
                 topScorer = student;
             }
         }
@@ -121,15 +130,12 @@ export function safeDivision(numerator, denominator, defaultValue = 0) {
 
 // Validate student data
 export function validateStudentData(student) {
-    return (
-        student &&
-        typeof student === "object" &&
-        student.rollNo &&
-        student.subject &&
-        student.examType &&
-        typeof student.total === "number" &&
-        !isNaN(student.total)
-    );
+    if (!student || typeof student !== "object") return false;
+    if (!student.rollNo || !student.subject || !student.examType) return false;
+    
+    // Accept both number and string numbers for total
+    const total = Number(student.total);
+    return !isNaN(total);
 }
 
 // Get grade color with fallback
