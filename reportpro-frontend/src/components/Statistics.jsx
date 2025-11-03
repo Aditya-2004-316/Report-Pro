@@ -577,7 +577,6 @@ function Statistics({
     // Group students by subject - for subject-specific cards, show ALL months if Monthly Test
     const studentsBySubject = SUBJECTS.reduce((acc, subj) => {
         // Filter students for this subject with the selected exam type
-        // BUT ignore month filter for subject-specific breakdown
         const subjectStudents = students
             .map((student) => ({
                 ...student,
@@ -587,6 +586,14 @@ function Statistics({
                 if (!validateStudentData(s)) return false;
                 if (s.subject !== subj) return false;
                 if (selectedExamType && selectedExamType !== "All" && s.examType !== selectedExamType) return false;
+                if (
+                    selectedExamType === "Monthly Test" &&
+                    selectedMonth &&
+                    s.examType === "Monthly Test" &&
+                    s.month !== selectedMonth
+                ) {
+                    return false;
+                }
                 return true;
             });
         acc[subj] = subjectStudents;
